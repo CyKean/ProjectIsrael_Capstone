@@ -1,0 +1,100 @@
+Crop Classification Model Training Summary - 2025-06-19 01:13:09
+======================================================================
+
+Dataset Information:
+- Dataset Path: crop_dataset.csv
+- Target Column: Crop
+- Initial total samples: 26000, Initial classes: 26
+- Min samples per class filter: 5
+- Samples after filtering: 26000
+- Classes after filtering (used for model output): 26
+- Samples after resampling (if any): 26000
+
+Feature Engineering & Selection:
+- Number of features after engineering: 91
+- Number of selected features for model: 35
+
+Model Architecture (Neural Network):
+Model: "functional"
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Layer (type)                ┃ Output Shape        ┃     Param # ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ input_layer (InputLayer)    │ (None, 35)          │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dense (Dense)               │ (None, 256)         │       9,216 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ leaky_re_lu (LeakyReLU)     │ (None, 256)         │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ batch_normalization         │ (None, 256)         │       1,024 │
+│ (BatchNormalization)        │                     │             │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dropout (Dropout)           │ (None, 256)         │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dense_1 (Dense)             │ (None, 128)         │      32,896 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ leaky_re_lu_1 (LeakyReLU)   │ (None, 128)         │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ batch_normalization_1       │ (None, 128)         │         512 │
+│ (BatchNormalization)        │                     │             │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dropout_1 (Dropout)         │ (None, 128)         │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dense_2 (Dense)             │ (None, 64)          │       8,256 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ leaky_re_lu_2 (LeakyReLU)   │ (None, 64)          │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ batch_normalization_2       │ (None, 64)          │         256 │
+│ (BatchNormalization)        │                     │             │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dropout_2 (Dropout)         │ (None, 64)          │           0 │
+├─────────────────────────────┼─────────────────────┼─────────────┤
+│ dense_3 (Dense)             │ (None, 26)          │       1,690 │
+└─────────────────────────────┴─────────────────────┴─────────────┘
+ Total params: 159,760 (624.07 KB)
+ Trainable params: 52,954 (206.85 KB)
+ Non-trainable params: 896 (3.50 KB)
+ Optimizer params: 105,910 (413.71 KB)
+
+Training Performance (Balanced Accuracy on Test Set):
+- Neural Network Balanced Accuracy: 0.3548
+- Neural Network Best Validation Accuracy (raw): 0.3675
+- Neural Network Best Validation Loss: 1.5962
+
+- Best Model Type (based on Balanced Accuracy): NN
+
+Selected Features (35):
+1. N (ppm)
+2. K (ppm)
+3. N (ppm)_x_P (ppm)
+4. N (ppm)_plus_P (ppm)
+5. N (ppm)_minus_P (ppm)
+6. N (ppm)_x_K (ppm)
+7. N (ppm)_plus_K (ppm)
+8. N (ppm)_plus_Temp (°C)
+9. N (ppm)_minus_Temp (°C)
+10. N (ppm)_div_Humidity (%)
+11. N (ppm)_x_Humidity (%)
+12. N (ppm)_plus_Humidity (%)
+13. N (ppm)_minus_Humidity (%)
+14. N (ppm)_div_pH
+15. N (ppm)_x_pH
+16. N (ppm)_plus_pH
+17. N (ppm)_minus_pH
+18. N (ppm)_x_Soil Moisture (%)
+19. N (ppm)_plus_Soil Moisture (%)
+20. N (ppm)_minus_Soil Moisture (%)
+21. P (ppm)_x_K (ppm)
+22. P (ppm)_plus_K (ppm)
+23. P (ppm)_minus_K (ppm)
+24. K (ppm)_plus_Temp (°C)
+25. K (ppm)_minus_Temp (°C)
+26. K (ppm)_x_Humidity (%)
+27. K (ppm)_plus_Humidity (%)
+28. K (ppm)_minus_Humidity (%)
+29. K (ppm)_div_pH
+30. K (ppm)_x_pH
+31. K (ppm)_plus_pH
+32. K (ppm)_minus_pH
+33. K (ppm)_x_Soil Moisture (%)
+34. K (ppm)_plus_Soil Moisture (%)
+35. K (ppm)_minus_Soil Moisture (%)
