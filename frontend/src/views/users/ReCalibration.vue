@@ -1,8 +1,4 @@
 <template>
-<div class="h-screen flex bg-gradient-to-br from-green-50 to-emerald-100 font-poppins overflow-hidden">
-  
-  <!-- Main Content -->
-  <main class="flex-1 flex flex-col h-screen pt-32">
     <!-- Container Wrapper with optimized spacing -->
     <div class="flex-1 w-full px-4 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
       <!-- Main Container -->
@@ -228,7 +224,6 @@
         </div>
       </div>
     </div>
-  </main>
 
   <!-- MODAL OVERLAY - Fixed positioning with proper z-index -->
   <div v-if="activeModal" class="fixed inset-0 z-[9999] overflow-y-auto">
@@ -903,7 +898,6 @@
       </button>
     </div>
   </div>
-</div>
 </template>
 
 <script setup>

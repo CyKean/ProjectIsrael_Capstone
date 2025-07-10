@@ -1,6 +1,4 @@
 <template>
-  <div class="h-screen flex bg-white font-poppins overflow-hidden">
-    <main class="flex-1 flex flex-col h-screen pt-32">
       <div class="flex-1 w-full px-4 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
         <!-- Enhanced main container with more appealing design -->
         <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-140px)] flex flex-col overflow-hidden">
@@ -691,7 +689,6 @@
           </div>
         </div>
       </div>
-    </main>
 
     <!-- Toggle Confirmation Dialog -->
     <Transition name="modal">
@@ -1291,7 +1288,6 @@
     </div>
     </Transition>
 
-  </div>
 </template>
 
 <script setup>
@@ -3274,8 +3270,8 @@ watch(() => isAm.value, () => {
 
 onMounted(() => {
   // console.log('Component mounted, fetching data...')
-  fetchMotorStatus()
-  fetchWateringSchedules(); // This will also call calculateNextWateringTime via its snapshot listener
+  // fetchMotorStatus()
+  // fetchWateringSchedules(); // This will also call calculateNextWateringTime via its snapshot listener
 
   const today = new Date()
   const thirtyDaysAgo = new Date()

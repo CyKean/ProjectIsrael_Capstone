@@ -1,8 +1,4 @@
 <template>
-  <div class="h-screen flex bg-gradient-to-br from-green-50 to-emerald-100 font-poppins overflow-hidden">
-    
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-screen pt-32">
       <div class="flex-1 w-full px-4 sm:px-6 lg:px-10 overflow-hidden">
         
         <!-- Main Container - Everything Inside -->
@@ -656,7 +652,6 @@
           </div>
         </div>
       </div>
-    </main>
 
     <LogoutModal v-if="showModal" @confirm="executeLogout" @cancel="showModal = false" />
 
@@ -670,7 +665,6 @@
       </div>
       <span class="text-gray-900 font-medium text-sm">{{ toastMessage }}</span>
     </div>
-  </div>
 </template>
 
 <script setup>

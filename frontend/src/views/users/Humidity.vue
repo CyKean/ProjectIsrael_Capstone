@@ -1,6 +1,4 @@
 <template>
-  <div class="h-screen flex bg-gradient-to-br from-green-50 to-emerald-100 font-poppins overflow-hidden">
-    <main class="flex-1 flex flex-col h-screen pt-32">
       <div class="flex-1 w-full px-4 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
         <!-- Main container with curved edges on all corners -->
         <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 h-[calc(100vh-140px)] flex flex-col transition-all duration-300 ease-in-out hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)]">
@@ -264,8 +262,6 @@
           </div>
         </div>
       </div>
-    </main>
-  </div>
 </template>
 
 <script setup>

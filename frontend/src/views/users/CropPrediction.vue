@@ -1,7 +1,4 @@
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-green-50 to-emerald-100 font-poppins overflow-hidden">
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-screen pt-32">
       <!-- Container Wrapper with proper spacing -->
       <div class="flex-1 w-full px-4 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
         <!-- Main Container with adjusted width -->
@@ -145,7 +142,7 @@
                 
                 <!-- Enhanced Header -->
                 <div class="mb-6">
-                  <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2 tracking-wide">
                     <ActivitySquareIcon class="w-5 h-5 text-green-500" />
                     Crop Recommendations
                   </h2>
@@ -158,329 +155,329 @@
                 <div class="space-y-6">
                   <!-- Primary Measurements Section -->
                   <div>
-  <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center">
-    <span class="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
-    Soil Composition Analysis
-  </h3>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <!-- Nitrogen Level -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-green-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-green-50 rounded-lg">
-              <BeakerIcon class="w-4 h-4 text-green-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Nitrogen (N)</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="nitrogen"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">mg/kg</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-green-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, (parseFloat(nitrogen || 0) / 200 * 100))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-8"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center">
+                      <span class="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                      Soil Composition Analysis
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <!-- Nitrogen Level -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-green-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-green-50 rounded-lg">
+                                <BeakerIcon class="w-4 h-4 text-green-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Nitrogen (N)</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="nitrogen"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">mg/kg</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-green-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(nitrogen || 0) / 200 * 100))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-8"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
 
-    <!-- Phosphorus Level -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-blue-50 rounded-lg">
-              <TestTubesIcon class="w-4 h-4 text-blue-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Phosphorus (P)</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="phosphorus"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">mg/kg</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, (parseFloat(phosphorus || 0) / 200 * 100))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-8"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
+                      <!-- Phosphorus Level -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-blue-50 rounded-lg">
+                                <TestTubesIcon class="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Phosphorus (P)</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="phosphorus"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">mg/kg</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(phosphorus || 0) / 200 * 100))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-8"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
 
-    <!-- Potassium Level -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-purple-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-purple-50 rounded-lg">
-              <BeakerIcon class="w-4 h-4 text-purple-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Potassium (K)</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="potassium"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">mg/kg</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-purple-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, (parseFloat(potassium || 0) / 200 * 100))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-8"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
+                      <!-- Potassium Level -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-purple-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-purple-50 rounded-lg">
+                                <BeakerIcon class="w-4 h-4 text-purple-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Potassium (K)</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="potassium"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">mg/kg</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-purple-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(potassium || 0) / 200 * 100))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-8"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
 
-    <!-- pH Level -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-amber-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-amber-50 rounded-lg">
-              <DropletIcon class="w-4 h-4 text-amber-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Soil pH</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="soilpH"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">pH</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-amber-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, (parseFloat(soilpH || 0) / 14 * 100))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-16 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-6"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
-  </div>
-</div>
+                      <!-- pH Level -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-amber-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-amber-50 rounded-lg">
+                                <DropletIcon class="w-4 h-4 text-amber-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Soil pH</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="soilpH"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">pH</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-amber-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(soilpH || 0) / 14 * 100))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-6"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-<!-- Environmental Parameters Section -->
-<div>
-  <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center">
-    <span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
-    Environmental Parameters
-  </h3>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <!-- Soil Moisture -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-cyan-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-cyan-50 rounded-lg">
-              <WavesIcon class="w-4 h-4 text-cyan-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Soil Moisture</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="soilMoisture"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">%</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-cyan-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, parseFloat(soilMoisture || 0))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-28 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-4"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
+                  <!-- Environmental Parameters Section -->
+                  <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center">
+                      <span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                      Environmental Parameters
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <!-- Soil Moisture -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-cyan-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-cyan-50 rounded-lg">
+                                <WavesIcon class="w-4 h-4 text-cyan-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Soil Moisture</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="soilMoisture"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">%</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-cyan-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, parseFloat(soilMoisture || 0))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-28 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-4"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
 
-    <!-- Temperature -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-orange-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-orange-50 rounded-lg">
-              <ThermometerIcon class="w-4 h-4 text-orange-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Temperature</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="temperature"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">°C</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-orange-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, (parseFloat(temperature || 0) / 50 * 100))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-6"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
+                      <!-- Temperature -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-orange-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-orange-50 rounded-lg">
+                                <ThermometerIcon class="w-4 h-4 text-orange-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Temperature</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="temperature"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">°C</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-orange-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(temperature || 0) / 50 * 100))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-6"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
 
-    <!-- Humidity -->
-    <div class="relative group">
-      <template v-if="!isSensorDataLoading">
-        <div class="absolute inset-0 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-        <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-teal-300 hover:shadow-md">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="p-2 bg-teal-50 rounded-lg">
-              <CloudIcon class="w-4 h-4 text-teal-600" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Humidity</label>
-              <div class="flex items-baseline gap-1 mt-0.5">
-                <input 
-                  type="number"
-                  v-model="humidity"
-                  class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
-                />
-                <span class="text-xs text-gray-500">%</span>
-              </div>
-            </div>
-          </div>
-          <div class="h-1.5 w-full bg-gray-100 rounded-full">
-            <div 
-              class="h-1.5 bg-teal-500 rounded-full transition-all duration-500"
-              :style="{ width: `${Math.min(100, parseFloat(humidity || 0))}%` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-          <div>
-            <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <div class="h-6 bg-gray-200 rounded w-16"></div>
-              <div class="h-3 bg-gray-200 rounded w-4"></div>
-            </div>
-          </div>
-        </div>
-        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
-  </div>
-</div>
+                      <!-- Humidity -->
+                      <div class="relative group">
+                        <template v-if="!isSensorDataLoading">
+                          <div class="absolute inset-0 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-4 border border-gray-100 transition-all duration-300 hover:border-teal-300 hover:shadow-md">
+                            <div class="flex items-center gap-3 mb-3">
+                              <div class="p-2 bg-teal-50 rounded-lg">
+                                <CloudIcon class="w-4 h-4 text-teal-600" />
+                              </div>
+                              <div>
+                                <label class="block text-sm font-medium text-gray-500">Humidity</label>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                  <input 
+                                    type="number"
+                                    v-model="humidity"
+                                    class="text-xl font-bold text-gray-900 bg-transparent w-20 focus:outline-none"
+                                  />
+                                  <span class="text-xs text-gray-500">%</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-teal-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, parseFloat(humidity || 0))}%` }"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                        <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
+                            <div>
+                              <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <div class="h-6 bg-gray-200 rounded w-16"></div>
+                                <div class="h-3 bg-gray-200 rounded w-4"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   <!-- Action Button -->
                   <div class="flex justify-center mt-8">
@@ -915,7 +912,6 @@
           </div>
         </div>
       </div>
-    </main>
 
     <!-- Modal Overlay - Completely separate from the main content -->
     <div v-if="showModal" class="fixed inset-0 z-50 overflow-hidden">
@@ -1309,7 +1305,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -2550,6 +2545,10 @@ const saveChanges = async () => {
 /* Smooth transitions */
 * {
   transition: all 200ms ease-in-out;
+}
+
+.body {
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 /* Enhanced hover effects */

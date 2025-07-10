@@ -1,5 +1,5 @@
 <template>
-  <nav class="fixed top-2 mx-4 left-0 right-0 bg-gradient-to-r from-[#00A572] to-[#008F61] backdrop-blur-md bg-opacity-95 shadow-lg z-50 rounded-xl border border-transparent border-t-[3px] border-t-orange-400">
+  <nav class="fixed top-2 mx-4 left-0 right-0 bg-gradient-to-r from-[#00A572] to-[#008F61] backdrop-blur-md bg-opacity-95 shadow-lg z-50 rounded-xl border border-transparent border-t-[3px] border-t-orange-400 ">
     <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-2.5">
       <!-- Top row with logo and profile -->
       <div class="flex items-center justify-between">
@@ -140,7 +140,7 @@
           <!-- Notification Icon with Enhanced Minimalist Badge -->
           <div class="relative">
             <router-link
-              to="/notifications"
+              to="/app/notifications"
               class="relative flex items-center justify-center h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 text-white group/bell"
               :class="{ 'bg-white/30': $route.path === '/notifications' }"
               @mouseenter="showNotificationTooltip = true"
@@ -454,10 +454,9 @@
                 ]"
               />
             </button>
-
             <div
               v-show="isSensorDropdownOpen"
-              class="absolute top-full left-0 mt-1 w-52 bg-white/95 backdrop-blur-md rounded-lg shadow-lg py-1.5 z-50 border border-white/20 transform transition-all duration-300"
+              class="absolute top-full left-0 mt-1 w-52 bg-white/95 backdrop-blur-md rounded-lg shadow-lg py-1.5 dropdown-link border border-white/20 transform transition-all duration-300 z-[9999]"
             >
               <router-link
                 v-for="sensor in sensorTypes"
@@ -479,6 +478,7 @@
       </div>
     </div>
   </nav>
+  
 
   <!-- Spacer for content below navbar -->
   <div class="h-20"></div>
@@ -1321,20 +1321,20 @@ const getSignalStrengthClass = (strength) => {
 }
 
 const menuItems = [
-  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Crop Prediction', href: '/prediction', icon: Brain },
-  { name: 'Weather', href: '/weather', icon: Cloud },
-  { name: 'Device Control', href: '/control', icon: Cpu },
-  { name: 'Soil Analysis', href: '/soil', icon: Sprout }
+  { name: 'Overview', href: '/app/dashboard', icon: LayoutDashboard },
+  { name: 'Crop Prediction', href: '/app/prediction', icon: Brain },
+  { name: 'Weather', href: '/app/weather', icon: Cloud },
+  { name: 'Device Control', href: '/app/control', icon: Cpu },
+  { name: 'Soil Analysis', href: '/app/soil', icon: Sprout }
 ]
 
 const sensorTypes = [
-  { name: 'NPK Data', href: '/npkData', icon: Sprout },
-  { name: 'Soil pH', href: '/soilph', icon: Beaker },
-  { name: 'Soil Moisture', href: '/soil-moisture', icon: Droplets },
-  { name: 'Temp/Humid', href: '/temperature-humidity', icon: Thermometer },
-  { name: 'Water Level', href: '/water-level', icon: Gauge },
-  { name: 'Motor Control', href: '/motor-control', icon: Power }
+  { name: 'NPK Data', href: '/app/npkData', icon: Sprout },
+  { name: 'Soil pH', href: '/app/soilph', icon: Beaker },
+  { name: 'Soil Moisture', href: '/app/soil-moisture', icon: Droplets },
+  { name: 'Temp/Humid', href: '/app/temperature-humidity', icon: Thermometer },
+  { name: 'Water Level', href: '/app/water-level', icon: Gauge },
+  { name: 'Motor Control', href: '/app/motor-control', icon: Power }
 ]
 
 const toggleSensorDropdown = () => {
@@ -1753,7 +1753,7 @@ let unsubscribeSoilMoisture = null;
 const previousScheduleStates = ref({});
 
 onMounted(async () => {
-  fetchUserRealtime()
+  // fetchUserRealtime()
 
   document.addEventListener('click', closeDropdown)
   window.addEventListener('resize', handleResize)
@@ -1791,11 +1791,11 @@ onMounted(async () => {
     notifications.value = JSON.parse(saved)
   }
 
-  await fetchNotifications()
+  // await fetchNotifications()
   unsubscribeNotifications = setupNotificationsListener()
 
   // Watch watering schedules
-  fetchWateringSchedules()
+  // fetchWateringSchedules()
   checkWeatherForecastForAlerts();
   setInterval(checkWeatherForecastForAlerts, 3 * 60 * 60 * 1000); // Every 3 hours
 
@@ -2081,9 +2081,15 @@ watch(() => route.path, () => {
 </script>
 
 <style scoped>
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 .router-link-active {
   position: relative;
   transform: translateZ(0);
+}
+
+.dropdown-link {
+  z-index: 9999;
 }
 
 .router-link-active::after {

@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './routes/index.js'
 import './style.css'  // Make sure this import exists
 import "toastr/build/toastr.min.css";
+import './font.css'
 import { createVuetify } from 'vuetify';
 import 'vuetify/styles'; 
 import { createPinia } from 'pinia'

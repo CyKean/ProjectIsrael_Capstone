@@ -1,8 +1,4 @@
 <template>
-  <!-- Keep all your existing template code exactly as is -->
-  <div class="h-screen flex bg-gradient-to-br from-green-50 to-emerald-100 font-poppins overflow-hidden">
-    <!-- Main Content -->
-    <main class="flex-1 w-full flex flex-col h-screen pt-32">
       <!-- Container Wrapper with proper spacing -->
       <div class="flex-1 w-full px-4 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
         <!-- Main Container with adjusted width -->
@@ -765,8 +761,6 @@
           </div>
         </div>
       </div>
-    </main>
-  </div>
 </template>
 
 <script setup>
