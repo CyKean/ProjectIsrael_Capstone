@@ -3270,8 +3270,8 @@ watch(() => isAm.value, () => {
 
 onMounted(() => {
   // console.log('Component mounted, fetching data...')
-  // fetchMotorStatus()
-  // fetchWateringSchedules(); // This will also call calculateNextWateringTime via its snapshot listener
+  fetchMotorStatus()
+  fetchWateringSchedules(); // This will also call calculateNextWateringTime via its snapshot listener
 
   const today = new Date()
   const thirtyDaysAgo = new Date()

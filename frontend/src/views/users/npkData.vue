@@ -1,4 +1,5 @@
 <template>
+  <div class="h-screen flex bg-white font-poppins overflow-hidden">
       <div class="flex-1 w-full px-4 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
         <!-- Enhanced main container with more appealing design -->
         <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-140px)] flex flex-col overflow-hidden">
@@ -143,176 +144,176 @@
           <!-- Table and Graph Section - Flex container for side-by-side layout -->
           <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
             <!-- Live Graph Container - Three Separate Charts -->
-<div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 overflow-y-auto">
-  <div class="mb-3 flex items-center justify-between">
-    <div>
-      <h3 class="text-sm font-semibold text-gray-700">Live NPK Analysis</h3>
-      <p class="text-xs text-gray-500">Real-time soil monitoring</p>
-    </div>
-    
-    <!-- Minimalist Last Updated Status -->
-    <div class="text-right">
-      <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-0.5">
-        <Clock class="h-3 w-3" />
-        <span>Last Updated</span>
-        <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-      </div>
-      <div class="text-sm font-mono font-semibold text-gray-800">
-        {{ lastUpdated || '--:--:-- --' }}
-      </div>
-      <div class="text-xs text-gray-400">
-        {{ currentDate }}
-      </div>
-    </div>
-  </div>
-  
-  <!-- Nitrogen Graph -->
-  <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
-    <div class="p-3 border-b border-gray-100 bg-green-50 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-green-500"></div>
-        <span class="text-sm font-semibold text-green-700">Nitrogen (mg/kg)</span>
-      </div>
-      <div class="text-xs text-gray-500">
-        Current: <span class="font-bold text-green-600">{{ currentNitrogenValue }}</span>
-      </div>
-    </div>
-    
-    <div class="h-[180px] p-3 relative">
-      <canvas ref="nitrogenChartCanvas" class="w-full h-full"></canvas>
-    </div>
-    
-    <div class="border-t border-gray-100 p-3 bg-green-50/30">
-      <div class="grid grid-cols-3 gap-2">
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Min</div>
-          <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.min }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Avg</div>
-          <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.avg }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Max</div>
-          <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.max }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Phosphorus Graph -->
-  <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
-    <div class="p-3 border-b border-gray-100 bg-blue-50 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-        <span class="text-sm font-semibold text-blue-700">Phosphorus (mg/kg)</span>
-      </div>
-      <div class="text-xs text-gray-500">
-        Current: <span class="font-bold text-blue-600">{{ currentPhosphorusValue }}</span>
-      </div>
-    </div>
-    
-    <div class="h-[180px] p-3 relative">
-      <canvas ref="phosphorusChartCanvas" class="w-full h-full"></canvas>
-    </div>
-    
-    <div class="border-t border-gray-100 p-3 bg-blue-50/30">
-      <div class="grid grid-cols-3 gap-2">
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Min</div>
-          <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.min }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Avg</div>
-          <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.avg }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Max</div>
-          <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.max }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Potassium Graph -->
-  <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
-    <div class="p-3 border-b border-gray-100 bg-purple-50 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-purple-500"></div>
-        <span class="text-sm font-semibold text-purple-700">Potassium (mg/kg)</span>
-      </div>
-      <div class="text-xs text-gray-500">
-        Current: <span class="font-bold text-purple-600">{{ currentPotassiumValue }}</span>
-      </div>
-    </div>
-    
-    <div class="h-[180px] p-3 relative">
-      <canvas ref="potassiumChartCanvas" class="w-full h-full"></canvas>
-    </div>
-    
-    <div class="border-t border-gray-100 p-3 bg-purple-50/30">
-      <div class="grid grid-cols-3 gap-2">
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Min</div>
-          <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.min }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Avg</div>
-          <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.avg }}</div>
-        </div>
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
-          <div class="text-xs text-gray-500 mb-1">Max</div>
-          <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.max }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Optimal Ranges section -->
-  <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
-    <h4 class="text-sm font-semibold text-gray-700 mb-3">Optimal NPK Ranges</h4>
-    <div class="space-y-4">
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center">
-            <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-            <span class="text-xs font-medium text-gray-700">Nitrogen</span>
-          </div>
-          <span class="text-xs text-green-600 font-medium">20-60 mg/kg</span>
-        </div>
-        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-gradient-to-r from-green-200 via-green-500 to-green-600 rounded-full" style="width: 70%"></div>
-        </div>
-      </div>
-      
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center">
-            <div class="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-            <span class="text-xs font-medium text-gray-700">Phosphorus</span>
-          </div>
-          <span class="text-xs text-blue-600 font-medium">50-150 mg/kg</span>
-        </div>
-        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-gradient-to-r from-blue-200 via-blue-500 to-blue-600 rounded-full" style="width: 60%"></div>
-        </div>
-      </div>
-      
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center">
-            <div class="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
-            <span class="text-xs font-medium text-gray-700">Potassium</span>
-          </div>
-          <span class="text-xs text-purple-600 font-medium">80-160 mg/kg</span>
-        </div>
-        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-gradient-to-r from-purple-200 via-purple-500 to-purple-600 rounded-full" style="width: 65%"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+            <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 overflow-y-auto">
+              <div class="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-700">Live NPK Analysis</h3>
+                  <p class="text-xs text-gray-500">Real-time soil monitoring</p>
+                </div>
+                
+                <!-- Minimalist Last Updated Status -->
+                <div class="text-right">
+                  <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-0.5">
+                    <Clock class="h-3 w-3" />
+                    <span>Last Updated</span>
+                    <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  </div>
+                  <div class="text-sm font-mono font-semibold text-gray-800">
+                    {{ lastUpdated || '--:--:-- --' }}
+                  </div>
+                  <div class="text-xs text-gray-400">
+                    {{ currentDate }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Nitrogen Graph -->
+              <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+                <div class="p-3 border-b border-gray-100 bg-green-50 flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="text-sm font-semibold text-green-700">Nitrogen (mg/kg)</span>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    Current: <span class="font-bold text-green-600">{{ currentNitrogenValue }}</span>
+                  </div>
+                </div>
+                
+                <div class="h-[180px] p-3 relative">
+                  <canvas ref="nitrogenChartCanvas" class="w-full h-full"></canvas>
+                </div>
+                
+                <div class="border-t border-gray-100 p-3 bg-green-50/30">
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Min</div>
+                      <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.min }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Avg</div>
+                      <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.avg }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Max</div>
+                      <div class="text-sm font-semibold text-green-600">{{ nitrogenStats.max }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Phosphorus Graph -->
+              <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+                <div class="p-3 border-b border-gray-100 bg-blue-50 flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span class="text-sm font-semibold text-blue-700">Phosphorus (mg/kg)</span>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    Current: <span class="font-bold text-blue-600">{{ currentPhosphorusValue }}</span>
+                  </div>
+                </div>
+                
+                <div class="h-[180px] p-3 relative">
+                  <canvas ref="phosphorusChartCanvas" class="w-full h-full"></canvas>
+                </div>
+                
+                <div class="border-t border-gray-100 p-3 bg-blue-50/30">
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Min</div>
+                      <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.min }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Avg</div>
+                      <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.avg }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Max</div>
+                      <div class="text-sm font-semibold text-blue-600">{{ phosphorusStats.max }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Potassium Graph -->
+              <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+                <div class="p-3 border-b border-gray-100 bg-purple-50 flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                    <span class="text-sm font-semibold text-purple-700">Potassium (mg/kg)</span>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    Current: <span class="font-bold text-purple-600">{{ currentPotassiumValue }}</span>
+                  </div>
+                </div>
+                
+                <div class="h-[180px] p-3 relative">
+                  <canvas ref="potassiumChartCanvas" class="w-full h-full"></canvas>
+                </div>
+                
+                <div class="border-t border-gray-100 p-3 bg-purple-50/30">
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Min</div>
+                      <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.min }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Avg</div>
+                      <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.avg }}</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 bg-white rounded shadow-sm">
+                      <div class="text-xs text-gray-500 mb-1">Max</div>
+                      <div class="text-sm font-semibold text-purple-600">{{ potassiumStats.max }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Optimal Ranges section -->
+              <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+                <h4 class="text-sm font-semibold text-gray-700 mb-3">Optimal NPK Ranges</h4>
+                <div class="space-y-4">
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center">
+                        <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                        <span class="text-xs font-medium text-gray-700">Nitrogen</span>
+                      </div>
+                      <span class="text-xs text-green-600 font-medium">20-60 mg/kg</span>
+                    </div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-green-200 via-green-500 to-green-600 rounded-full" style="width: 70%"></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                        <span class="text-xs font-medium text-gray-700">Phosphorus</span>
+                      </div>
+                      <span class="text-xs text-blue-600 font-medium">50-150 mg/kg</span>
+                    </div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-blue-200 via-blue-500 to-blue-600 rounded-full" style="width: 60%"></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center">
+                        <div class="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
+                        <span class="text-xs font-medium text-gray-700">Potassium</span>
+                      </div>
+                      <span class="text-xs text-purple-600 font-medium">80-160 mg/kg</span>
+                    </div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-purple-200 via-purple-500 to-purple-600 rounded-full" style="width: 65%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <!-- Table Container - Larger width -->
             <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
@@ -477,6 +478,7 @@
       message="Please wait while we fetch the latest soil nutrient measurements"
     />
     <Settings />
+  </div>
 </template>
   
 <script setup>

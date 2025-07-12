@@ -1,6 +1,6 @@
 <template>
   <nav 
-    class="fixed top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-sm shadow-sm"
+    class="fixed top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-sm shadow-sm font-poppins"
     :style="{ transform: 'translateY(0)' }"
   >
     <div class="max-w-[1920px] w-full mx-auto px-6 sm:px-12 md:px-16 lg:px-24">
@@ -10,7 +10,7 @@
           <img 
             src="/public/images/logo/logo-wot-text.png"
             alt="Project Israel Logo" 
-            class="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 transition-transform duration-300 hover:scale-110"
+            class="h-10 w-10 sm:h-18 sm:w-18 md:h-20 md:w-20 transition-transform duration-300 hover:scale-110"
           />
         </a>
         
@@ -155,6 +155,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
 nav {
   will-change: transform;
   transform: translateY(0) !important;

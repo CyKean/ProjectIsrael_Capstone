@@ -9,7 +9,7 @@
             <img
               src="/public/images/logo/logo-wot-text.png"
               alt="Project Israel"
-              class="w-full h-full object-cover transform scale-[1.3] hover:scale-[1.8] transition-all duration-500 ease-out"
+              class="w-8 h-8 object-cover transform scale-[1.3] hover:scale-[1.8] transition-all duration-500 ease-out"
               style="transform-origin: center;"
             />
           </div>
@@ -1753,7 +1753,7 @@ let unsubscribeSoilMoisture = null;
 const previousScheduleStates = ref({});
 
 onMounted(async () => {
-  // fetchUserRealtime()
+  fetchUserRealtime()
 
   document.addEventListener('click', closeDropdown)
   window.addEventListener('resize', handleResize)
@@ -1795,7 +1795,7 @@ onMounted(async () => {
   unsubscribeNotifications = setupNotificationsListener()
 
   // Watch watering schedules
-  // fetchWateringSchedules()
+  fetchWateringSchedules()
   checkWeatherForecastForAlerts();
   setInterval(checkWeatherForecastForAlerts, 3 * 60 * 60 * 1000); // Every 3 hours
 
