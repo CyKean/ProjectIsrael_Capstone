@@ -1,611 +1,305 @@
 <template>
-      <div class="flex-1 w-full px-4 sm:px-6 lg:px-10 overflow-hidden">
+  <div class="flex-1 w-full px-2 sm:px-6 lg:px-10 overflow-hidden">
+    
+    <!-- Main Container - Everything Inside -->
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-hidden">
+      
+      <!-- Header - Inside Main Container -->
+      <div class="bg-gradient-to-r from-emerald-50 to-white p-6 border-b border-gray-100 rounded-t-lg">
+        <h1 class="text-md md:text-xl font-semibold text-gray-800 mb-1">User Profile</h1>
+        <p class="text-emerald-600 mt-1 text-xs md:text-sm">Manage your account information and security settings</p>
+      </div>
+
+      <!-- Two Containers with Gap Inside Main Container -->
+      <div class="flex gap-6 h-[calc(100%-100px)] p-4 md:p-6 overflow-y-auto">
         
-        <!-- Main Container - Everything Inside -->
-        <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 h-[calc(100vh-140px)] overflow-hidden">
-          
-          <!-- Header - Inside Main Container -->
-          <div class="bg-gradient-to-r from-emerald-50 to-white p-6 border-b border-gray-100 rounded-t-lg">
-            <h1 class="text-xl font-semibold text-gray-800 mb-1">User Profile</h1>
-            <p class="text-emerald-600 mt-1 text-sm">Manage your account information and security settings</p>
-          </div>
-
-          <!-- Two Containers with Gap Inside Main Container -->
-          <div class="flex gap-6 h-[calc(100%-100px)] p-6">
+        <!-- Left Container - Profile Avatar (30% width) -->
+        <div class="w-[30%] bg-gradient-to-br from-gray-50 to-gray-100 rounded-[16px] border border-gray-200 overflow-y-auto">
+          <div class="px-3 py-6 flex flex-col items-center">
             
-            <!-- Left Container - Profile Avatar (30% width) -->
-            <div class="w-[30%] bg-gradient-to-br from-gray-50 to-gray-100 rounded-[16px] border border-gray-200 overflow-y-auto">
-              <div class="px-3 py-6 flex flex-col items-center">
-                
-                <!-- Large Profile Circle -->
-                <div class="mb-6 flex flex-col items-center">
-                  <div class="relative">
-                    <!-- Profile Avatar Circle -->
-                    <div class="w-32 h-32 rounded-full bg-white shadow-xl border-4 border-emerald-200 flex items-center justify-center text-6xl transition-all duration-300 hover:scale-105 hover:shadow-2xl mb-4">
-                      {{ selectedAvatar.icon }}
-                    </div>
-
-                    <!-- Glow Effect -->
-                    <div class="absolute inset-0 w-32 h-32 rounded-full bg-emerald-200 opacity-20 blur-xl -z-10"></div>
-                  </div>
-
-                  <!-- Avatar Name -->
-                  <p class="text-center text-sm font-medium text-gray-800 mb-1">{{ selectedAvatar.name }}</p>
-                  <div class="w-8 h-0.5 bg-emerald-400 rounded-full"></div>
+            <!-- Large Profile Circle -->
+            <div class="mb-6 flex flex-col items-center">
+              <div class="relative">
+                <!-- Profile Avatar Circle -->
+                <div class="w-32 h-32 rounded-full bg-white shadow-xl border-4 border-emerald-200 flex items-center justify-center text-6xl transition-all duration-300 hover:scale-105 hover:shadow-2xl mb-4">
+                  {{ selectedAvatar.icon }}
                 </div>
 
-                <!-- Avatar Selection Section -->
-                <div class="w-full max-w-full">
-                  <div class="text-center mb-4">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-2">Choose Avatar</h3>
-                    <div class="w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full mx-auto mb-4"></div>
+                <!-- Glow Effect -->
+                <div class="absolute inset-0 w-32 h-32 rounded-full bg-emerald-200 opacity-20 blur-xl -z-10"></div>
+              </div>
+
+              <!-- Avatar Name -->
+              <p class="text-center text-sm font-medium text-gray-800 mb-1">{{ selectedAvatar.name }}</p>
+              <div class="w-8 h-0.5 bg-emerald-400 rounded-full"></div>
+            </div>
+
+            <!-- Avatar Selection Section -->
+            <div class="w-full max-w-full">
+              <div class="text-center mb-4">
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Choose Avatar</h3>
+                <div class="w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full mx-auto mb-4"></div>
+              </div>
+              
+              <!-- Avatar Grid -->
+              <div class="flex justify-center mb-4">
+                <div class="grid grid-cols-5 gap-4">
+                  <div 
+                    v-for="avatar in avatarOptions" 
+                    :key="avatar.id"
+                    @click="selectAvatar(avatar)"
+                    :class="[ 
+                      'w-14 h-14 rounded-full flex items-center justify-center text-xl cursor-pointer transition-all duration-200 border-2 bg-white shadow-sm hover:shadow-lg relative',
+                      selectedAvatar.id === avatar.id 
+                        ? 'border-emerald-500 bg-emerald-50 scale-110 shadow-lg ring-2 ring-emerald-200' 
+                        : 'border-gray-200 hover:border-emerald-300 hover:scale-105'
+                    ]"
+                  >
+                    {{ avatar.icon }}
+                    
+                    <!-- Selection indicator -->
+                    <div 
+                      v-if="selectedAvatar.id === avatar.id"
+                      class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center"
+                    >
+                      <CheckCircle class="w-2 h-2 text-white" />
+                    </div>
                   </div>
-                  
-                  <!-- Avatar Grid -->
-                  <div class="flex justify-center mb-4">
-                    <div class="grid grid-cols-5 gap-4">
-                      <div 
-                        v-for="avatar in avatarOptions" 
-                        :key="avatar.id"
-                        @click="selectAvatar(avatar)"
-                        :class="[ 
-                          'w-14 h-14 rounded-full flex items-center justify-center text-xl cursor-pointer transition-all duration-200 border-2 bg-white shadow-sm hover:shadow-lg relative',
-                          selectedAvatar.id === avatar.id 
-                            ? 'border-emerald-500 bg-emerald-50 scale-110 shadow-lg ring-2 ring-emerald-200' 
-                            : 'border-gray-200 hover:border-emerald-300 hover:scale-105'
-                        ]"
-                      >
-                        {{ avatar.icon }}
-                        
-                        <!-- Selection indicator -->
-                        <div 
-                          v-if="selectedAvatar.id === avatar.id"
-                          class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center"
-                        >
-                          <CheckCircle class="w-2 h-2 text-white" />
-                        </div>
-                      </div>
+                </div>
+              </div>
+              
+              <!-- Instruction text -->
+              <div class="text-center bg-white/50 rounded-lg p-2 border border-gray-200 mx-1">
+                <p class="text-xs font-medium text-gray-600">Select your profile character</p>
+                <p class="text-xs text-gray-500 mt-1">Choose from {{ avatarOptions.length }} available options</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Container - Personal Info & Security (70% width) -->
+        <div class="flex-1 bg-gradient-to-br h-[230px] md:h-full from-white to-gray-50/30 rounded-[16px] md:border md:border-gray-200 md:overflow-y-auto">
+          <div class=" md:p-6">
+            
+            <!-- Personal Information Section -->
+            <div class="mb-8">
+              <div class="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
+                <!-- Header with Edit Button -->
+                <div class="flex items-center justify-between mb-6">
+                  <div class="flex items-center">
+                    <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
+                      <User class="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 class="text-sm md:text-base font-semibold text-gray-900">Personal Information</h3>
+                      <p class="text-xs md:text-sm text-gray-500">Update your personal details</p>
                     </div>
                   </div>
                   
-                  <!-- Instruction text -->
-                  <div class="text-center bg-white/50 rounded-lg p-2 border border-gray-200 mx-1">
-                    <p class="text-xs font-medium text-gray-600">Select your profile character</p>
-                    <p class="text-xs text-gray-500 mt-1">Choose from {{ avatarOptions.length }} available options</p>
+                  <!-- Edit Button with Tooltip -->
+                  <div class="relative group">
+                    <button
+                      @click="toggleEditMode"
+                      :class="[
+                        'p-2 rounded-lg transition-all duration-200 flex items-center justify-center',
+                        isEditMode 
+                          ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md' 
+                          : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                      ]"
+                      :title="isEditMode ? 'Cancel editing' : 'Update Profile'"
+                    >
+                      <Edit3 v-if="!isEditMode" class="w-4 h-4" />
+                      <X v-else class="w-4 h-4" />
+                    </button>
+                    
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                      {{ isEditMode ? 'Cancel editing' : 'Update Profile' }}
+                      <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
+                    </div>
                   </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Full Name -->
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-700">Full Name</label>
+                    <div class="relative group">
+                      <User class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
+                      <input 
+                        v-model="profileData.name"
+                        @input="onFieldChange"
+                        type="text"
+                        :disabled="!isEditMode"
+                        :class="[
+                          'w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200',
+                          isEditMode 
+                            ? 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white hover:border-gray-300' 
+                            : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'
+                        ]"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Phone Number -->
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-700">Phone Number</label>
+                    <div class="relative group">
+                      <Phone class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
+                      <input 
+                        v-model="profileData.phone"
+                        @input="onFieldChange"
+                        type="tel"
+                        :disabled="!isEditMode"
+                        :class="[
+                          'w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200',
+                          isEditMode 
+                            ? 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white hover:border-gray-300' 
+                            : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'
+                        ]"
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="mt-6">
+                  <button 
+                    @click="saveProfile"
+                    :disabled="!canSave || isLoadingProfile"
+                    :class="[
+                      'px-6 py-2.5 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center',
+                      canSave && !isLoadingProfile
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
+                    ]"
+                  >
+                    <CheckCircle class="w-4 h-4 mr-2" />
+                    {{ isLoadingProfile ? 'Saving...' : 'Save Changes' }}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- Right Container - Personal Info & Security (70% width) -->
-            <div class="flex-1 bg-gradient-to-br from-white to-gray-50/30 rounded-[16px] border border-gray-200 overflow-y-auto">
-              <div class="p-6">
+            <!-- Security Settings Section -->
+            <div class="mb-8">
+              <div class="flex items-center mb-6">
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                  <Shield class="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 class="text-base font-semibold text-gray-900">Security Settings</h3>
+                  <p class="text-sm text-gray-500">Manage your account security</p>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                <!-- Personal Information Section -->
-                <div class="mb-8">
-                  <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
-                    <!-- Header with Edit Button -->
-                    <div class="flex items-center justify-between mb-6">
-                      <div class="flex items-center">
-                        <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
-                          <User class="w-5 h-5 text-emerald-600" />
+                <!-- Reset Password Card -->
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                  <div class="p-5">
+                    <div class="flex items-center mb-4">
+                      <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors duration-200">
+                        <Lock class="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 class="text-sm font-semibold text-gray-900">Change Password</h4>
+                        <p class="text-xs text-gray-500">Update your account password</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Show Get Started button only when form is not visible -->
+                    <button 
+                      v-if="!showPasswordSection"
+                      @click="togglePasswordSection"
+                      :disabled="isPasswordDisabled || isLoadingPassword"
+                      class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {{ isLoadingPassword ? 'Updating...' : (isPasswordDisabled ? 'Password login not active' : 'Get Started') }}
+                    </button>
+                    
+                    <!-- Password Form with Show/Hide and TOP BORDER LINE -->
+                    <div 
+                      v-if="showPasswordSection"
+                      class="mt-4 pt-4 border-t border-gray-100"
+                    >
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Current Password</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showCurrentPassword ? 'text' : 'password'"
+                              v-model="passwordForm.current"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                              placeholder="Enter current password"
+                            />
+                            <button
+                              type="button"
+                              @click="showCurrentPassword = !showCurrentPassword"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showCurrentPassword" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         <div>
-                          <h3 class="text-base font-semibold text-gray-900">Personal Information</h3>
-                          <p class="text-sm text-gray-500">Update your personal details</p>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">New Password</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showNewPassword ? 'text' : 'password'"
+                              v-model="passwordForm.new"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                              placeholder="Enter new password"
+                            />
+                            <button
+                              type="button"
+                              @click="showNewPassword = !showNewPassword"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showNewPassword" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Confirm Password</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showConfirmPassword ? 'text' : 'password'"
+                              v-model="passwordForm.confirm"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                              placeholder="Confirm new password"
+                            />
+                            <button
+                              type="button"
+                              @click="showConfirmPassword = !showConfirmPassword"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showConfirmPassword" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                       
-                      <!-- Edit Button with Tooltip -->
-                      <div class="relative group">
-                        <button
-                          @click="toggleEditMode"
-                          :class="[
-                            'p-2 rounded-lg transition-all duration-200 flex items-center justify-center',
-                            isEditMode 
-                              ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md' 
-                              : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
-                          ]"
-                          :title="isEditMode ? 'Cancel editing' : 'Update Profile'"
+                      <!-- Buttons Section with spacing -->
+                      <div class="space-y-3 mt-4">
+                        <!-- Update Password Button -->
+                        <button 
+                          @click="changePassword"
+                          :disabled="isLoadingPassword"
+                          class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                          <Edit3 v-if="!isEditMode" class="w-4 h-4" />
-                          <X v-else class="w-4 h-4" />
+                          {{ isLoadingPassword ? 'Updating...' : 'Update Password' }}
                         </button>
                         
-                        <!-- Tooltip -->
-                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                          {{ isEditMode ? 'Cancel editing' : 'Update Profile' }}
-                          <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <!-- Full Name -->
-                      <div class="space-y-2">
-                        <label class="text-sm font-medium text-gray-700">Full Name</label>
-                        <div class="relative group">
-                          <User class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
-                          <input 
-                            v-model="profileData.name"
-                            @input="onFieldChange"
-                            type="text"
-                            :disabled="!isEditMode"
-                            :class="[
-                              'w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200',
-                              isEditMode 
-                                ? 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white hover:border-gray-300' 
-                                : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'
-                            ]"
-                            placeholder="Enter your full name"
-                          />
-                        </div>
-                      </div>
-
-                      <!-- Phone Number -->
-                      <div class="space-y-2">
-                        <label class="text-sm font-medium text-gray-700">Phone Number</label>
-                        <div class="relative group">
-                          <Phone class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
-                          <input 
-                            v-model="profileData.phone"
-                            @input="onFieldChange"
-                            type="tel"
-                            :disabled="!isEditMode"
-                            :class="[
-                              'w-full pl-10 pr-4 py-3 border rounded-xl transition-all duration-200',
-                              isEditMode 
-                                ? 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white hover:border-gray-300' 
-                                : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'
-                            ]"
-                            placeholder="Enter your phone number"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Save Button -->
-                    <div class="mt-6">
-                      <button 
-                        @click="saveProfile"
-                        :disabled="!canSave || isLoadingProfile"
-                        :class="[
-                          'px-6 py-2.5 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center',
-                          canSave && !isLoadingProfile
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
-                        ]"
-                      >
-                        <CheckCircle class="w-4 h-4 mr-2" />
-                        {{ isLoadingProfile ? 'Saving...' : 'Save Changes' }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Security Settings Section -->
-                <div class="mb-8">
-                  <div class="flex items-center mb-6">
-                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                      <Shield class="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 class="text-base font-semibold text-gray-900">Security Settings</h3>
-                      <p class="text-sm text-gray-500">Manage your account security</p>
-                    </div>
-                  </div>
-                  
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    <!-- Reset Password Card -->
-                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
-                      <div class="p-5">
-                        <div class="flex items-center mb-4">
-                          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors duration-200">
-                            <Lock class="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <h4 class="text-sm font-semibold text-gray-900">Change Password</h4>
-                            <p class="text-xs text-gray-500">Update your account password</p>
-                          </div>
-                        </div>
-                        
-                        <!-- Show Get Started button only when form is not visible -->
+                        <!-- Cancel Button -->
                         <button 
-                          v-if="!showPasswordSection"
                           @click="togglePasswordSection"
-                          :disabled="isPasswordDisabled || isLoadingPassword"
-                          class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                          {{ isLoadingPassword ? 'Updating...' : (isPasswordDisabled ? 'Password login not active' : 'Get Started') }}
-                        </button>
-                        
-                        <!-- Password Form with Show/Hide and TOP BORDER LINE -->
-                        <div 
-                          v-if="showPasswordSection"
-                          class="mt-4 pt-4 border-t border-gray-100"
-                        >
-                          <div class="space-y-3">
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">Current Password</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showCurrentPassword ? 'text' : 'password'"
-                                  v-model="passwordForm.current"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
-                                  placeholder="Enter current password"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showCurrentPassword = !showCurrentPassword"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showCurrentPassword" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">New Password</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showNewPassword ? 'text' : 'password'"
-                                  v-model="passwordForm.new"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
-                                  placeholder="Enter new password"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showNewPassword = !showNewPassword"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showNewPassword" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">Confirm Password</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showConfirmPassword ? 'text' : 'password'"
-                                  v-model="passwordForm.confirm"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
-                                  placeholder="Confirm new password"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showConfirmPassword = !showConfirmPassword"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showConfirmPassword" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <!-- Buttons Section with spacing -->
-                          <div class="space-y-3 mt-4">
-                            <!-- Update Password Button -->
-                            <button 
-                              @click="changePassword"
-                              :disabled="isLoadingPassword"
-                              class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                              {{ isLoadingPassword ? 'Updating...' : 'Update Password' }}
-                            </button>
-                            
-                            <!-- Cancel Button -->
-                            <button 
-                              @click="togglePasswordSection"
-                              class="w-full bg-gradient-to-r from-blue-300 to-blue-400 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:from-blue-400 hover:to-blue-500 transition-all duration-200 text-sm font-medium"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Reset Pin Code Card -->
-                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
-                      <div class="p-5">
-                        <div class="flex items-center mb-4">
-                          <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-purple-200 transition-colors duration-200">
-                            <Shield class="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div>
-                            <h4 class="text-sm font-semibold text-gray-900">Change Pin Code</h4>
-                            <p class="text-xs text-gray-500">Update your security pin</p>
-                          </div>
-                        </div>
-                        
-                        <!-- Show Get Started button only when form is not visible -->
-                        <button 
-                          v-if="!showPinSection"
-                          @click="togglePinSection"
-                          :disabled="isPinDisabled || isLoadingPin"
-                          class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                          {{ isLoadingPin ? 'Updating...' : (isPinDisabled ? 'PIN login not active' : 'Get Started') }}
-                        </button>
-                        
-                        <!-- Pin Form with TOP BORDER LINE -->
-                        <div 
-                          v-if="showPinSection"
-                          class="mt-4 pt-4 border-t border-gray-100"
-                        >
-                          <div class="space-y-3">
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">Current Pin</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showCurrentPin ? 'text' : 'password'"
-                                  v-model="pinForm.current"
-                                  maxlength="4"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
-                                  placeholder="••••"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showCurrentPin = !showCurrentPin"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showCurrentPin" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">New Pin</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showNewPin ? 'text' : 'password'"
-                                  v-model="pinForm.new"
-                                  maxlength="4"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
-                                  placeholder="••••"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showNewPin = !showNewPin"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showNewPin" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label class="block text-xs font-medium text-gray-700 mb-1">Confirm Pin</label>
-                              <div class="relative flex items-center">
-                                <input 
-                                  :type="showConfirmPin ? 'text' : 'password'"
-                                  v-model="pinForm.confirm"
-                                  maxlength="4"
-                                  class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
-                                  placeholder="••••"
-                                />
-                                <button
-                                  type="button"
-                                  @click="showConfirmPin = !showConfirmPin"
-                                  class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
-                                >
-                                  <Eye v-if="!showConfirmPin" class="w-4 h-4" />
-                                  <EyeOff v-else class="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <!-- Buttons Section with spacing -->
-                          <div class="space-y-3 mt-4">
-                            <!-- Update Pin Button -->
-                            <button 
-                              @click="changePin"
-                              :disabled="isLoadingPin"
-                              class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                              {{ isLoadingPin ? 'Updating...' : 'Update Pin' }}
-                            </button>
-                            
-                            <!-- Cancel Button -->
-                            <button 
-                              @click="togglePinSection"
-                              class="w-full bg-gradient-to-r from-purple-300 to-purple-400 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:from-purple-400 hover:to-purple-500 transition-all duration-200 text-sm font-medium"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-                <!-- Reset Password/PIN via OTP Card -->
-                <div class="mb-8">
-                  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
-                    <div class="p-5">
-                      <div class="flex items-center mb-4">
-                        <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-orange-200 transition-colors duration-200">
-                          <KeyRound class="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <h4 class="text-sm font-semibold text-gray-900">Forgot Password/PIN via OTP</h4>
-                          <p class="text-xs text-gray-500">Recover your account credentials if forgotten</p>
-                        </div>
-                      </div>
-
-                      <button
-                        v-if="!showResetPasswordSection"
-                        @click="toggleResetPasswordSection"
-                        :disabled="isLoadingReset"
-                        class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2.5 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                        {{ isLoadingReset ? 'Loading...' : 'Get Started' }}
-                      </button>
-
-                      <div v-if="showResetPasswordSection" class="mt-4 pt-4 border-t border-gray-100">
-                        <h3 class="text-sm font-semibold text-[#2B5329] mb-2 text-center">
-                          {{ currentResetStep === 1 ? 'Send Verification Code' :
-                             currentResetStep === 2 ? 'Verify Code' : 'Create New Credential' }}
-                        </h3>
-                        <p v-if="currentResetStep === 1" class="text-xs text-gray-600 text-center mb-4">
-                          A code will be sent to your registered phone number: <span class="font-bold text-emerald-600">{{ user?.phoneNumber }}</span>
-                        </p>
-
-                        <!-- Step 1: Send Code -->
-                        <form v-if="currentResetStep === 1" @submit.prevent="handleSendResetCode" class="space-y-4">
-                          <button
-                            type="submit" :disabled="isLoadingReset"
-                            class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                            {{ isLoadingReset ? "Sending Code..." : "Send Code" }}
-                          </button>
-                        </form>
-
-                        <!-- Step 2: Verification Code -->
-                        <form v-if="currentResetStep === 2" @submit.prevent="handleVerifyCode" class="space-y-6">
-                          <div class="text-center">
-                            <h3 class="text-sm font-semibold text-[#2B5329] mb-2">Enter the 6-digit code</h3>
-                            <p class="text-sm text-gray-600">We sent to your phone number</p>
-                          </div>
-
-                          <div class="flex justify-center gap-2">
-                            <template v-for="i in 6" :key="i">
-                              <input
-                                type="text"
-                                :ref="el => codeRefs[i-1] = el"
-                                v-model="verificationDigits[i-1]"
-                                maxlength="1"
-                                class="w-12 h-12 text-center text-lg border-2 border-gray-300 rounded-lg focus:border-[#2B5329] focus:ring-2 focus:ring-[#2B5329] focus:outline-none transition-colors"
-                                @input="handleCodeInput($event, i-1)"
-                                @keydown.delete="handleBackspace($event, i-1)"
-                                @keydown.left="focusPrevious(i-1)"
-                                @keydown.right="focusNext(i-1)"
-                                @paste="handlePaste"
-                              />
-                            </template>
-                          </div>
-
-                          <button
-                            type="submit" :disabled="isLoadingReset"
-                            class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                            {{ isLoadingReset ? "Verifying Code..." : "Verify Code" }}
-                          </button>
-
-                          <div class="text-center mt-4">
-                            <p class="text-sm text-gray-600">
-                              Didn't receive the code?
-                              <button
-                                type="button"
-                                @click="handleResendCode"
-                                class="text-[#2B5329] hover:text-[#FFA500] font-medium transition-colors ml-1"
-                                :disabled="resendTimer > 0"
-                              >
-                                {{ resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code' }}
-                              </button>
-                            </p>
-                          </div>
-                        </form>
-
-                        <!-- Step 3: New Password / PIN -->
-                        <form v-if="currentResetStep === 3" @submit.prevent="handleResetPassword" class="space-y-4">
-                          <div class="text-center mb-4">
-                            <p class="text-sm text-gray-600">Choose how you'd like to secure your account.</p>
-                          </div>
-
-                          <!-- Auth Type Choice -->
-                          <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Choose New Login Type</label>
-                            <div class="flex gap-2">
-                              <button
-                                type="button"
-                                @click="resetAuthType = 'password'"
-                                :class="[
-                                  'px-4 py-1.5 rounded-md text-sm font-medium transition w-full',
-                                  resetAuthType === 'password'
-                                    ? 'bg-[#2B5329] text-white shadow'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                ]"
-                              >
-                                New Password
-                              </button>
-                              <button
-                                type="button"
-                                @click="resetAuthType = 'pin'"
-                                :class="[
-                                  'px-4 py-1.5 rounded-md text-sm font-medium transition w-full',
-                                  resetAuthType === 'pin'
-                                    ? 'bg-[#2B5329] text-white shadow'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                ]"
-                              >
-                                New 4-digit PIN
-                              </button>
-                            </div>
-                          </div>
-
-                          <!-- Password Inputs -->
-                          <div v-if="resetAuthType === 'password'" class="space-y-4">
-                            <div>
-                              <label for="newResetPassword" class="block text-sm font-medium text-gray-700">New Password</label>
-                              <div class="relative">
-                                <input
-                                  :type="showNewResetPassword ? 'text' : 'password'"
-                                  id="newResetPassword"
-                                  v-model="newResetPassword"
-                                  required
-                                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]"
-                                />
-                                <button type="button" @click="showNewResetPassword = !showNewResetPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                  <Eye v-if="!showNewResetPassword" class="h-4 w-4" /><EyeOff v-else class="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label for="confirmResetPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                              <div class="relative">
-                                <input
-                                  :type="showConfirmResetPassword ? 'text' : 'password'"
-                                  id="confirmResetPassword"
-                                  v-model="confirmResetPassword"
-                                  required
-                                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]"
-                                />
-                                <button type="button" @click="showConfirmResetPassword = !showConfirmResetPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                  <Eye v-if="!showConfirmResetPassword" class="h-4 w-4" /><EyeOff v-else class="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- PIN Inputs -->
-                          <div v-else class="space-y-4">
-                            <div>
-                              <label for="newResetPin" class="block text-sm font-medium text-gray-700">New 4-digit PIN</label>
-                              <input id="newResetPin" type="password" v-model="newResetPin" required maxlength="4" pattern="\d*" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]" />
-                            </div>
-                            <div>
-                              <label for="confirmResetPin" class="block text-sm font-medium text-gray-700">Confirm PIN</label>
-                              <input id="confirmResetPin" type="password" v-model="confirmResetPin" required maxlength="4" pattern="\d*" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]" />
-                            </div>
-                          </div>
-
-                          <button
-                            type="submit" :disabled="isLoadingReset"
-                            class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                            {{ isLoadingReset ? "Resetting..." : "Reset Credentials" }}
-                          </button>
-                        </form>
-                        <button
-                          @click="toggleResetPasswordSection"
-                          class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm font-medium mt-4"
+                          class="w-full bg-gradient-to-r from-blue-300 to-blue-400 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:from-blue-400 hover:to-blue-500 transition-all duration-200 text-sm font-medium"
                         >
                           Cancel
                         </button>
@@ -614,37 +308,341 @@
                   </div>
                 </div>
 
-                <!-- Account Actions Section -->
-                <div>
-                  <!-- Header with improved icon for 'Account Actions' -->
-                  <div class="flex items-center mb-6">
-                    <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-4">
-                      <UserCog class="w-5 h-5 text-red-600" />
+                <!-- Reset Pin Code Card -->
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                  <div class="p-5">
+                    <div class="flex items-center mb-4">
+                      <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-purple-200 transition-colors duration-200">
+                        <Shield class="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h4 class="text-sm font-semibold text-gray-900">Change Pin Code</h4>
+                        <p class="text-xs text-gray-500">Update your security pin</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 class="text-base font-semibold text-gray-900">Account Actions</h3>
-                      <p class="text-sm text-gray-500">Manage your account session</p>
-                    </div>
-                  </div>
-
-                  <!-- Logout Section -->
-                  <div class="bg-white rounded-2xl border border-red-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
-                    <div class="p-5">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                          <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
-                            <LogOut class="w-5 h-5 text-red-600" />
+                    
+                    <!-- Show Get Started button only when form is not visible -->
+                    <button 
+                      v-if="!showPinSection"
+                      @click="togglePinSection"
+                      :disabled="isPinDisabled || isLoadingPin"
+                      class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {{ isLoadingPin ? 'Updating...' : (isPinDisabled ? 'PIN login not active' : 'Get Started') }}
+                    </button>
+                    
+                    <!-- Pin Form with TOP BORDER LINE -->
+                    <div 
+                      v-if="showPinSection"
+                      class="mt-4 pt-4 border-t border-gray-100"
+                    >
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Current Pin</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showCurrentPin ? 'text' : 'password'"
+                              v-model="pinForm.current"
+                              maxlength="4"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
+                              placeholder="••••"
+                            />
+                            <button
+                              type="button"
+                              @click="showCurrentPin = !showCurrentPin"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showCurrentPin" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
                           </div>
-                          <p class="text-sm font-medium text-red-600">Sign out of your account</p>
                         </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">New Pin</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showNewPin ? 'text' : 'password'"
+                              v-model="pinForm.new"
+                              maxlength="4"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
+                              placeholder="••••"
+                            />
+                            <button
+                              type="button"
+                              @click="showNewPin = !showNewPin"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showNewPin" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Confirm Pin</label>
+                          <div class="relative flex items-center">
+                            <input 
+                              :type="showConfirmPin ? 'text' : 'password'"
+                              v-model="pinForm.confirm"
+                              maxlength="4"
+                              class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg tracking-widest transition-all duration-200"
+                              placeholder="••••"
+                            />
+                            <button
+                              type="button"
+                              @click="showConfirmPin = !showConfirmPin"
+                              class="absolute right-3 inset-y-0 my-auto flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                            >
+                              <Eye v-if="!showConfirmPin" class="w-4 h-4" />
+                              <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Buttons Section with spacing -->
+                      <div class="space-y-3 mt-4">
+                        <!-- Update Pin Button -->
                         <button 
-                          @click="promptLogout"
-                          class="bg-gradient-to-r from-red-500 to-red-600 text-white py-2.5 px-8 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 min-w-[140px]"
+                          @click="changePin"
+                          :disabled="isLoadingPin"
+                          class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                          Logout
+                          {{ isLoadingPin ? 'Updating...' : 'Update Pin' }}
+                        </button>
+                        
+                        <!-- Cancel Button -->
+                        <button 
+                          @click="togglePinSection"
+                          class="w-full bg-gradient-to-r from-purple-300 to-purple-400 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:from-purple-400 hover:to-purple-500 transition-all duration-200 text-sm font-medium"
+                        >
+                          Cancel
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Reset Password/PIN via OTP Card -->
+            <div class="mb-8">
+              <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                <div class="p-5">
+                  <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-orange-200 transition-colors duration-200">
+                      <KeyRound class="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-gray-900">Forgot Password/PIN via OTP</h4>
+                      <p class="text-xs text-gray-500">Recover your account credentials if forgotten</p>
+                    </div>
+                  </div>
+
+                  <button
+                    v-if="!showResetPasswordSection"
+                    @click="toggleResetPasswordSection"
+                    :disabled="isLoadingReset"
+                    class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2.5 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {{ isLoadingReset ? 'Loading...' : 'Get Started' }}
+                  </button>
+
+                  <div v-if="showResetPasswordSection" class="mt-4 pt-4 border-t border-gray-100">
+                    <h3 class="text-sm font-semibold text-[#2B5329] mb-2 text-center">
+                      {{ currentResetStep === 1 ? 'Send Verification Code' :
+                          currentResetStep === 2 ? 'Verify Code' : 'Create New Credential' }}
+                    </h3>
+                    <p v-if="currentResetStep === 1" class="text-xs text-gray-600 text-center mb-4">
+                      A code will be sent to your registered phone number: <span class="font-bold text-emerald-600">{{ user?.phoneNumber }}</span>
+                    </p>
+
+                    <!-- Step 1: Send Code -->
+                    <form v-if="currentResetStep === 1" @submit.prevent="handleSendResetCode" class="space-y-4">
+                      <button
+                        type="submit" :disabled="isLoadingReset"
+                        class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {{ isLoadingReset ? "Sending Code..." : "Send Code" }}
+                      </button>
+                    </form>
+
+                    <!-- Step 2: Verification Code -->
+                    <form v-if="currentResetStep === 2" @submit.prevent="handleVerifyCode" class="space-y-6">
+                      <div class="text-center">
+                        <h3 class="text-sm font-semibold text-[#2B5329] mb-2">Enter the 6-digit code</h3>
+                        <p class="text-sm text-gray-600">We sent to your phone number</p>
+                      </div>
+
+                      <div class="flex justify-center gap-1 md:gap-2">
+                        <template v-for="i in 6" :key="i">
+                          <input
+                            type="text"
+                            :ref="el => codeRefs[i-1] = el"
+                            v-model="verificationDigits[i-1]"
+                            maxlength="1"
+                            class="w-10 h-10 md:w-12 md:h-12 text-center text-sm md:text-lg border-2 border-gray-300 rounded-lg focus:border-[#2B5329] focus:ring-2 focus:ring-[#2B5329] focus:outline-none transition-colors"
+                            @input="handleCodeInput($event, i-1)"
+                            @keydown.delete="handleBackspace($event, i-1)"
+                            @keydown.left="focusPrevious(i-1)"
+                            @keydown.right="focusNext(i-1)"
+                            @paste="handlePaste"
+                          />
+                        </template>
+                      </div>
+
+                      <button
+                        type="submit" :disabled="isLoadingReset"
+                        class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {{ isLoadingReset ? "Verifying Code..." : "Verify Code" }}
+                      </button>
+
+                      <div class="text-center mt-4">
+                        <p class="text-sm text-gray-600">
+                          Didn't receive the code?
+                          <button
+                            type="button"
+                            @click="handleResendCode"
+                            class="text-[#2B5329] hover:text-[#FFA500] font-medium transition-colors ml-1"
+                            :disabled="resendTimer > 0"
+                          >
+                            {{ resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code' }}
+                          </button>
+                        </p>
+                      </div>
+                    </form>
+
+                    <!-- Step 3: New Password / PIN -->
+                    <form v-if="currentResetStep === 3" @submit.prevent="handleResetPassword" class="space-y-4">
+                      <div class="text-center mb-4">
+                        <p class="text-sm text-gray-600">Choose how you'd like to secure your account.</p>
+                      </div>
+
+                      <!-- Auth Type Choice -->
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Choose New Login Type</label>
+                        <div class="flex gap-2">
+                          <button
+                            type="button"
+                            @click="resetAuthType = 'password'"
+                            :class="[
+                              'px-4 py-1.5 rounded-md text-sm font-medium transition w-full',
+                              resetAuthType === 'password'
+                                ? 'bg-[#2B5329] text-white shadow'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ]"
+                          >
+                            New Password
+                          </button>
+                          <button
+                            type="button"
+                            @click="resetAuthType = 'pin'"
+                            :class="[
+                              'px-4 py-1.5 rounded-md text-sm font-medium transition w-full',
+                              resetAuthType === 'pin'
+                                ? 'bg-[#2B5329] text-white shadow'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ]"
+                          >
+                            New 4-digit PIN
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Password Inputs -->
+                      <div v-if="resetAuthType === 'password'" class="space-y-4">
+                        <div>
+                          <label for="newResetPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+                          <div class="relative">
+                            <input
+                              :type="showNewResetPassword ? 'text' : 'password'"
+                              id="newResetPassword"
+                              v-model="newResetPassword"
+                              required
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]"
+                            />
+                            <button type="button" @click="showNewResetPassword = !showNewResetPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                              <Eye v-if="!showNewResetPassword" class="h-4 w-4" /><EyeOff v-else class="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label for="confirmResetPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                          <div class="relative">
+                            <input
+                              :type="showConfirmResetPassword ? 'text' : 'password'"
+                              id="confirmResetPassword"
+                              v-model="confirmResetPassword"
+                              required
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]"
+                            />
+                            <button type="button" @click="showConfirmResetPassword = !showConfirmResetPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                              <Eye v-if="!showConfirmResetPassword" class="h-4 w-4" /><EyeOff v-else class="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- PIN Inputs -->
+                      <div v-else class="space-y-4">
+                        <div>
+                          <label for="newResetPin" class="block text-sm font-medium text-gray-700">New 4-digit PIN</label>
+                          <input id="newResetPin" type="password" v-model="newResetPin" required maxlength="4" pattern="\d*" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]" />
+                        </div>
+                        <div>
+                          <label for="confirmResetPin" class="block text-sm font-medium text-gray-700">Confirm PIN</label>
+                          <input id="confirmResetPin" type="password" v-model="confirmResetPin" required maxlength="4" pattern="\d*" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329]" />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit" :disabled="isLoadingReset"
+                        class="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {{ isLoadingReset ? "Resetting..." : "Reset Credentials" }}
+                      </button>
+                    </form>
+                    <button
+                      @click="toggleResetPasswordSection"
+                      class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm font-medium mt-4"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Account Actions Section -->
+            <div>
+              <!-- Header with improved icon for 'Account Actions' -->
+              <div class="flex items-center mb-6">
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-4">
+                  <UserCog class="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 class="text-base font-semibold text-gray-900">Account Actions</h3>
+                  <p class="text-sm text-gray-500">Manage your account session</p>
+                </div>
+              </div>
+
+              <!-- Logout Section -->
+              <div class="bg-white rounded-2xl border border-red-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                <div class="p-5">
+                  <div class="flex items-center flex-col md:flex-row justify-between">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
+                        <LogOut class="w-5 h-5 text-red-600" />
+                      </div>
+                      <p class="text-sm font-medium text-red-600">Sign out of your account</p>
+                    </div>
+                    <button 
+                      @click="promptLogout"
+                      class="bg-gradient-to-r from-red-500 to-red-600 text-white py-2.5 px-8 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 min-w-[140px]"
+                    >
+                      Logout
+                    </button>
                   </div>
                 </div>
               </div>
@@ -652,66 +650,66 @@
           </div>
         </div>
       </div>
-
-    <LogoutModal v-if="showModal" @confirm="executeLogout" @cancel="showModal = false" />
-
-    <!-- Toast Notification - Bottom Right -->
-    <div 
-      v-if="showToast" 
-      class="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-50 flex items-center transform transition-all duration-300 ease-in-out backdrop-blur-sm"
-    >
-      <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
-        <CheckCircle class="w-4 h-4 text-emerald-600" />
-      </div>
-      <span class="text-gray-900 font-medium text-sm">{{ toastMessage }}</span>
     </div>
+  </div>
+
+  <LogoutModal v-if="showModal" @confirm="executeLogout" @cancel="showModal = false" />
+
+  <!-- Toast Notification - Bottom Right -->
+  <div 
+    v-if="showToast" 
+    class="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-50 flex items-center transform transition-all duration-300 ease-in-out backdrop-blur-sm"
+  >
+    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+      <CheckCircle class="w-4 h-4 text-emerald-600" />
+    </div>
+    <span class="text-gray-900 font-medium text-sm">{{ toastMessage }}</span>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import Sidebar from '../layout/Sidebar.vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
-  User, 
-  Phone, 
-  Lock, 
-  Shield, 
-  UserCog,
-  LogOut, 
-  CheckCircle,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Edit3,
-  X
-} from 'lucide-vue-next'
 import { useUserStore } from '../../utils/user'
+import { 
+  User, Phone, Lock, Shield, UserCog,
+  LogOut, CheckCircle, Eye, EyeOff,
+  KeyRound, Edit3, X
+} from 'lucide-vue-next'
 import LogoutModal from '../layout/LogoutModal.vue'
-import { getDoc, doc, updateDoc, getFirestore } from 'firebase/firestore'
-import { collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { getDoc, doc, updateDoc, getFirestore, addDoc } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, getDocs, serverTimestamp } from "firebase/firestore"
 
 const db = getFirestore()
 const router = useRouter()
-const user = ref(null)
+const userStore = useUserStore()
+
+// Use the user from the store
+const user = computed(() => userStore.user)
+const userId = computed(() => userStore.userId)
+
+// Other existing refs and reactive objects remain the same...
 const showToast = ref(false)
 const toastMessage = ref('')
 const showPasswordSection = ref(false)
 const showPinSection = ref(false)
-const store = useUserStore()
 const showModal = ref(false)
-
-// Edit mode state
 const isEditMode = ref(false)
 const originalData = ref({})
 const hasChanges = ref(false)
-
-// Loading states
 const isLoadingProfile = ref(false)
 const isLoadingPassword = ref(false)
 const isLoadingPin = ref(false)
 const isLoadingReset = ref(false)
-
-// New reset flow state
+const showResetPasswordSection = ref(false)
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+const showCurrentPin = ref(false)
+const showNewPin = ref(false)
+const showConfirmPin = ref(false)
+const showNewResetPassword = ref(false)
+const showConfirmResetPassword = ref(false)
 const currentResetStep = ref(1)
 const verificationDigits = ref(['', '', '', '', '', ''])
 const codeRefs = ref([])
@@ -719,32 +717,45 @@ const resendTimer = ref(0)
 const resetAuthType = ref('password')
 const newResetPassword = ref('')
 const confirmResetPassword = ref('')
-const showNewResetPassword = ref(false)
-const showConfirmResetPassword = ref(false)
-
-// Password visibility toggles
-const showCurrentPassword = ref(false)
-const showNewPassword = ref(false)
-const showConfirmPassword = ref(false)
-
-// Pin visibility toggles
-const showCurrentPin = ref(false)
-const showNewPin = ref(false)
 const newResetPin = ref('')
 const confirmResetPin = ref('')
-const showResetPasswordSection = ref(false)
-const showConfirmPin = ref(false)
 
-// Computed properties
+const togglePasswordSection = () => {
+  showPasswordSection.value = !showPasswordSection.value
+  if (showPasswordSection.value) {
+    showPinSection.value = false // Hide PIN section if showing password
+  }
+}
+
+const togglePinSection = () => {
+  showPinSection.value = !showPinSection.value
+  if (showPinSection.value) {
+    showPasswordSection.value = false // Hide password section if showing PIN
+  }
+}
+
+const toggleResetPasswordSection = () => {
+  showResetPasswordSection.value = !showResetPasswordSection.value
+}
+
+const showToastMessage = (message, severity = 'info', persistKey = null) => {
+  window.showToast(message, severity)
+}
+
+// Initialize profileData with store data
+const profileData = reactive({
+  name: '',
+  phone: ''
+})
+
 const isPasswordDisabled = computed(() => user.value?.authType === 'pin')
 const isPinDisabled = computed(() => user.value?.authType === 'password')
 
-// Can save computed property - enables save button when in edit mode and has changes
 const canSave = computed(() => {
   return isEditMode.value && hasChanges.value
 })
 
-// Avatar options with crop/plant themed characters
+// Avatar options...
 const avatarOptions = ref([
   { id: 1, icon: '🌱', name: 'Seedling' },
   { id: 2, icon: '🌿', name: 'Herb' },
@@ -774,11 +785,7 @@ const avatarOptions = ref([
 
 const selectedAvatar = ref(avatarOptions.value[0])
 
-const profileData = reactive({
-  name: '',
-  phone: ''
-})
-
+// Password and PIN forms...
 const passwordForm = reactive({
   current: '',
   new: '',
@@ -790,6 +797,26 @@ const pinForm = reactive({
   new: '',
   confirm: ''
 })
+
+// Watch for user changes and update profileData
+watch(() => userStore.user, (newUser) => {
+  if (newUser) {
+    profileData.name = newUser.name || ''
+    profileData.phone = newUser.phoneNumber || ''
+    originalData.value = {
+      name: profileData.name,
+      phone: profileData.phone
+    }
+    
+    // Set selected avatar
+    if (newUser.avatar) {
+      selectedAvatar.value = avatarOptions.value.find(
+        opt => opt.id === newUser.avatar.id
+      ) || avatarOptions.value[0]
+    }
+  }
+}, { immediate: true })
+
 
 // Edit mode functions
 const toggleEditMode = () => {
@@ -811,215 +838,321 @@ const toggleEditMode = () => {
 const onFieldChange = () => {
   if (!isEditMode.value) return
   
-  // Check if current data differs from original
   hasChanges.value = (
     profileData.name !== originalData.value.name ||
     profileData.phone !== originalData.value.phone
   )
 }
 
-const selectAvatar = async (avatar) => {
-  selectedAvatar.value = avatar
-  showToastMessage(`Avatar changed to ${avatar.name}`)
-
-  const userId = localStorage.getItem('uid') || sessionStorage.getItem('uid')
-  if (!userId) {
-    console.error('User ID not found in storage.')
-    return
-  }
-
-  try {
-    await updateDoc(doc(db, 'users', userId), {
-      avatar: avatar
-    })
-
-    // Also update locally
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-    if (storedUser) {
-      const updatedUser = {
-        ...JSON.parse(storedUser),
-        avatar
-      }
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      sessionStorage.setItem('user', JSON.stringify(updatedUser))
-      user.value = updatedUser
-    }
-
-    showToastMessage('Profile avatar updated successfully!')
-  } catch (error) {
-    console.error('Failed to update avatar:', error)
-    showToastMessage('Error updating avatar. Try again later.')
-  }
-}
-
-const togglePasswordSection = () => {
-  showPasswordSection.value = !showPasswordSection.value
-  if (showPasswordSection.value) {
-    showPinSection.value = false
-  }
-  // Reset password visibility when closing
-  if (!showPasswordSection.value) {
-    showCurrentPassword.value = false
-    showNewPassword.value = false
-    showConfirmPassword.value = false
-  }
-}
-
-const togglePinSection = () => {
-  showPinSection.value = !showPinSection.value
-  if (showPinSection.value) {
-    showPasswordSection.value = false
-  }
-  // Reset pin visibility when closing
-  if (!showPinSection.value) {
-    showCurrentPin.value = false
-    showNewPin.value = false
-    showConfirmPin.value = false
-  }
-}
-
-const toggleResetPasswordSection = () => {
-  showResetPasswordSection.value = !showResetPasswordSection.value
-}
-
-const showToastMessage = (message) => {
-  toastMessage.value = message
-  showToast.value = true
-  setTimeout(() => {
-    showToast.value = false
-  }, 3000)
-}
-
-const saveProfile = async () => {
-  if (!canSave.value) return
+// Add this utility function at the top of your script
+const normalizePhoneNumber = (phone) => {
+  if (!phone) return null;
   
-  isLoadingProfile.value = true
-  const uid = localStorage.getItem('uid') || sessionStorage.getItem('uid')
+  // Remove all non-digit characters
+  let normalized = phone.replace(/\D/g, '');
+  
+  // Handle Philippine numbers specifically
+  if (normalized.startsWith('0')) {
+    normalized = '+63' + normalized.substring(1);
+  } else if (normalized.startsWith('63')) {
+    normalized = '+' + normalized;
+  } else if (!normalized.startsWith('+')) {
+    normalized = '+63' + normalized;
+  }
+  
+  return normalized;
+};
 
-  if (!uid || !profileData.name.trim() || !profileData.phone.trim()) {
-    showToastMessage('Name and phone number are required.')
-    isLoadingProfile.value = false
-    return
+// Update saveProfile to use the store properly
+const saveProfile = async () => {
+  if (!canSave.value) return;
+  
+  isLoadingProfile.value = true;
+
+  // Get current values
+  const name = profileData.name?.trim() || '';
+  const phone = profileData.phone?.trim() || '';
+
+  if (!name) {
+    showToastMessage('Name is required');
+    isLoadingProfile.value = false;
+    return;
+  }
+
+  if (!phone) {
+    showToastMessage('Phone number is required');
+    isLoadingProfile.value = false;
+    return;
   }
 
   try {
-    await updateDoc(doc(db, 'users', uid), {
-      name: profileData.name.trim(),
-      phoneNumber: profileData.phone.trim(),
-      avatar: selectedAvatar.value
-    })
+    // 1. First query for the user document by phone number
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('phoneNumber', '==', phone));
+    const querySnapshot = await getDocs(q);
 
+    if (querySnapshot.empty) {
+      throw new Error('User document not found');
+    }
+
+    // 2. Get the first matching document (assuming phone numbers are unique)
+    const userDoc = querySnapshot.docs[0];
+    
+    // 3. Update the document with its actual ID
+    await updateDoc(doc(db, 'users', userDoc.id), {
+      name: name,
+      phoneNumber: phone,
+      avatar: selectedAvatar.value,
+      updatedAt: serverTimestamp()
+    });
+
+    // 4. Update local state
     const updatedUser = {
-      ...user.value,
-      name: profileData.name.trim(),
-      phoneNumber: profileData.phone.trim(),
+      ...userStore.user,
+      name: name,
+      phoneNumber: phone,
       avatar: selectedAvatar.value
-    }
+    };
 
-    localStorage.setItem('user', JSON.stringify(updatedUser))
-    user.value = updatedUser
+    userStore.setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify({
+      user: updatedUser,
+      userId: userDoc.id  // Store the actual document ID
+    }));
+
+    // 5. Reset edit mode
+    originalData.value = { name, phone };
+    hasChanges.value = false;
+    isEditMode.value = false;
     
-    // Update original data and reset edit mode
-    originalData.value = {
-      name: profileData.name,
-      phone: profileData.phone
-    }
-    hasChanges.value = false
-    isEditMode.value = false
-    
-    showToastMessage('Profile updated successfully!')
+    showToastMessage('Profile updated successfully!');
   } catch (err) {
-    console.error('Error updating profile:', err)
-    showToastMessage('Failed to update profile.')
+    console.error('Update error:', err);
+    
+    if (err.message.includes('not found')) {
+      showToastMessage('User record not found in database');
+    } else {
+      showToastMessage('Failed to update profile. Please try again.');
+    }
   } finally {
-    isLoadingProfile.value = false
+    isLoadingProfile.value = false;
+  }
+}
+
+const selectAvatar = async (avatar) => {
+  selectedAvatar.value = avatar;
+  showToastMessage(`Avatar changed to ${avatar.name}`);
+
+  // Get the user ID - try multiple sources
+  const currentUserId = userId.value || 
+                      userStore.userId || 
+                      userStore.user?.id || 
+                      JSON.parse(localStorage.getItem('user'))?.userId;
+
+  if (!currentUserId) {
+    console.error('User ID not found in any source');
+    showToastMessage('Please login again');
+    return;
+  }
+
+  try {
+    await updateDoc(doc(db, 'users', currentUserId), {
+      avatar: avatar,
+      updatedAt: serverTimestamp()
+    });
+
+    // Update local state - maintain all existing user data
+    const updatedUser = {
+      ...userStore.user,
+      avatar: avatar
+    };
+    
+    // Update store
+    userStore.setUser(updatedUser);
+    
+    // Update localStorage - maintain the same structure
+    localStorage.setItem('user', JSON.stringify({
+      user: updatedUser,
+      userId: currentUserId
+    }));
+
+    showToastMessage('Avatar updated successfully!');
+  } catch (error) {
+    console.error('Firestore update error:', error);
+    showToastMessage('Failed to save avatar. Please try again.');
+    
+    // Revert UI on error
+    selectedAvatar.value = userStore.user?.avatar || avatarOptions.value[0];
   }
 }
 
 const changePassword = async () => {
-  isLoadingPassword.value = true
-  const uid = localStorage.getItem('uid')
-
-  if (!uid || user.value.authType !== 'password') return
-
-  if (
-    !passwordForm.current ||
-    !passwordForm.new ||
-    !passwordForm.confirm ||
-    passwordForm.new !== passwordForm.confirm
-  ) {
-    showToastMessage('Please fill and confirm password fields correctly')
-    isLoadingPassword.value = false
-    return
-  }
-
-  if (passwordForm.new.length < 6) {
-    showToastMessage('Password must be at least 6 characters')
-    isLoadingPassword.value = false
-    return
-  }
-
+  isLoadingPassword.value = true;
+  
   try {
-    if (user.value.password !== passwordForm.current) {
-      showToastMessage('Current password is incorrect')
-      isLoadingPassword.value = false
-      return
+    // Get current user ID from store
+    const currentUserId = userStore.userId || JSON.parse(localStorage.getItem('user'))?.userId;
+    
+    if (!currentUserId) {
+      showToastMessage('User not authenticated');
+      isLoadingPassword.value = false;
+      return;
     }
 
-    await updateDoc(doc(db, 'users', uid), {
-      password: passwordForm.new
-    })
+    // Validate inputs
+    if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+      showToastMessage('Please fill all fields');
+      isLoadingPassword.value = false;
+      return;
+    }
 
-    passwordForm.current = ''
-    passwordForm.new = ''
-    passwordForm.confirm = ''
-    showToastMessage('Password updated successfully!')
-  } catch (err) {
-    console.error('Error updating password:', err)
-    showToastMessage('Failed to update password.')
+    if (passwordForm.new !== passwordForm.confirm) {
+      showToastMessage('New passwords do not match');
+      isLoadingPassword.value = false;
+      return;
+    }
+
+    if (passwordForm.new.length < 6) {
+      showToastMessage('Password must be at least 6 characters');
+      isLoadingPassword.value = false;
+      return;
+    }
+
+    // Get current user data
+    const userDoc = await getDoc(doc(db, 'users', currentUserId));
+    
+    if (!userDoc.exists()) {
+      showToastMessage('User not found');
+      isLoadingPassword.value = false;
+      return;
+    }
+
+    const userData = userDoc.data();
+
+    // Verify current password (you should hash compare in real implementation)
+    if (userData.password !== passwordForm.current) {
+      showToastMessage('Current password is incorrect');
+      isLoadingPassword.value = false;
+      return;
+    }
+
+    // Update password
+    await updateDoc(doc(db, 'users', currentUserId), {
+      password: passwordForm.new,
+      authType: 'password',
+      updatedAt: serverTimestamp()
+    });
+
+    // Update local state
+    const updatedUser = {
+      ...userStore.user,
+      password: passwordForm.new,
+      authType: 'password'
+    };
+    
+    userStore.setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify({
+      user: updatedUser,
+      userId: currentUserId
+    }));
+
+    // Reset form
+    passwordForm.current = '';
+    passwordForm.new = '';
+    passwordForm.confirm = '';
+    showPasswordSection.value = false;
+    
+    showToastMessage('Password updated successfully!');
+  } catch (error) {
+    console.error('Error updating password:', error);
+    showToastMessage('Failed to update password');
   } finally {
-    isLoadingPassword.value = false
+    isLoadingPassword.value = false;
   }
 }
 
 const changePin = async () => {
-  isLoadingPin.value = true
-  const uid = localStorage.getItem('uid')
-
-  if (!uid || user.value.authType !== 'pin') return
-
-  if (
-    !pinForm.current ||
-    !pinForm.new ||
-    !pinForm.confirm ||
-    pinForm.new !== pinForm.confirm ||
-    pinForm.new.length !== 4
-  ) {
-    showToastMessage('Please enter and confirm a valid 4-digit PIN.')
-    isLoadingPin.value = false
-    return
-  }
-
+  isLoadingPin.value = true;
+  
   try {
-    if (user.value.pin !== pinForm.current) {
-      showToastMessage('Current PIN is incorrect')
-      isLoadingPin.value = false
-      return
+    // Get current user ID from store
+    const currentUserId = userStore.userId || JSON.parse(localStorage.getItem('user'))?.userId;
+    
+    if (!currentUserId) {
+      showToastMessage('User not authenticated');
+      isLoadingPin.value = false;
+      return;
     }
 
-    await updateDoc(doc(db, 'users', uid), {
-      pin: pinForm.new
-    })
+    // Validate inputs
+    if (!pinForm.current || !pinForm.new || !pinForm.confirm) {
+      showToastMessage('Please fill all fields');
+      isLoadingPin.value = false;
+      return;
+    }
 
-    pinForm.current = ''
-    pinForm.new = ''
-    pinForm.confirm = ''
-    showToastMessage('PIN updated successfully!')
-  } catch (err) {
-    console.error('Error updating PIN:', err)
-    showToastMessage('Failed to update PIN.')
+    if (pinForm.new !== pinForm.confirm) {
+      showToastMessage('New PINs do not match');
+      isLoadingPin.value = false;
+      return;
+    }
+
+    if (!/^\d{4}$/.test(pinForm.new)) {
+      showToastMessage('PIN must be 4 digits');
+      isLoadingPin.value = false;
+      return;
+    }
+
+    // Get current user data
+    const userDoc = await getDoc(doc(db, 'users', currentUserId));
+    
+    if (!userDoc.exists()) {
+      showToastMessage('User not found');
+      isLoadingPin.value = false;
+      return;
+    }
+
+    const userData = userDoc.data();
+
+    // Verify current PIN (you should hash compare in real implementation)
+    if (userData.pin !== pinForm.current) {
+      showToastMessage('Current PIN is incorrect');
+      isLoadingPin.value = false;
+      return;
+    }
+
+    // Update PIN
+    await updateDoc(doc(db, 'users', currentUserId), {
+      pin: pinForm.new,
+      authType: 'pin',
+      updatedAt: serverTimestamp()
+    });
+
+    // Update local state
+    const updatedUser = {
+      ...userStore.user,
+      pin: pinForm.new,
+      authType: 'pin'
+    };
+    
+    userStore.setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify({
+      user: updatedUser,
+      userId: currentUserId
+    }));
+
+    // Reset form
+    pinForm.current = '';
+    pinForm.new = '';
+    pinForm.confirm = '';
+    showPinSection.value = false;
+    
+    showToastMessage('PIN updated successfully!');
+  } catch (error) {
+    console.error('Error updating PIN:', error);
+    showToastMessage('Failed to update PIN');
   } finally {
-    isLoadingPin.value = false
+    isLoadingPin.value = false;
   }
 }
 
@@ -1128,10 +1261,10 @@ const handleSendResetCode = async () => {
     });
 
     // Note: You'll need to implement the API call for sending SMS
-    // await api.post('/otp/send', {
-    //   number: formattedPhone,
-    //   message: `Your password reset code is: ${otp}`
-    // });
+    await api.post('/sms/send-sms', {
+      number: formattedPhone,
+      message: `[PROJECT ISRAEL] Your password reset code is: ${otp}`
+    });
 
     showToastMessage('A password reset code has been sent to your phone.');
     currentResetStep.value = 2;
@@ -1160,7 +1293,7 @@ const handleResendCode = async () => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await updateDoc(doc(db, 'users', userDoc.id), { otp, otpSentAt: serverTimestamp() });
 
-    // await api.post('/otp/send', { number: formattedPhone, message: `Your new password reset code is: ${otp}` });
+    await api.post('/sms/send-sms', { number: formattedPhone, message: `[PROJECT ISRAEL] Your new password reset code is: ${otp}` });
 
     showToastMessage("A new code has been sent to your phone.");
     startResendTimer();
@@ -1300,72 +1433,48 @@ const promptLogout = () => {
 }
 
 const executeLogout = () => {
-  showModal.value = false;
-
-  localStorage.removeItem('user')
-  localStorage.removeItem('uid')
-  sessionStorage.removeItem('user')
-  sessionStorage.removeItem('uid')
-
-  store.$reset()
-  router.push('/')
-  showToastMessage('Logged out successfully!')
+  userStore.logout()
 }
 
+let unsubscribeAuthType = null
+
 onMounted(async () => {
-  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-
-  // Define all refs here to avoid the "must be called at the top of a function" error
-  codeRefs.value = Array(6).fill(null);
-
-  if (storedUser) {
-    try {
-      user.value = JSON.parse(storedUser)
-      profileData.name = user.value.name || user.value.firstName + ' ' + user.value.lastName || ''
-      profileData.phone = user.value.phone || ''
-      if (user.value.avatar) {
-        selectedAvatar.value = user.value.avatar
-      }
-      
-      // Set original data for edit mode
-      originalData.value = {
-        name: profileData.name,
-        phone: profileData.phone
-      }
-    } catch (e) {
-      console.error('Error parsing user data:', e)
-    }
+  // Load user if not already loaded
+  if (!userStore.isAuthenticated) {
+    await userStore.loadUser()
   }
 
-  const uid = localStorage.getItem('uid') || sessionStorage.getItem('uid')
+  // Set initial avatar
+  if (userStore.user?.avatar) {
+    selectedAvatar.value = avatarOptions.value.find(
+      opt => opt.id === userStore.user.avatar.id
+    ) || avatarOptions.value[0]
+  }
 
-  if (!uid) return
+  // Set auth type visibility
+  if (userStore.user?.authType === 'pin') {
+    showPasswordSection.value = false
+  } else if (userStore.user?.authType === 'password') {
+    showPinSection.value = false
+  }
 
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uid))
-    if (userDoc.exists()) {
-      user.value = userDoc.data()
-      profileData.name = user.value.name || ''
-      profileData.phone = user.value.phoneNumber || ''
-      selectedAvatar.value = avatarOptions.value.find(opt => opt.icon === user.value.avatar?.icon) || avatarOptions.value[0]
-
-      // Set original data for edit mode
-      originalData.value = {
-        name: profileData.name,
-        phone: profileData.phone
+   // Set up real-time listener for authType
+  if (userStore.userId) {
+    unsubscribeAuthType = onSnapshot(
+      doc(db, 'users', userStore.userId),
+      (doc) => {
+        if (doc.exists()) {
+          const newAuthType = doc.data().authType
+          if (userStore.user?.authType !== newAuthType) {
+            // Update the local user store
+            userStore.setUser({
+              ...userStore.user,
+              authType: newAuthType
+            })
+          }
+        }
       }
-
-      if (user.value.authType === 'pin') {
-        showPasswordSection.value = false
-      } else if (user.value.authType === 'password') {
-        showPinSection.value = false
-      }
-
-      showResetPasswordSection.value = false;
-      currentResetStep.value = 1;
-    }
-  } catch (err) {
-    console.error('Error fetching user profile:', err)
+    )
   }
 })
 </script>

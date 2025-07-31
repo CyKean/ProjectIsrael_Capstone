@@ -1,11 +1,8 @@
 <template>
-  <head>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 relative overflow-hidden">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-3 xs:px-4 sm:px-6 relative overflow-hidden">
     <transition name="page-transition" mode="out-in" @before-leave="beforeLeave" @enter="enter" @after-enter="afterEnter">
       <div :key="transitionKey" class="page-content" :style="contentStyle">
-        <!-- Falling Leaves Animation - Keeping the same animation -->
+        <!-- Falling Leaves Animation -->
         <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden">
           <div v-for="i in (isMobile ? 12 : 20)" :key="`leaf1-${i}`" 
                class="leaf absolute animate-fall"
@@ -14,12 +11,12 @@
                  top: `${Math.random() * -200}%`,
                  animationDuration: `${15 + Math.random() * 15}s`,
                  animationDelay: `${Math.random() * -30}s`,
-                 transform: `scale(${isMobile ? 0.7 : 0.95})`
+                 transform: `scale(${isMobile ? 0.6 : 0.9})`
                }">
             <img 
               src="/public/images/leaves-plants/fall-leaf1.png"
               alt="" 
-              class="w-20 sm:w-24 h-20 sm:h-24 opacity-50"
+              class="w-16 xs:w-20 sm:w-24 h-16 xs:h-20 sm:h-24 opacity-50"
             />
           </div>
           
@@ -30,19 +27,19 @@
                  top: `${Math.random() * -200}%`,
                  animationDuration: `${15 + Math.random() * 15}s`,
                  animationDelay: `${Math.random() * -30}s`,
-                 transform: `scale(${isMobile ? 0.7 : 0.95})`
+                 transform: `scale(${isMobile ? 0.6 : 0.9})`
                }">
             <img 
               src="/public/images/leaves-plants/fall-leaf2.png"
               alt="" 
-              class="w-24 sm:w-28 h-24 sm:h-28 opacity-50"
+              class="w-20 xs:w-24 sm:w-28 h-20 xs:h-24 sm:h-28 opacity-50"
             />
           </div>
         </div>
 
-        <div class="max-w-3xl w-[95%] sm:w-[90%] md:w-[85%] lg:w-full min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20">
+        <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20">
           <!-- Left Side - Image and Branding -->
-          <div class="hidden md:flex md:w-1/2 bg-[#2B5329] text-white p-6 md:p-8 flex-col justify-end relative">
+          <div class="hidden md:flex md:w-1/2 bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-between relative">
             <!-- Background Image -->
             <div 
               class="absolute inset-0 bg-cover bg-center"
@@ -53,39 +50,39 @@
             
             <!-- Content -->
             <div class="relative flex flex-col items-center z-10 mt-0 pt-4 mb-auto">
-              <div class="w-40 h-40 sm:w-48 sm:h-48 mb-2 relative overflow-visible">
+              <div class="w-32 xs:w-36 sm:w-40 h-32 xs:h-36 sm:h-40 mb-2 relative overflow-visible">
                 <img 
                   src="/images/plants.gif"
                   alt="Growing plant animation"   
                   class="w-[130%] h-[130%] max-w-none object-contain mix-blend-multiply filter brightness-100 contrast-100 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
                 />
               </div>
-              <h2 class="text-2xl font-bold mb-1">Verify Your Account</h2>
-              <p class="text-sm text-gray-200/90 mt-1 text-center font-light">Almost there! Enter your code to unlock access and discover the best solutions for your crops.</p>
+              <h2 class="text-xl xs:text-2xl font-bold mb-1">Verify Your Account</h2>
+              <p class="text-xs xs:text-sm text-gray-200/90 mt-1 text-center font-light">Almost there! Enter your code to unlock access and discover the best solutions for your crops.</p>
             </div>
 
             <div class="relative flex justify-center z-10">
               <button 
                 @click="handleBackToWebsite" 
-                class="text-white hover:text-[#FFA500] flex items-center gap-2 transition-colors duration-300 border border-white/50 rounded-lg px-4 py-2 hover:bg-white/20"
+                class="text-white hover:text-[#FFA500] flex items-center gap-1 xs:gap-2 transition-colors duration-300 border border-white/50 rounded-lg px-3 xs:px-4 py-1.5 xs:py-2 hover:bg-white/20"
               >
-                <ArrowLeft class="h-4 w-4" />
-                <span class="text-sm">Back to website</span>
+                <ArrowLeft class="h-3 xs:h-4 w-3 xs:w-4" />
+                <span class="text-xs xs:text-sm">Back to website</span>
               </button>
             </div>
           </div>
 
           <!-- Right Side - Verification Form -->
-          <div class="w-full md:w-1/2 bg-white p-6 flex flex-col">
-            <div class="w-[90%] max-w-xs mx-auto flex-1 flex flex-col justify-center">
-              <h2 class="text-xl font-bold text-[#2B5329] text-center mb-6">Verify Your Phone Number</h2>
+          <div class="w-full md:w-1/2 bg-white p-4 xs:p-5 sm:p-6 flex flex-col">
+            <div class="w-full max-w-xs mx-auto flex-1 flex flex-col justify-center">
+              <h2 class="text-lg xs:text-xl font-bold text-[#2B5329] text-center mb-4 xs:mb-6">Verify Your Phone Number</h2>
 
-              <form class="space-y-4" @submit.prevent="handleVerification">
+              <form class="space-y-3 xs:space-y-4" @submit.prevent="handleVerification">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 text-center mb-4">
+                  <label class="block text-xs xs:text-sm font-medium text-gray-700 text-center mb-3 xs:mb-4">
                     Enter the 6-digit code we sent to your phone number
                   </label>
-                  <div class="flex justify-center gap-2">
+                  <div class="flex justify-center gap-1.5 xs:gap-2">
                     <input 
                       v-for="(digit, index) in 6"
                       :key="index"
@@ -96,7 +93,7 @@
                       @keydown.delete="handleBackspace($event, index)"
                       @keydown.left="focusPrevious(index)"
                       @keydown.right="focusNext(index)"
-                      class="w-12 h-12 text-center border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329] text-lg font-semibold"
+                      class="w-8 xs:w-10 h-8 xs:h-10 text-center border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2B5329] focus:border-[#2B5329] text-sm xs:text-base font-semibold"
                       ref="codeInputs"
                     />
                   </div>
@@ -104,21 +101,21 @@
 
                 <button 
                   type="submit" 
-                  class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-[#2B5329] hover:bg-[#1F3D1F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFA500] transition-colors duration-200 mt-6"
+                  class="w-full flex justify-center py-1.5 xs:py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-[#2B5329] hover:bg-[#1F3D1F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFA500] transition-colors duration-200 mt-4 xs:mt-6 text-sm xs:text-base"
                 >
                   {{ isLoading ? "Verifying..." : "Verify" }}
                 </button>
 
-                <div class="text-center mt-6">
-                  <p class="text-sm text-gray-600">
+                <div class="text-center mt-4 xs:mt-6">
+                  <p class="text-xs xs:text-sm text-gray-600">
                     Didn't receive the code?
                     <button 
                       type="button"
                       @click="resendCode" 
-                      class="text-[#2B5329] hover:text-[#FFA500] font-medium transition-colors ml-1"
-                      :disabled="resendTimer > 0"
+                      class="text-[#2B5329] hover:text-[#FFA500] font-medium transition-colors ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      :disabled="resendTimer > 0 || isResendingCode"
                     >
-                      {{ resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code' }}
+                      {{ isResendingCode ? 'Sending...' : (resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code') }}
                     </button>
                   </p>
                 </div>
@@ -142,16 +139,18 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import api from '../../api/index.js'
+import { useUserStore } from '../../utils/user'
 import toastr from 'toastr'
 import LoadingPage from '../layout/LoadingPage.vue'
 // import { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber, query, where, getDocs } from "../../api/firebase.js"
-import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 const db = getFirestore();
 const auth = getAuth(); // ✅ This is required
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const verificationCode = ref(['', '', '', '', '', ''])
 const codeInputs = ref([])
 const isMobile = ref(window.innerWidth < 640)
@@ -161,6 +160,8 @@ const resendTimer = ref(0)
 const uid = ref(null);
 const isLoading = ref(false);
 const phone = route.query.phone;
+const isResendingCode = ref(false);
+
 
 const handleResize = () => {
   isMobile.value = window.innerWidth < 640
@@ -214,47 +215,10 @@ onMounted(() => {
   }
 });
 
-
-// ✅ Handle Verification Request
-
-// const handleVerification = async () => {
-//   const code = verificationCode.value.join("").trim();
-
-//   if (code.length !== 6) {
-//     toastr.warning("Please enter the 6-digit code.");
-//     return;
-//   }
-
-//   isLoading.value = true;
-
-//   try {
-//     const result = await window.confirmationResult.confirm(code);
-//     const user = result.user;
-
-//     // ✅ Update Firestore user as verified
-//     const q = query(collection(db, "users"), where("phoneNumber", "==", phone));
-//     const querySnapshot = await getDocs(q);
-//     if (!querySnapshot.empty) {
-//       const userDoc = querySnapshot.docs[0];
-//       await updateDoc(doc(db, "users", userDoc.id), {
-//         verified: true,
-//       });
-//     }
-
-//     toastr.success("Phone number verified!");
-//     router.push("/login");
-//   } catch (error) {
-//     toastr.error("Invalid verification code.");
-//     console.error("Code confirmation error:", error);
-//   } finally {
-//     isLoading.value = false;
-//   }
-// };
-
-// ✅ Resend Code and Start Cooldown
-
 const resendCode = async () => {
-  if (resendTimer.value > 0) return;
+  if (resendTimer.value > 0 || isResendingCode.value) return;
+
+  isResendingCode.value = true;
 
   try {
     const formattedPhone = phone.startsWith("+63")
@@ -276,56 +240,71 @@ const resendCode = async () => {
     }
 
     // 🔁 Send OTP via backend (Vonage)
-    await api.post("/otp/send", {
+    await api.post("/sms/send-sms", {
       number: formattedPhone,
       message: `Your new OTP code is: ${otp}`
     });
 
-    toastr.success("A new OTP has been sent to your phone.");
+    window.showToast("A new OTP has been sent to your phone.",'success');
     startResendCooldown();
   } catch (error) {
     console.error("Resend code error:", error);
-    toastr.error("Failed to resend OTP.");
+    window.showToast("Failed to resend OTP.",'failed');
+  } finally {
+    isResendingCode.value = false;
   }
+
 };
 
 const handleVerification = async () => {
   const code = verificationCode.value.join("").trim();
 
   if (code.length !== 6) {
-    toastr.warning("Please enter the 6-digit code.");
+    window.showToast("Please enter the 6-digit code.",'warning');
     return;
   }
 
-  console.log("🔐 Verifying code:", code);
   isLoading.value = true;
 
   try {
     const q = query(collection(db, "users"), where("phoneNumber", "==", phone));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-
-      if (userData.otp !== code) {
-        toastr.error("Invalid verification code.");
-        return;
-      }
-
-      await updateDoc(doc(db, "users", userDoc.id), {
-        verified: true,
-        otp: "", // Optional: clear stored OTP
-      });
-
-      toastr.success("Phone number verified!");
-      router.push("/login");
-    } else {
-      toastr.error("Phone number not found.");
+    if (snapshot.empty) {
+      window.showToast("Phone number not found.",'warning');
+      return;
     }
+
+    const doc = snapshot.docs[0];
+    const userData = doc.data();
+
+    if (userData.otp !== code) {
+      window.showToast("Invalid verification code.",'warning');
+      return;
+    }
+
+    await updateDoc(doc.ref, {
+      verified: true,
+      otp: ""
+    });
+
+    // Clear user data - more defensive approach
+    const userStore = useUserStore();
+    if (userStore && typeof userStore.clearUser === 'function') {
+      userStore.clearUser();
+    } else {
+      console.warn("userStore.clearUser is not available");
+      userStore.user = null; // Fallback
+    }
+    
+    localStorage.removeItem('user');
+    localStorage.removeItem('otpPhone');
+
+    window.showToast("Phone number verified! Please log in.",'success');
+    router.push("/login");
   } catch (error) {
-    console.error("❌ Error verifying OTP:", error);
-    toastr.error("Verification failed.");
+    console.error("Verification error:", error);
+    window.showToast("Verification failed. Please try again.",'failed');
   } finally {
     isLoading.value = false;
   }

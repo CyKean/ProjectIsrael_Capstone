@@ -3,7 +3,7 @@
     <!-- Main floating button -->
     <div
       ref="floatingButton"
-      class="settings-button"
+      class="settings-button ml-6 -mt-4"
       :style="{
         top: `${position.top}px`,
         left: `${position.left}px`
@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
 }
 
 /* Media queries for responsive design */
-@media (max-width: 640px) {
+/* @media (max-width: 640px) {
   .settings-button {
     width: 48px;
     height: 48px;
@@ -370,7 +370,7 @@ onBeforeUnmount(() => {
     width: 18px;
     height: 18px;
   }
-}
+} */
 
 /* High DPI displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {

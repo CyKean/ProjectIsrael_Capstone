@@ -1,39 +1,34 @@
-# from fastapi import APIRouter, HTTPException
-# from pydantic import BaseModel
-# import os
-# import vonage
-# from dotenv import load_dotenv
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from datetime import datetime
+import os
+import requests
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
+FIREBASE_URL = os.getenv("FIREBASE_URL")
 
-# router = APIRouter(prefix="/api/otp", tags=["OTP"])
+router = APIRouter()
 
-# VONAGE_API_KEY = os.getenv("VONAGE_API_KEY")
-# VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
-# VONAGE_BRAND_NAME = os.getenv("VONAGE_BRAND_NAME")
+class SMSRequest(BaseModel):
+    number: str
+    message: str
 
-# client = vonage.Client(key=VONAGE_API_KEY, secret=VONAGE_API_SECRET)
-# sms = vonage.Sms(client)
+@router.post("/send-sms")
+def send_sms(req: SMSRequest):
+    if not FIREBASE_URL:
+        raise HTTPException(status_code=500, detail="FIREBASE_URL is not configured")
 
-# class OTPRequest(BaseModel):
-#     number: str
-#     message: str
+    payload = {
+        "number": req.number,
+        "message": req.message,
+        "sent": False,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
-# @router.post("/send")
-# def send_otp(payload: OTPRequest):
-#     try:
-#         responseData = sms.send_message({
-#             "from": VONAGE_BRAND_NAME,
-#             "to": payload.number,
-#             "text": payload.message,
-#         })
-
-#         if responseData["messages"][0]["status"] == "0":
-#             return {"success": True, "message": "OTP sent successfully"}
-#         else:
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail=f"Vonage Error: {responseData['messages'][0]['error-text']}"
-#             )
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+    try:
+        response = requests.post(FIREBASE_URL, json=payload)
+        response.raise_for_status()
+        return {"status": "queued", "firebase_key": response.json()["name"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

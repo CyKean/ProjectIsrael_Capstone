@@ -1,229 +1,229 @@
 <template>
-    <!-- Container Wrapper with optimized spacing -->
-    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
-      <!-- Main Container -->
-      <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 h-[calc(100vh-140px)] overflow-y-auto transition-all duration-300 ease-in-out hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)]">
-        <!-- Content Wrapper -->
-        <div class="p-0">
-          <!-- Header Section with Light Green Background -->
-          <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 rounded-t-[20px] px-6 py-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-2xl font-semibold text-gray-800 mb-2">Device Recalibration</h1>
-                <p class="text-sm text-gray-600">Configure and calibrate your ESP32 sensor devices</p>
+  <!-- Container Wrapper with optimized spacing -->
+  <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
+    <!-- Main Container -->
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto transition-all duration-300 ease-in-out hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)]">
+      <!-- Content Wrapper -->
+      <div class="p-0">
+        <!-- Header Section with Light Green Background -->
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 rounded-t-[20px] p-4 md:px-6 md:py-6">
+          <div class="flex items-center flex-col md:flex-row justify-between">
+            <div>
+              <h1 class="text-md md:text-2xl font-semibold text-gray-800 mb-2">Device Recalibration</h1>
+              <p class="text-xs md:text-sm text-gray-600">Configure and calibrate your ESP32 sensor devices</p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <div class="relative">
+                <input 
+                  v-model="searchQuery"
+                  type="text" 
+                  placeholder="Search configurations..." 
+                  class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64 text-xs md:text-sm bg-white"
+                >
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
-              <div class="flex items-center space-x-3">
-                <div class="relative">
-                  <input 
-                    v-model="searchQuery"
-                    type="text" 
-                    placeholder="Search configurations..." 
-                    class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64 text-sm bg-white"
-                  >
-                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <button @click="exportConfigurations" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-xs md:text-sm font-medium">
+                <Download class="w-3 h-3 md:w-4 md:h-4" />
+                <span>Export All</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="p-2 md:p-6">
+          <!-- 3-Column ESP32 Layout with FIXED HEIGHT -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- ESP32-1 Container - FIXED HEIGHT -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-auto md:overflow-hidden hover:shadow-md transition-shadow h-80">
+              <!-- ESP32-1 Header -->
+              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                <div class="flex items-start flex-row space-x-4 md:space-x-3">
+                  <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Cpu class="w-6 h-6 text-green-600" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-1 SENSORS</h2>
+                    <p class="text-xs md:text-sm text-gray-600">NPK + Soil pH Monitoring</p>
+                  </div>
                 </div>
-                <button @click="exportConfigurations" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm font-medium">
-                  <Download class="w-4 h-4" />
-                  <span>Export All</span>
+              </div>
+              
+              <!-- ESP32-1 Content -->
+              <div class="p-4 flex-1 flex flex-col justify-between overflow-auto">
+                <!-- Description -->
+                <div class="mb-4">
+                  <div class="flex items-center space-x-2 mb-2">
+                    <div class="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle class="w-3 h-3 text-green-600" />
+                    </div>
+                    <span class="text-sm font-medium text-gray-800">Device Status</span>
+                  </div>
+                  <p class="text-xs text-green-600 mb-3">Online & Connected</p>
+                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
+                    Monitor soil nutrients (NPK) and pH levels for optimal plant growth. 
+                    Configure calibration values and WiFi settings for accurate readings.
+                  </p>
+                </div>
+                
+                <!-- Recalibrate Button -->
+                <button 
+                  @click="openModal('esp1')" 
+                  class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Settings class="w-4 h-4" />
+                  <span>Recalibrate</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ESP32-2 Container - FIXED HEIGHT -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
+              <!-- ESP32-2 Header -->
+              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="flex items-start flex-row space-x-4 md:space-x-3">
+                  <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Cloud class="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-2 SENSORS</h2>
+                    <p class="text-xs md:text-sm text-gray-600">Environmental Monitoring</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- ESP32-2 Content -->
+              <div class="p-4 flex-1 flex flex-col justify-between overflow-auto">
+                <!-- Description -->
+                <div class="mb-4">
+                  <div class="flex items-center space-x-2 mb-2">
+                    <div class="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <BarChart3 class="w-3 h-3 text-blue-600" />
+                    </div>
+                    <span class="text-sm font-medium text-gray-800">Device Status</span>
+                  </div>
+                  <p class="text-xs text-blue-600 mb-3">Online & Connected</p>
+                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
+                    Track temperature, humidity, and soil moisture levels. 
+                    Set watering thresholds and calibrate environmental sensors for precise monitoring.
+                  </p>
+                </div>
+                
+                <!-- Recalibrate Button -->
+                <button 
+                  @click="openModal('esp2')" 
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Settings class="w-4 h-4" />
+                  <span>Recalibrate</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ESP32-3 Container - FIXED HEIGHT -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
+              <!-- ESP32-3 Header -->
+              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-teal-50">
+                <div class="flex items-start flex-row md:space-x-3 space-x-4">
+                  <div class="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Droplets class="w-6 h-6 text-cyan-600" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-3 SENSORS</h2>
+                    <p class="text-xs md:text-sm text-gray-600">Water Level Monitoring</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- ESP32-3 Content -->
+              <div class="p-4 flex-1 flex flex-col justify-between">
+                <!-- Description -->
+                <div class="mb-4">
+                  <div class="flex items-center space-x-2 mb-2">
+                    <div class="w-6 h-6 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Container class="w-3 h-3 text-cyan-600" />
+                    </div>
+                    <span class="text-sm font-medium text-gray-800">Device Status</span>
+                  </div>
+                  <p class="text-xs text-cyan-600 mb-3">Online & Connected</p>
+                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
+                    Monitor water tank levels with ultrasonic sensors. 
+                    Configure tank dimensions and alert thresholds for automated water management.
+                  </p>
+                </div>
+                
+                <!-- Recalibrate Button -->
+                <button 
+                  @click="openModal('esp3')" 
+                  class="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Settings class="w-4 h-4" />
+                  <span>Recalibrate</span>
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Main Content Area -->
-          <div class="p-6">
-            <!-- 3-Column ESP32 Layout with FIXED HEIGHT -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              <!-- ESP32-1 Container - FIXED HEIGHT -->
-              <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
-                <!-- ESP32-1 Header -->
-                <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-                  <div class="flex items-start space-x-3">
-                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Cpu class="w-6 h-6 text-green-600" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h2 class="text-lg font-semibold text-gray-800 mb-1">ESP32-1 SENSORS</h2>
-                      <p class="text-sm text-gray-600">NPK + Soil pH Monitoring</p>
-                    </div>
-                  </div>
+          <!-- Enhanced Global Actions -->
+          <div class="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div class="flex items-center flex-col md:flex-row justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Database class="w-5 h-5 text-white" />
                 </div>
-                
-                <!-- ESP32-1 Content -->
-                <div class="p-4 flex-1 flex flex-col justify-between">
-                  <!-- Description -->
-                  <div class="mb-4">
-                    <div class="flex items-center space-x-2 mb-2">
-                      <div class="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle class="w-3 h-3 text-green-600" />
-                      </div>
-                      <span class="text-sm font-medium text-gray-800">Device Status</span>
-                    </div>
-                    <p class="text-xs text-green-600 mb-3">Online & Connected</p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                      Monitor soil nutrients (NPK) and pH levels for optimal plant growth. 
-                      Configure calibration values and WiFi settings for accurate readings.
-                    </p>
-                  </div>
-                  
-                  <!-- Recalibrate Button -->
-                  <button 
-                    @click="openModal('esp1')" 
-                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Settings class="w-4 h-4" />
-                    <span>Recalibrate</span>
-                  </button>
+                <div>
+                  <h3 class="text-md md:text-lg font-semibold text-gray-800">Global Actions</h3>
+                  <p class="text-xs md:text-sm text-gray-600">Manage all ESP32 configurations at once</p>
                 </div>
               </div>
-
-              <!-- ESP32-2 Container - FIXED HEIGHT -->
-              <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
-                <!-- ESP32-2 Header -->
-                <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                  <div class="flex items-start space-x-3">
-                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Cloud class="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h2 class="text-lg font-semibold text-gray-800 mb-1">ESP32-2 SENSORS</h2>
-                      <p class="text-sm text-gray-600">Environmental Monitoring</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- ESP32-2 Content -->
-                <div class="p-4 flex-1 flex flex-col justify-between">
-                  <!-- Description -->
-                  <div class="mb-4">
-                    <div class="flex items-center space-x-2 mb-2">
-                      <div class="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <BarChart3 class="w-3 h-3 text-blue-600" />
-                      </div>
-                      <span class="text-sm font-medium text-gray-800">Device Status</span>
-                    </div>
-                    <p class="text-xs text-blue-600 mb-3">Online & Connected</p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                      Track temperature, humidity, and soil moisture levels. 
-                      Set watering thresholds and calibrate environmental sensors for precise monitoring.
-                    </p>
-                  </div>
-                  
-                  <!-- Recalibrate Button -->
-                  <button 
-                    @click="openModal('esp2')" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Settings class="w-4 h-4" />
-                    <span>Recalibrate</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- ESP32-3 Container - FIXED HEIGHT -->
-              <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
-                <!-- ESP32-3 Header -->
-                <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-teal-50">
-                  <div class="flex items-start space-x-3">
-                    <div class="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Droplets class="w-6 h-6 text-cyan-600" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h2 class="text-lg font-semibold text-gray-800 mb-1">ESP32-3 SENSORS</h2>
-                      <p class="text-sm text-gray-600">Water Level Monitoring</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- ESP32-3 Content -->
-                <div class="p-4 flex-1 flex flex-col justify-between">
-                  <!-- Description -->
-                  <div class="mb-4">
-                    <div class="flex items-center space-x-2 mb-2">
-                      <div class="w-6 h-6 bg-cyan-100 rounded-lg flex items-center justify-center">
-                        <Container class="w-3 h-3 text-cyan-600" />
-                      </div>
-                      <span class="text-sm font-medium text-gray-800">Device Status</span>
-                    </div>
-                    <p class="text-xs text-cyan-600 mb-3">Online & Connected</p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                      Monitor water tank levels with ultrasonic sensors. 
-                      Configure tank dimensions and alert thresholds for automated water management.
-                    </p>
-                  </div>
-                  
-                  <!-- Recalibrate Button -->
-                  <button 
-                    @click="openModal('esp3')" 
-                    class="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Settings class="w-4 h-4" />
-                    <span>Recalibrate</span>
-                  </button>
-                </div>
+              <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <Zap class="w-4 h-4" />
+                <span>Quick Actions</span>
               </div>
             </div>
-
-            <!-- Enhanced Global Actions -->
-            <div class="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200 shadow-sm">
-              <div class="flex items-center justify-between mb-4">
+            
+            <div class="grid grid-cols-3 md:grid-cols-3 gap-4">
+              <button @click="saveAllConfigurations" class="group bg-white hover:bg-green-50 border border-gray-200 hover:border-green-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
                 <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Database class="w-5 h-5 text-white" />
+                  <div class="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center transition-colors">
+                    <Save class="w-5 h-5 text-green-600" />
                   </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-800">Global Actions</h3>
-                    <p class="text-sm text-gray-600">Manage all ESP32 configurations at once</p>
+                  <div class="text-left hidden md:block">
+                    <h4 class="font-medium text-gray-800 group-hover:text-green-700">Save All</h4>
+                    <p class="text-xs text-gray-500">Save all configurations</p>
                   </div>
                 </div>
-                <div class="flex items-center space-x-2 text-sm text-gray-500">
-                  <Zap class="w-4 h-4" />
-                  <span>Quick Actions</span>
-                </div>
-              </div>
+              </button>
               
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button @click="saveAllConfigurations" class="group bg-white hover:bg-green-50 border border-gray-200 hover:border-green-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center transition-colors">
-                      <Save class="w-5 h-5 text-green-600" />
-                    </div>
-                    <div class="text-left">
-                      <h4 class="font-medium text-gray-800 group-hover:text-green-700">Save All</h4>
-                      <p class="text-xs text-gray-500">Save all configurations</p>
-                    </div>
+              <button @click="resetAllConfigurations" class="group bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-red-100 group-hover:bg-red-200 rounded-lg flex items-center justify-center transition-colors">
+                    <RotateCcw class="w-5 h-5 text-red-600" />
                   </div>
-                </button>
-                
-                <button @click="resetAllConfigurations" class="group bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-red-100 group-hover:bg-red-200 rounded-lg flex items-center justify-center transition-colors">
-                      <RotateCcw class="w-5 h-5 text-red-600" />
-                    </div>
-                    <div class="text-left">
-                      <h4 class="font-medium text-gray-800 group-hover:text-red-700">Reset All</h4>
-                      <p class="text-xs text-gray-500">Reset to defaults</p>
-                    </div>
+                  <div class="text-left hidden md:block">
+                    <h4 class="font-medium text-gray-800 group-hover:text-red-700">Reset All</h4>
+                    <p class="text-xs text-gray-500">Reset to defaults</p>
                   </div>
-                </button>
-                
-                <button @click="importConfigurations" class="group bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors">
-                      <Upload class="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div class="text-left">
-                      <h4 class="font-medium text-gray-800 group-hover:text-blue-700">Import Config</h4>
-                      <p class="text-xs text-gray-500">Import configuration file</p>
-                    </div>
+                </div>
+              </button>
+              
+              <button @click="importConfigurations" class="group bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors">
+                    <Upload class="w-5 h-5 text-blue-600" />
                   </div>
-                </button>
-              </div>
+                  <div class="text-left hidden md:block">
+                    <h4 class="font-medium text-gray-800 group-hover:text-blue-700">Import Config</h4>
+                    <p class="text-xs text-gray-500">Import configuration file</p>
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
   <!-- MODAL OVERLAY - Fixed positioning with proper z-index -->
   <div v-if="activeModal" class="fixed inset-0 z-[9999] overflow-y-auto">
@@ -236,13 +236,13 @@
       <div v-if="activeModal === 'esp1'" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Modal Header - Fixed -->
         <div class="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center flex-row space-x-4 md:space-x-3">
             <div class="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
               <Cpu class="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-800">ESP32-1 Configuration</h2>
-              <p class="text-sm text-gray-500">NPK + Soil pH Monitoring</p>
+              <h2 class="text-md md:text-lg font-semibold text-gray-800">ESP32-1 Configuration</h2>
+              <p class="text-xs md:text-sm text-gray-500">NPK + Soil pH Monitoring</p>
             </div>
           </div>
           <button @click="closeModal" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -436,13 +436,13 @@
       <div v-if="activeModal === 'esp2'" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Modal Header - Fixed -->
         <div class="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center flex-row space-x-4 md:space-x-3">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
               <Cloud class="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-800">ESP32-2 Configuration</h2>
-              <p class="text-sm text-gray-500">Environmental Monitoring</p>
+              <h2 class="text-md md:text-lg font-semibold text-gray-800">ESP32-2 Configuration</h2>
+              <p class="text-xs md:text-sm text-gray-500">Environmental Monitoring</p>
             </div>
           </div>
           <button @click="closeModal" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -633,13 +633,13 @@
       <div v-if="activeModal === 'esp3'" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Modal Header - Fixed -->
         <div class="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center flex-row space-x-4 md:pace-x-3">
             <div class="w-10 h-10 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-xl flex items-center justify-center">
               <Droplets class="w-5 h-5 text-cyan-600" />
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-800">ESP32-3 Configuration</h2>
-              <p class="text-sm text-gray-500">Water Level Monitoring</p>
+              <h2 class="text-md md:text-lg font-semibold text-gray-800">ESP32-3 Configuration</h2>
+              <p class="text-xs md:text-sm text-gray-500">Water Level Monitoring</p>
             </div>
           </div>
           <button @click="closeModal" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -794,7 +794,7 @@
 
         <!-- Modal Footer - Fixed -->
         <div class="flex-shrink-0 p-6 border-t border-gray-100 bg-gray-50/50">
-          <div class="flex flex-row gap-3 justify-end">
+          <div class="flex flex-col md:flex-row gap-3 justify-end">
             <button @click="closeModal" class="px-4 py-2 border border-red-400 hover:border-red-500 hover:bg-red-100 text-red-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
               <X class="w-4 h-4 text-red-500" />
               <span>CANCEL</span>
@@ -882,22 +882,6 @@
     </div>
   </div>
 
-  <!-- Toast Notifications -->
-  <div v-if="showToast" class="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm z-[10000] transform transition-all duration-300" :class="toastType === 'success' ? 'border-green-200 bg-green-50' : toastType === 'error' ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'">
-    <div class="flex items-center space-x-3">
-      <div class="flex-shrink-0">
-        <CheckCircle v-if="toastType === 'success'" class="w-5 h-5 text-green-500" />
-        <XCircle v-else-if="toastType === 'error'" class="w-5 h-5 text-red-500" />
-        <Info v-else class="w-5 h-5 text-blue-500" />
-      </div>
-      <div class="flex-1">
-        <p class="text-sm font-medium" :class="toastType === 'success' ? 'text-green-800' : toastType === 'error' ? 'text-red-800' : 'text-blue-800'">{{ toastMessage }}</p>
-      </div>
-      <button @click="hideToast" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
-        <X class="w-4 h-4" />
-      </button>
-    </div>
-  </div>
 </template>
 
 <script setup>
@@ -1350,14 +1334,8 @@ watch(activeModal, (newDevice) => {
   }
 })
 
-const showToastMessage = (message, type = 'info') => {
-  toastMessage.value = message;
-  toastType.value = type;
-  showToast.value = true;
-  
-  setTimeout(() => {
-    hideToast();
-  }, 5000);
+const showToastMessage = (message, severity = 'info', persistKey = null) => {
+  window.showToast(message, severity)
 }
 
 const hideToast = () => {

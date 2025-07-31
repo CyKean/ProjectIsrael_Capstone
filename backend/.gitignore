@@ -26,3 +26,6 @@ get-pip.py
 test_serial.py
 
 venv/
+
+requirements copy.txt
+None/

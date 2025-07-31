@@ -1,9 +1,9 @@
 <template>
-  <nav class="fixed top-2 mx-4 left-0 right-0 bg-gradient-to-r from-[#00A572] to-[#008F61] backdrop-blur-md bg-opacity-95 shadow-lg z-50 rounded-xl border border-transparent border-t-[3px] border-t-orange-400 ">
+  <nav class="fixed top-2 mx-1 left-0 right-0 bg-gradient-to-r from-[#00A572] to-[#008F61] backdrop-blur-md bg-opacity-95 shadow-lg z-50 rounded-xl border border-transparent border-t-[3px] border-t-orange-400">
     <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-2.5">
       <!-- Top row with logo and profile -->
       <div class="flex items-center justify-between">
-        <!-- Logo and PROJECT ISRAEL text - positioned with padding-top -->
+        <!-- Logo and PROJECT ISRAEL text -->
         <div class="flex items-center relative w-[180px]">
           <div class="bg-white rounded-full shadow-lg flex items-center justify-center overflow-hidden border-2 border-white/30 hover:border-white/50 transition-all duration-300" style="width: 2.8rem; height: 2.8rem;">
             <img
@@ -19,61 +19,37 @@
           </div>
         </div>
 
-        <!-- User Profile Section with Connection Status and Notification Icons -->
-        <div class="flex items-center group w-[180px] justify-end">
-          <span class="text-xs text-white mr-2 hidden md:block opacity-90 group-hover:opacity-100 transition-opacity">{{ user?.email }}</span>
-
-          <!-- WebSocket Connection Status -->
-          <div class="relative mr-2">
-            <button
-              class="relative flex items-center justify-center h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300"
-              @mouseenter="showWebSocketTooltip = true"
-              @mouseleave="showWebSocketTooltip = false"
+        <!-- Mobile menu button (hidden on larger screens) -->
+        <div class="md:hidden flex items-center">
+          <button
+            @click="toggleMobileMenu"
+            class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-white/10 focus:outline-none transition duration-150 ease-in-out"
+            aria-label="Toggle menu"
+          >
+            <svg
+              class="h-6 w-6"
+              :class="{ 'hidden': isMobileMenuOpen, 'block': !isMobileMenuOpen }"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <div class="flex items-center justify-center size-full rounded-full" :class="isWebSocketConnected ? 'bg-green-500/20' : ''">
-                <Zap class="h-3.5 w-3.5 text-white" />
-              </div>
-            </button>
-
-            <!-- Enhanced WebSocket Tooltip - Minimalist Design -->
-            <div
-              v-show="showWebSocketTooltip"
-              class="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 transition-all duration-200 border border-gray-100 transform origin-top-right"
-              :class="showWebSocketTooltip ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <svg
+              class="h-6 w-6"
+              :class="{ 'hidden': !isMobileMenuOpen, 'block': isMobileMenuOpen }"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <div class="p-3">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center">
-                    <div class="w-2 h-2 rounded-full mr-2" :class="isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'"></div>
-                    <h3 class="font-medium text-sm text-gray-800">WebSocket</h3>
-                  </div>
-                  <Zap class="h-4 w-4 text-[#00A572]" />
-                </div>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-                <div v-if="isWebSocketConnected" class="space-y-2.5">
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-500">Status</span>
-                    <span class="font-medium text-gray-800">Connected</span>
-                  </div>
-
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-500">Latency</span>
-                    <span class="font-medium text-gray-800">{{ wsLatency }}ms</span>
-                  </div>
-
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-500">Uptime</span>
-                    <span class="font-medium text-gray-800">{{ wsUptime }}</span>
-                  </div>
-
-                </div>
-
-                <div v-else class="flex items-center justify-center py-2">
-                  <span class="text-xs text-red-500 font-medium">Disconnected</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- User Profile Section - Hidden on mobile -->
+        <div class="hidden md:flex items-center group w-[180px] justify-end">
+          <span class="text-xs text-white mr-2 opacity-90 group-hover:opacity-100 transition-opacity">{{ user?.email }}</span>
 
           <!-- WiFi Connection Status -->
           <div class="relative mr-2">
@@ -87,7 +63,7 @@
               </div>
             </button>
 
-            <!-- Enhanced WiFi Tooltip - Minimalist Design -->
+            <!-- WiFi Tooltip -->
             <div
               v-show="showWifiTooltip"
               class="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 transition-all duration-200 border border-gray-100 transform origin-top-right"
@@ -137,7 +113,32 @@
             </div>
           </div>
 
-          <!-- Notification Icon with Enhanced Minimalist Badge -->
+          <!-- Recalibration Button -->
+          <div class="relative mr-2">
+            <button
+              @click="goToRecalibration"
+              class="relative flex items-center justify-center h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300"
+              :class="$route.path === '/app/recalibration' ? 'bg-white/30' : ''"
+              @mouseenter="showRecalibrationTooltip = true"
+              @mouseleave="showRecalibrationTooltip = false"
+            >
+              <div class="flex items-center justify-center size-full rounded-full" :class="$route.path === '/recalibration' ? 'bg-green-500/20' : ''">
+                <Cog class="h-3.5 w-3.5 text-white" />
+              </div>
+            </button>
+
+            <!-- Recalibration Tooltip -->
+            <div
+              v-show="showRecalibrationTooltip"
+              class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-[10px] font-medium rounded-md whitespace-nowrap z-50 transition-all duration-200 shadow-sm"
+              :class="showRecalibrationTooltip ? 'opacity-100' : 'opacity-0'"
+            >
+              Recalibration
+              <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-green-100"></div>
+            </div>
+          </div>
+
+          <!-- Notification Icon -->
           <div class="relative">
             <router-link
               to="/app/notifications"
@@ -148,7 +149,7 @@
             >
               <Bell class="h-4 w-4 transition-transform duration-200 group-hover/bell:scale-110" />
 
-              <!-- Enhanced Minimalist Notification Badge - Completely Static -->
+              <!-- Notification Badge -->
               <div
                 v-if="unreadNotificationCount > 0"
                 class="notification-badge-static absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white shadow-md border border-white/30"
@@ -159,264 +160,75 @@
               </div>
             </router-link>
 
-            <!-- Ultra Small Notification Tooltip - Compact and Readable -->
-            <!-- Custom Small Notification Tooltip -->
+            <!-- Notification Tooltip -->
             <div
               v-show="showNotificationTooltip"
               class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-green-100 text-green-900 font-medium text-[10px] rounded-md whitespace-nowrap z-50 transition-all duration-200 shadow-sm"
               :class="showNotificationTooltip ? 'opacity-100' : 'opacity-0'"
             >
               Notifications
-              <!-- Custom small tooltip arrow -->
               <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-green-100"></div>
             </div>
-
-            <!-- Notification Panel -->
-            <!-- <div
-              v-show="showNotifications"
-              class="absolute right-0 top-full mt-2 w-80 origin-top-right bg-white rounded-lg shadow-lg overflow-hidden z-50 border border-gray-100 transform transition-all duration-200"
-              :class="notificationAnimation"
-            >
-              <div class="p-3 bg-gradient-to-r from-[#00A572] to-[#008F61] text-white">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <Bell class="h-4 w-4" />
-                    <h3 class="font-medium">Notifications</h3>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span
-                      v-if="notifications && notifications.length"
-                      class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white"
-                    >
-                      {{ notifications.filter(n => n && !n.read).length }}
-                    </span>
-
-                    <button
-                      @click.stop="markAllAsRead"
-                      class="text-xs px-1.5 py-0.5 bg-white/10 hover:bg-white/20 rounded-md transition-colors"
-                      title="Mark all as read"
-                    >
-                      <Check class="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="max-h-[350px] overflow-y-auto">
-                <div v-if="notifications.filter(n => n).length === 0" class="p-4 text-center text-gray-500">
-                  <BellOff class="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                  <p class="text-sm">No notifications</p>
-                </div>
-
-                <div v-else>
-                  <div v-if="todayNotifications.filter(n => n).length > 0">
-                    <div class="px-3 py-1.5 bg-gray-50 border-y border-gray-100">
-                      <span class="text-xs font-medium text-gray-500">Today</span>
-                    </div>
-                    <div
-                      v-for="notification in todayNotifications.filter(n => n)"
-                      :key="notification.id"
-                      class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                      :class="{ 'bg-blue-50/50': notification && !notification.read }"
-                      @click="markAsRead(notification.id)"
-                    >
-                      <div class="flex items-start gap-3">
-                        <div
-                          class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                          :class="getNotificationTypeClass(notification.type).bgColor"
-                        >
-                          <component
-                            :is="getNotificationTypeClass(notification.type).icon"
-                            class="h-4 w-4 text-white"
-                          />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900 mb-0.5">{{ notification.title }}</p>
-                          <p class="text-xs text-gray-500 mb-1">{{ notification.message }}</p>
-                          <div class="flex items-center justify-between">
-                            <span class="text-xs text-gray-400">{{ formatTime(notification.time) }}</span>
-                            <div v-if="notification && !notification.read" class="h-2 w-2 rounded-full bg-blue-500"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="earlierNotifications.filter(n => n).length > 0">
-                    <div class="px-3 py-1.5 bg-gray-50 border-y border-gray-100">
-                      <span class="text-xs font-medium text-gray-500">Earlier</span>
-                    </div>
-                    <div
-                      v-for="notification in earlierNotifications.filter(n => n)"
-                      :key="notification.id"
-                      class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                      :class="{ 'bg-blue-50/50': notification && !notification.read }"
-                      @click="markAsRead(notification.id)"
-                    >
-                      <div class="flex items-start gap-3">
-                        <div
-                          class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                          :class="getNotificationTypeClass(notification.type).bgColor"
-                        >
-                          <component
-                            :is="getNotificationTypeClass(notification.type).icon"
-                            class="h-4 w-4 text-white"
-                          />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900 mb-0.5">{{ notification.title }}</p>
-                          <p class="text-xs text-gray-500 mb-1">{{ notification.message }}</p>
-                          <div class="flex items-center justify-between">
-                            <span class="text-xs text-gray-400">{{ formatTime(notification.time) }}</span>
-                            <div v-if="notification && !notification.read" class="h-2 w-2 rounded-full bg-blue-500"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="p-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-                <a href="/notifications" class="text-xs text-[#00A572] font-medium hover:underline">
-                  View all notifications
-                </a>
-                <button
-                  @click.stop="showNotifications = false"
-                  class="text-xs px-2 py-1 text-gray-500 hover:bg-gray-200 rounded transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div> -->
           </div>
 
-          <!-- Profile Dropdown - Modified Section -->
+          <!-- Profile Button -->
           <div class="relative ml-4">
             <button
               class="relative cursor-pointer group/profile"
-              @click="toggleProfileDropdown"
+              @click="goToProfile"
               @mouseenter="showProfileTooltip = true"
               @mouseleave="showProfileTooltip = false"
             >
-              <!-- Profile Image with Ultra Clean Design -->
               <div class="relative">
                 <div
                   class="w-8 h-8 rounded-full overflow-hidden transition-all duration-300 ease-out group-hover/profile:scale-[1.02]"
                   :class="[
-                    isOnProfilePage || isProfileDropdownOpen
+                    isOnProfilePage
                       ? 'ring-1 ring-green-400/60 ring-offset-1 ring-offset-white/20'
                       : 'ring-1 ring-white/15 hover:ring-white/25',
-                    user?.avatar?.icon ? 'bg-white flex items-center justify-center' : '' // Add background for emoji
+                    user?.avatar?.icon ? 'bg-white flex items-center justify-center' : ''
                   ]"
                 >
                   <span v-if="user?.avatar?.icon" class="text-lg leading-none select-none">{{ user.avatar.icon }}</span>
                   <img v-else-if="user?.profilePicture"
                        :src="user.profilePicture"
                        class="w-full h-full object-cover transition-all duration-300"
-                       :class="isOnProfilePage || isProfileDropdownOpen ? 'brightness-[1.02] saturate-[1.05]' : ''"
+                       :class="isOnProfilePage ? 'brightness-[1.02] saturate-[1.05]' : ''"
                        alt="Profile"/>
                   <img v-else
                        src="/public/images/profile.jpg"
                        class="w-full h-full object-cover transition-all duration-300"
                        alt="Profile"/>
 
-                  <!-- Ultra Subtle Active Overlay -->
                   <div
-                    v-if="isOnProfilePage || isProfileDropdownOpen"
+                    v-if="isOnProfilePage"
                     class="absolute inset-0 bg-gradient-to-br from-green-400/8 via-transparent to-transparent"
                   ></div>
                 </div>
 
-                <!-- Micro Active Indicator -->
+                <!-- Active Indicator -->
                 <div
-                  v-if="isOnProfilePage || isProfileDropdownOpen"
+                  v-if="isOnProfilePage"
                   class="absolute -bottom-px -right-px w-2 h-2 bg-green-400 rounded-full border border-white/40 shadow-sm"
                 ></div>
               </div>
 
-              <!-- Small Profile Tooltip -->
+              <!-- Profile Tooltip -->
               <div
-                v-show="showProfileTooltip && !isProfileDropdownOpen"
+                v-show="showProfileTooltip"
                 class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-[10px] font-medium rounded-md whitespace-nowrap z-50 transition-all duration-200 shadow-sm"
                 :class="showProfileTooltip ? 'opacity-100' : 'opacity-0'"
               >
                 Profile
-                <!-- Custom small tooltip arrow -->
                 <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-green-100"></div>
               </div>
             </button>
-
-            <!-- Profile Dropdown Menu -->
-            <div
-              v-show="isProfileDropdownOpen"
-              class="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-100 transform transition-all duration-200"
-              :class="isProfileDropdownOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
-            >
-              <!-- Profile Header -->
-              <div class="p-3 bg-gradient-to-r from-[#00A572] to-[#008F61] text-white">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full overflow-hidden bg-white/20">
-                    <span v-if="user?.avatar?.icon" class="text-lg leading-none select-none flex items-center justify-center w-full h-full">{{ user.avatar.icon }}</span>
-                    <img v-else-if="user?.profilePicture"
-                         :src="user.profilePicture"
-                         class="w-full h-full object-cover"
-                         alt="Profile"/>
-                    <img v-else
-                         src="/public/images/profile.jpg"
-                         class="w-full h-full object-cover"
-                         alt="Profile"/>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium" :title="user?.name || 'Unknown User'">{{ truncateText(user?.name || 'Unknown User', 13) }}</p>
-                    <p class="text-xs text-white/80" :title="user?.phoneNumber || '+63...........'">{{ truncateText(user?.phoneNumber || '+63...........', 15) }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Dropdown Options -->
-              <div class="py-1">
-                <!-- Profile Option -->
-                <button
-                  @click="goToProfile"
-                  class="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-[#E8F5E9] hover:text-[#00A572] transition-all duration-200"
-                  :class="isOnProfilePage ? 'bg-[#E8F5E9] text-[#00A572] font-medium' : ''"
-                >
-                  <svg class="h-4 w-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                  </svg>
-                  Profile
-                </button>
-
-                <!-- Recalibration Option -->
-                <button
-                  @click="goToRecalibration"
-                  class="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-[#E8F5E9] hover:text-[#00A572] transition-all duration-200"
-                  :class="$route.path === '/app/recalibration' ? 'bg-[#E8F5E9] text-[#00A572] font-medium' : ''"
-                >
-                  <Cog class="h-4 w-4 mr-3" />
-                  Recalibration
-                </button>
-
-                <!-- FAQ Option -->
-                <button
-                  @click="goToFAQ"
-                  class="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-[#E8F5E9] hover:text-[#00A572] transition-all duration-200"
-                  :class="$route.path === '/faq' ? 'bg-[#E8F5E9] text-[#00A572] font-medium' : ''"
-                >
-                  <svg class="h-4 w-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  FAQ
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      <!-- Navigation items centered -->
-      <div class="flex items-center justify-center mt-1.5">
+      <!-- Navigation items - Desktop version (always shown on desktop) -->
+      <div class="hidden md:flex items-center justify-center mt-1.5">
         <div class="flex items-center space-x-1 sm:space-x-2 md:space-x-3 flex-wrap gap-y-1">
           <router-link
             v-for="item in menuItems"
@@ -443,7 +255,7 @@
                 'flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105',
                 isSensorDropdownOpen || isInSensorRoutes
                   ? 'bg-white text-[#00A572] shadow-md'
-                  : 'text-white hover:bg-white/10 hover:shadow-sm'
+                  : 'text-white hover:shadow-sm hover:bg-white/10'
               ]"
             >
               <Database class="h-3.5 w-3.5 mr-1.5" />
@@ -476,50 +288,154 @@
           </div>
         </div>
       </div>
+
+      <!-- Mobile Navigation Dropdown (shown only when mobile menu is open) -->
+      <Transition name="slide-down">
+        <div v-if="isMobileMenuOpen" class="md:hidden mt-1.5">
+          <div class="flex flex-col space-y-1 max-h-[70vh] overflow-y-auto">
+            <!-- Main Navigation Links -->
+            <router-link
+              v-for="item in menuItems"
+              :key="item.name"
+              :to="item.href"
+              :class="[
+                'flex items-center px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300',
+                isCurrentRoute(item.href)
+                  ? 'bg-white text-[#00A572] shadow-md'
+                  : 'text-white hover:bg-white/10 hover:shadow-sm'
+              ]"
+              @click="isMobileMenuOpen = false"
+            >
+              <component :is="item.icon" class="h-3.5 w-3.5 mr-1.5" />
+              <span class="whitespace-nowrap">{{ item.name }}</span>
+            </router-link>
+
+            <!-- Sensor Data Dropdown -->
+            <div class="relative group">
+              <button
+                @click="toggleSensorDropdown"
+                :class="[
+                  'flex items-center px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300',
+                  isSensorDropdownOpen || isInSensorRoutes
+                    ? 'bg-white text-[#00A572] shadow-md'
+                    : 'text-white hover:shadow-sm hover:bg-white/10'
+                ]"
+              >
+                <Database class="h-3.5 w-3.5 mr-1.5" />
+                <span class="whitespace-nowrap">Sensor Data</span>
+                <ChevronDown
+                  :class="['ml-1.5 h-3 w-3 transition-transform duration-300',
+                    isSensorDropdownOpen ? 'transform rotate-180' : ''
+                  ]"
+                />
+              </button>
+              
+              <!-- Sensor Data Dropdown Content -->
+              <Transition name="slide-down">
+                <div
+                  v-if="isSensorDropdownOpen"
+                  class="mt-1 w-full bg-white/95 backdrop-blur-md rounded-lg shadow-lg py-1.5 border border-white/20"
+                >
+                  <div class="max-h-[200px] overflow-y-auto">
+                    <router-link
+                      v-for="sensor in sensorTypes"
+                      :key="sensor.name"
+                      :to="sensor.href"
+                      :class="[
+                        'flex items-center px-3 py-1.5 text-sm transition-all duration-200 hover:scale-[1.02]',
+                        isCurrentRoute(sensor.href)
+                          ? 'bg-[#E8F5E9] text-[#00A572] font-medium'
+                          : 'text-gray-700 hover:bg-[#E8F5E9] hover:text-[#00A572]'
+                      ]"
+                      @click="isMobileMenuOpen = false; isSensorDropdownOpen = false"
+                    >
+                      <component :is="sensor.icon" class="h-3.5 w-3.5 mr-2" />
+                      {{ sensor.name }}
+                    </router-link>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Profile Section for Mobile -->
+            <div class="pt-2 border-t border-white/10 mt-2">
+              <div class="flex items-center justify-between px-2.5 py-1.5">
+                <span class="text-xs text-white opacity-90">{{ user?.email }}</span>
+              </div>
+
+              <!-- WiFi Connection Status -->
+              <button
+                @click="goToWifi"
+                class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
+              >
+                <div class="flex items-center justify-center size-7 rounded-full mr-1.5" :class="wifiStrength > 0 ? 'bg-green-500/20' : ''">
+                  <Wifi class="h-3.5 w-3.5 text-white" />
+                </div>
+                <span class="whitespace-nowrap">WiFi Status</span>
+                <span class="ml-auto text-xs" :class="wifiStrength > 0 ? 'text-green-400' : 'text-red-400'">
+                  {{ wifiStrength > 0 ? `${wifiStrength}%` : 'Disconnected' }}
+                </span>
+              </button>
+
+              <!-- Recalibration Button -->
+              <button
+                @click="goToRecalibration"
+                class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
+                :class="{ 'bg-white/10': $route.path === '/app/recalibration' }"
+              >
+                <div class="flex items-center justify-center size-7 rounded-full mr-1.5" :class="$route.path === '/recalibration' ? 'bg-green-500/20' : ''">
+                  <Cog class="h-3.5 w-3.5 text-white" />
+                </div>
+                <span class="whitespace-nowrap">Recalibration</span>
+              </button>
+
+              <!-- Notification Button -->
+              <router-link
+                to="/app/notifications"
+                class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
+                :class="{ 'bg-white/10': $route.path === '/notifications' }"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="relative flex items-center justify-center size-7 rounded-full mr-1.5">
+                  <Bell class="h-3.5 w-3.5 text-white" />
+                  <div
+                    v-if="unreadNotificationCount > 0"
+                    class="absolute -top-1 -right-1 min-w-[14px] h-3.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[8px] px-0.5"
+                  >
+                    {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                  </div>
+                </div>
+                <span class="whitespace-nowrap">Notifications</span>
+              </router-link>
+
+              <!-- Profile Button -->
+              <button
+                @click="goToProfile"
+                class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
+                :class="{ 'bg-white/10': isOnProfilePage }"
+              >
+                <div class="relative size-7 rounded-full overflow-hidden mr-1.5">
+                  <span v-if="user?.avatar?.icon" class="flex items-center justify-center size-full text-lg">{{ user.avatar.icon }}</span>
+                  <img v-else-if="user?.profilePicture"
+                       :src="user.profilePicture"
+                       class="w-full h-full object-cover"
+                       alt="Profile"/>
+                  <img v-else
+                       src="/public/images/profile.jpg"
+                       class="w-full h-full object-cover"
+                       alt="Profile"/>
+                </div>
+                <span class="whitespace-nowrap">Profile</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </nav>
-  
 
   <!-- Spacer for content below navbar -->
   <div class="h-20"></div>
-
-  <!-- Click outside handlers -->
-  <div
-    v-if="showNotifications"
-    class="fixed inset-0 z-40"
-    @click="showNotifications = false"
-  ></div>
-  
-  <div
-    v-if="isProfileDropdownOpen"
-    class="fixed inset-0 z-40"
-    @click="isProfileDropdownOpen = false"
-  ></div>
-  
-  <Transition name="toast">
-    <div
-      v-if="showToast"
-      :class="[
-        'fixed bottom-4 right-4 rounded-lg shadow-lg border p-4 flex items-center gap-3 z-[10001] max-w-md',
-        toastStyles.bg,
-        toastStyles.border
-      ]"
-    >
-      <div :class="[toastStyles.iconBg, 'p-2 rounded-full']">
-        <component :is="toastStyles.icon" class="w-5 h-5" :class="toastStyles.iconColor" />
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-800">{{ toastMessage }}</p>
-      </div>
-      <button
-        @click="showToast = false"
-        class="ml-auto text-gray-400 hover:text-gray-600"
-      >
-        <X class="w-4 h-4" />
-      </button>
-    </div>
-  </Transition>
-
 </template>
 
 <script setup>
@@ -543,7 +459,6 @@ import {
   Zap,
   Check,
   AlertCircle,
-  // Droplet, // Already imported
   Leaf,
   BarChart,
   Cog,
@@ -580,187 +495,241 @@ import {
   getDocsFromServer,
   onSnapshot
 } from 'firebase/firestore'
-
+import { useUserStore } from '../../utils/user.js'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../api/firebase.js'
 
 const db = getFirestore()
-
 const route = useRoute()
 const router = useRouter()
-const user = ref(null)
+const userStore = useUserStore();
+const user = computed(() => userStore.user)
 const isSensorDropdownOpen = ref(false)
 const isProfileDropdownOpen = ref(false)
-// Tooltip visibility states
 const showWifiTooltip = ref(false)
 const showWebSocketTooltip = ref(false)
 const showRecalibrationTooltip = ref(false)
 const showNotificationTooltip = ref(false)
 const showProfileTooltip = ref(false)
-
-// Notifications
 const showNotifications = ref(false)
-const notificationAnimation = ref('scale-95 opacity-0')
-
-const isWebSocketConnected = ref(false)
-const wsLatency = ref(0)
-const wsUptime = ref('0m')
-let wsStartTime = null
 const wifiStrength = ref(100)
 const wifiNetwork = ref('Unknown')
 const ipAddress = ref('')
-
-// Sample notifications data
 const notifications = ref([])
 const waterLevel = ref(0);
-const sensorReadings = ref([]);
-
-// Computed property for checking if user is on profile page
-const isOnProfilePage = computed(() => {
-  return route.name === 'UserProfile' || route.path === '/profile' || route.path.includes('/user-profile')
-})
-
-// Computed property for unread notification count
-const unreadNotificationCount = computed(() => {
-  return notifications.value.filter(n => n && !n.read).length;
-});
-
-// Provide the unread count to any child components that need it
-provide('unreadNotificationCount', unreadNotificationCount);
-
-const currentTime = ref(Date.now())
 const savedSchedules = ref([])
-
-const activeSchedules = new Map();
-const notifiedStartIds = new Set()
-const notifiedEndIds = new Set()
-const processedSchedules = new Set()
-const motorOnTriggered = new Set()
-const motorOffTriggered = new Set()
-
-// Keep track of previous states of schedules to detect changes for end notifications
-const previousSchedulesMap = new Map();
-
-// Toast handling
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastSeverity = ref('info')
 const toastTimeout = ref(null)
 const toastQueue = ref([]);
 const isToastActive = ref(false);
-
 const processingScheduleIds = ref(new Set());
+let unsubscribeUserListener = null;
+let unsubscribeSoilMoisture = null;
+let unsubscribeFunctions = []
+const schedulesCache = ref([]);
+const scheduleTimers = ref({});
+const unsubscribeSchedules = ref(null);
+const scheduleCheckInterval = ref(null);
+const activeSchedules = ref({});
+const activeSystemSchedules = ref({}); 
+const immediateCheckTimeout = ref(null);
+const notificationCooldowns = ref(new Map());
+const lastProcessedScheduleTimes = ref({});
+const activeWateringSchedules = ref({});
 
-const shownScheduleToasts = ref(new Set());
-const motorOperationLock = ref(false);
-const backendRequestQueue = ref([]);
-const isProcessingQueue = ref(false);
-const processedMotorRequests = ref(new Set());
+// Reactive state
+const isMobileMenuOpen = ref(false);
+const isMobile = ref(window.innerWidth < 768);
 
-const truncateText = (text, maxLength) => {
-  if (!text) return '';
-  if (text.length <= maxLength) {
-    return text;
+// Add these near your other refs
+const sentNotifications = ref(new Set());
+const processingNotifications = ref(new Set());
+
+// Methods
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+  if (isMobileMenuOpen.value) {
+    isSensorDropdownOpen.value = false;
   }
-  return text.substring(0, maxLength) + '...';
 };
 
-const sendSMS = async (phone, message) => {
-  try {
-    const response = await axios.post('http://127.0.0.1:8000/send-sms', {
-      phone,
-      message
-    })
-    console.log('✅ SMS sent:', response.data)
-  } catch (error) {
-    if (error.response) {
-      console.error('❌ SMS send error:', error.response.data)
-    } else {
-      console.error('❌ SMS send error:', error)
-    }
+const closeMobileMenu = () => {
+  if (isMobile.value) {
+    isMobileMenuOpen.value = false;
   }
+};
+
+const closeMobileMenuAndDropdown = () => {
+  isMobileMenuOpen.value = false;
+  isSensorDropdownOpen.value = false;
+};
+
+// Helper function to generate unique notification IDs
+const generateNotificationId = (type, identifier) => {
+  return `${type}-${identifier}`;
+};
+
+// Utility Functions
+const truncateText = (text, maxLength) => {
+  if (!text) return '';
+  return text.length <= maxLength ? text : text.substring(0, maxLength) + '...';
+};
+
+const getSignalStrengthClass = (strength) => {
+  if (strength >= 70) return 'bg-green-500'
+  if (strength >= 40) return 'bg-yellow-500'
+  return 'bg-red-500'
 }
 
-// Function to navigate to recalibration page
+const isCurrentRoute = (path) => route.path === path
+const isInSensorRoutes = computed(() => sensorTypes.some(sensor => route.path === sensor.href))
+const isOnProfilePage = computed(() => route.name === 'UserProfile' || route.path === '/profile' || route.path.includes('/user-profile'))
+const unreadNotificationCount = computed(() => notifications.value.filter(n => n && !n.read).length);
+
+// UI Functions
+const closeDropdown = (e) => {
+  if (!e.target.closest('.relative.group') && !e.target.closest('.relative.ml-4')) {
+    isSensorDropdownOpen.value = false;
+    isProfileDropdownOpen.value = false;
+  }
+};
+
+const handleResize = () => {
+  if (window.innerWidth < 640) {
+    isSensorDropdownOpen.value = false;
+    isProfileDropdownOpen.value = false;
+    showNotifications.value = false;
+    showWifiTooltip.value = false;
+    showWebSocketTooltip.value = false;
+    showRecalibrationTooltip.value = false;
+    showNotificationTooltip.value = false;
+    showProfileTooltip.value = false;
+  }
+};
+
+// Menu Items
+const menuItems = [
+  { name: 'Overview', href: '/app/dashboard', icon: LayoutDashboard },
+  { name: 'Crop Prediction', href: '/app/prediction', icon: Brain },
+  { name: 'Weather', href: '/app/weather', icon: Cloud },
+  { name: 'Device Control', href: '/app/control', icon: Cpu },
+  { name: 'Soil Analysis', href: '/app/soil', icon: Sprout }
+];
+
+const sensorTypes = [
+  { name: 'NPK Data', href: '/app/npkData', icon: Sprout },
+  { name: 'Soil pH', href: '/app/soilph', icon: Beaker },
+  { name: 'Soil Moisture', href: '/app/soil-moisture', icon: Droplets },
+  { name: 'Temp/Humid', href: '/app/temperature-humidity', icon: Thermometer },
+  { name: 'Water Level', href: '/app/water-level', icon: Gauge },
+  { name: 'Motor Control', href: '/app/motor-control', icon: Power }
+];
+
+// SMS Function
+const sendSMS = async (phone, message) => {
+  if (!phone) {
+    console.warn('No phone number provided for SMS');
+    return false;
+  }
+
+  // Format the phone number first
+  const formattedPhone = formatPhoneNumber(phone);
+  if (!formattedPhone) {
+    console.error('Invalid phone number format:', phone);
+    return false;
+  }
+
+  try {
+    console.log('Sending SMS with:', { 
+      number: formattedPhone,  // Use the formatted number
+      message 
+    });
+
+    const response = await api.post('/sms/send-sms', { 
+      number: formattedPhone,  // Use the formatted number
+      message 
+    });
+
+    console.log('✅ SMS sent successfully:', response.data);
+    return true;
+  } catch (error) {
+    console.error('❌ SMS send error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    showToastMessage('Failed to send SMS notification', 'warning');
+    return false;
+  }
+};
+
+// Improved phone number formatter
+const formatPhoneNumber = (phone) => {
+  if (!phone) return null;
+  
+  // Remove all non-digit characters
+  const cleaned = phone.toString().replace(/\D/g, '');
+  
+  // Handle Philippine numbers (most common case)
+  if (cleaned.length === 11 && cleaned.startsWith('0')) {
+    return `+63${cleaned.substring(1)}`;
+  }
+  if (cleaned.length === 10 && cleaned.startsWith('9')) {
+    return `+63${cleaned}`;
+  }
+  if (cleaned.length === 12 && cleaned.startsWith('63')) {
+    return `+${cleaned}`;
+  }
+  
+  // Handle international numbers
+  if (cleaned.length >= 11 && cleaned.startsWith('1')) { // US/Canada
+    return `+${cleaned}`;
+  }
+  
+  // If already in international format with +
+  if (phone.startsWith('+') && cleaned.length >= 11) {
+    return phone;
+  }
+  
+  console.warn('Unrecognized phone number format:', phone);
+  return null;
+};
+
+// Navigation Functions
 const goToRecalibration = () => {
   isProfileDropdownOpen.value = false
   router.push('/app/recalibration')
 }
 
-// Function to navigate to FAQ page
 const goToFAQ = () => {
   isProfileDropdownOpen.value = false
   router.push('/faq')
 }
 
-// Function to toggle profile dropdown
 const toggleProfileDropdown = () => {
   isProfileDropdownOpen.value = !isProfileDropdownOpen.value
-  if (isProfileDropdownOpen.value) {
-    showProfileTooltip.value = false
-  }
+  if (isProfileDropdownOpen.value) showProfileTooltip.value = false
 }
 
-// const showToastMessage = (message, severity = 'info') => {
-//   if (toastTimeout.value) clearTimeout(toastTimeout.value)
+const goToProfile = () => {
+  isProfileDropdownOpen.value = false
+  router.push({ name: 'UserProfile' })
+}
 
-//   toastMessage.value = message
-//   toastSeverity.value = severity
-//   showToast.value = true
-
-//   toastTimeout.value = setTimeout(() => {
-//     showToast.value = false
-//   }, 10000)
-// }
-
-// const processToastQueue = () => {
-//   if (toastQueue.value.length === 0 || isToastActive.value) return;
-  
-//   isToastActive.value = true;
-//   const nextToast = toastQueue.value.shift();
-//   toastMessage.value = nextToast.message;
-//   toastSeverity.value = nextToast.severity;
-//   showToast.value = true;
-
-//   setTimeout(() => {
-//     showToast.value = false;
-//     setTimeout(() => {
-//       isToastActive.value = false;
-//       processToastQueue();
-//     }, 300); // Wait for exit animation
-//   }, 10000);
-// };
-
-// Modified showToastMessage to use queue
-// const showToastMessage = (message, severity = 'info') => {
-//   toastQueue.value.push({ message, severity });
-//   if (!isToastActive.value) {
-//     processToastQueue();
-//   }
-// };
+const toggleSensorDropdown = () => {
+  isSensorDropdownOpen.value = !isSensorDropdownOpen.value
+}
 
 const processToastQueue = () => {
   if (toastQueue.value.length === 0 || isToastActive.value) return;
   
   isToastActive.value = true;
   const nextToast = toastQueue.value.shift();
-  
-  // Check if we've shown this toast before (even across refreshes)
-  const toastKey = `toast-${nextToast.persistKey}`;
-  if (nextToast.persistKey && localStorage.getItem(toastKey)) {
-    isToastActive.value = false;
-    processToastQueue();
-    return;
-  }
-  
   toastMessage.value = nextToast.message;
   toastSeverity.value = nextToast.severity;
   showToast.value = true;
-
-  // Mark as shown in localStorage
-  if (nextToast.persistKey) {
-    localStorage.setItem(toastKey, 'true');
-  }
 
   setTimeout(() => {
     showToast.value = false;
@@ -771,276 +740,1161 @@ const processToastQueue = () => {
   }, 5000);
 };
 
-// Modified showToastMessage with persistence
 const showToastMessage = (message, severity = 'info', persistKey = null) => {
-  toastQueue.value.push({ message, severity, persistKey });
-  if (!isToastActive.value) {
-    processToastQueue();
+  window.showToast(message, severity)
+}
+
+// Notification Functions
+const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}) => {
+  const notificationId = uniqueKey || generateNotificationId(severity, message);
+  
+  if (sentNotifications.value.has(notificationId)) return;
+  if (processingNotifications.value.has(notificationId)) return;
+
+  processingNotifications.value.add(notificationId);
+
+  try {
+    showToastMessage(message, severity, notificationId);
+
+    // Clean the context data before saving
+    const cleanedContext = cleanFirestoreData(contextData);
+
+    const notification = {
+      message,
+      title,
+      type: 'system',
+      severity,
+      read: false,
+      timestamp: serverTimestamp(),
+      context: cleanedContext
+    };
+
+    await addDoc(collection(db, 'notifications'), notification);
+    sentNotifications.value.add(notificationId);
+    
+    // SMS remains unchanged
+    if (user.value?.phoneNumber) {
+      if (severity === 'critical') {
+        await sendSMS(user.value.phoneNumber, `[URGENT] ${title}: ${message}`);
+      } 
+      else if (severity === 'warning' && user.value.notifyWarnings !== false) {
+        await sendSMS(user.value.phoneNumber, `[Warning] ${title}: ${message}`);
+      }
+      else if (title.includes('Scheduled Watering') && user.value.notifySchedules !== false) {
+        await sendSMS(user.value.phoneNumber, `[Schedule] ${title}: ${message}`);
+      }
+    }
+  } catch (error) {
+    console.error('Notification processing error:', {
+      error: error.message,
+      notificationId,
+      contextData // Log the problematic data
+    });
+  } finally {
+    processingNotifications.value.delete(notificationId);
   }
 };
 
-const toastStyles = computed(() => {
-  switch (toastSeverity.value) {
-    case 'success':
-      return {
-        icon: CheckCircle,
-        iconColor: 'text-green-600',
-        iconBg: 'bg-green-100',
-        bg: 'bg-white',
-        border: 'border-green-200'
-      }
-    case 'info':
-      return {
-        icon: Info,
-        iconColor: 'text-blue-600',
-        iconBg: 'bg-blue-100',
-        bg: 'bg-white',
-        border: 'border-blue-200'
-      }
-    case 'warning':
-      return {
-        icon: AlertTriangle,
-        iconColor: 'text-yellow-600',
-        iconBg: 'bg-yellow-100',
-        bg: 'bg-white',
-        border: 'border-yellow-200'
-      }
-    case 'critical':
-      return {
-        icon: XCircle,
-        iconColor: 'text-red-600',
-        iconBg: 'bg-red-100',
-        bg: 'bg-white',
-        border: 'border-red-200'
-      }
-    case 'failed':
-      return {
-        icon: XCircle,
-        iconColor: 'text-gray-600',
-        iconBg: 'bg-gray-100',
-        bg: 'bg-white',
-        border: 'border-gray-300'
-      }
-    default:
-      return {
-        icon: Info,
-        iconColor: 'text-gray-600',
-        iconBg: 'bg-gray-100',
-        bg: 'bg-white',
-        border: 'border-gray-300'
-      }
-  }
-})
+// Add this with your other refs
+const unsubscribeWaterLevel = ref(null);
 
-defineExpose({ showToastMessage })
-
-const localNotifiedCache = {
-  critical: null,
-  warning: null,
-  info: null,
-}
-
-const isSameDay = (d1, d2) =>
-  d1.getFullYear() === d2.getFullYear() &&
-  d1.getMonth() === d2.getMonth() &&
-  d1.getDate() === d2.getDate()
-
-const sendNotification = async (message, title, severity = 'info') => {
-  // Default: show toast for non-critical notifications
-  if (severity !== 'critical') {
-    showToastMessage(message, severity)
+const setupWaterLevelListener = () => {
+  // Clear any existing listener
+  if (unsubscribeWaterLevel.value) {
+    unsubscribeWaterLevel.value();
   }
 
-  let shouldSend = true
-
-  if (severity === 'critical') {
-    const today = new Date().toISOString().split('T')[0]
-
-    const q = query(
-      collection(db, 'notifications'),
-      where('severity', '==', 'critical'),
-      where('type', '==', 'water'),
-      where('date', '==', today)
-    )
-
-    try {
-      const snapshot = await getDocsFromServer(q)
-
-      if (!snapshot.empty) {
-        console.log('[DEBUG] Critical water notification already exists for today:', snapshot.docs[0].data())
-        shouldSend = false
+  const waterLevelQuery = query(
+    collection(db, "water_level_readings"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+  
+  unsubscribeWaterLevel.value = onSnapshot(waterLevelQuery, (snapshot) => {
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const waterData = doc.data();
+      console.log("Water level data:", waterData); // Debug log
+      
+      // Make sure we're getting the waterLevel field
+      if (waterData && typeof waterData.waterLevel === 'number') {
+        const level = waterData.waterLevel;
+        console.log("Current water level:", level); // Debug log
+        waterLevel.value = level;
+        evaluateWaterLevel(level);
       } else {
-        console.log('[DEBUG] No critical water notification found for today')
+        console.warn("Water level data missing or invalid:", waterData);
       }
-    } catch (error) {
-      console.error('❌ Error checking for existing notification:', error)
-      shouldSend = false // Prevent duplicate on query error
+    } else {
+      console.log("No water level documents found");
     }
-  }
+  }, (error) => {
+    console.error("Water level listener error:", error);
+  });
+};
 
-  if (!shouldSend) return
-
-  // Show toast only if allowed to send
-  showToastMessage(message, severity)
-
-  const notification = {
-    id: Date.now().toString(),
-    message,
-    title,
-    type: 'water',
-    severity,
-    read: false,
-    date: new Date().toISOString().split('T')[0],
-    timestamp: serverTimestamp(),
+const evaluateWaterLevel = async (level) => {
+  if (typeof level !== 'number' || level < 0 || level > 100) {
+    console.warn(`Invalid water level value: ${level}`);
+    return;
   }
 
   try {
-    const docRef = await addDoc(collection(db, 'notifications'), notification)
-    console.log('✅ Notification saved to Firestore:', docRef.id)
+    // Get additional context data for Firestore only
+    const sensorSnapshot = await getDocs(query(
+      collection(db, "3sensor_readings", "esp32-2", "readings"),
+      orderBy("timestamp", "desc"),
+      limit(1)
+    ));
+    
+    let contextData = { waterLevel: level };
+    
+    if (!sensorSnapshot.empty) {
+      const sensorData = sensorSnapshot.docs[0].data();
+      contextData = {
+        ...contextData,
+        temperature: sensorData.temperature,
+        humidity: sensorData.humidity,
+        soilMoisture: sensorData.soilMoisture
+      };
+    }
 
-    const savedDoc = await getDoc(docRef)
-    console.log('[DEBUG] Saved notification:', savedDoc.data())
-
-    if (severity === 'critical') {
-      const phone = '+639627080157'
-      // await sendSMS(phone, `${title}: ${message}`) // Assuming sendSMS is defined elsewhere or re-added
+    if (level <= 15) {
+      await sendNotification(
+        `Water level is CRITICALLY LOW (${level}%)! Immediate action required.`,
+        '🚨 Emergency Alert',
+        'critical',
+        `water-critical-${Math.floor(level)}`,
+        contextData // Only saved to Firestore
+      );
+    } 
+    else if (level <= 30) {
+      await sendNotification(
+        `Water level is low (${level}%). Consider refilling soon.`,
+        'Low Water Alert',
+        'warning',
+        `water-warning-${Math.floor(level)}`,
+        contextData // Only saved to Firestore
+      );
+    }
+    else if (level >= 45 && level <= 55) {
+      await sendNotification(
+        `Water level is at ${Math.round(level)}%`,
+        'Water Level Update',
+        'info',
+        'water-info-50',
+        contextData // Only saved to Firestore
+      );
     }
   } catch (error) {
-    console.error('❌ Error saving notification:', error)
+    console.error('Water level notification failed:', error);
   }
-}
+};
 
-const evaluateWaterLevel = (level) => {
-  if (level <= 15) {
-    sendNotification(
-      'Water level is critically low! Immediate action required.',
-      'Critical Water Level',
-      'critical'
-    )
-  } else if (level <= 30 && level > 15) {
-    sendNotification(
-      'Water level is low (20–30%). Consider refilling soon.',
-      'Low Water Level',
-      'warning'
-    )
-  } else if (level === 50) {
-    sendNotification(
-      'Water level is at 50%. Monitoring status.',
-      'Water Level Update',
-      'info'
-    )
-  }
-}
-
-// const sendScheduleNotification = async (schedule, status) => { // `status` is 'started' or 'ended'
-//   try {
-//     const dateTimeFormatted = new Date(schedule.scheduledTime).toLocaleString('en-US', {
-//       weekday: 'short',
-//       // year: 'numeric', // Year might be too verbose for a quick notification
-//       month: 'short',
-//       day: 'numeric',
-//       hour: '2-digit',
-//       minute: '2-digit'
-//     });
-
-//     const eventType = status === 'started' ? 'watering_start' : 'watering_end';
-
-//     const message =
-//       status === 'started'
-//         ? `The watering scheduled at ${dateTimeFormatted} is now starting.`
-//         : `The watering scheduled at ${dateTimeFormatted} has ended.`;
-
-//     // --- Duplicate Check ---
-//     const notificationsRef = collection(db, 'notifications');
-//     const q = query(notificationsRef,
-//       where('scheduleId', '==', schedule.id),
-//       where('eventType', '==', eventType)
-//     );
-
-//     const querySnapshot = await getDocs(q);
-//     if (!querySnapshot.empty) {
-//       console.log(`Notification for schedule ${schedule.id} (${eventType}) already exists. Skipping.`);
-//       // Ensure local cache is also up-to-date if somehow missed
-//       if (status === 'started') notifiedStartIds.add(schedule.id);
-//       else notifiedEndIds.add(schedule.id);
-//       return; // Exit if duplicate
-//     }
-//     // --- End Duplicate Check ---
-
-//     const notification = {
-//       title: 'Scheduled Watering',
-//       message,
-//       severity: 'info',
-//       type: 'watering_schedule', // More specific type for this category of notification
-//       scheduleId: schedule.id,   // Store the ID of the schedule this notification relates to
-//       eventType: eventType,      // Store 'watering_start' or 'watering_end'
-//       read: false,
-//       timestamp: serverTimestamp()
-//     };
-
-//     await addDoc(collection(db, 'notifications'), notification);
-//     showToastMessage(`Schedule ${status}: ${dateTimeFormatted}`);
-
-//     // Update local notification caches after successful send
-//     if (status === 'started') notifiedStartIds.add(schedule.id);
-//     else notifiedEndIds.add(schedule.id);
-
-//   } catch (error) {
-//     console.error('Notification error:', error);
-//   }
-// };
-
-// Enhanced sendScheduleNotification function with toast
 const sendScheduleNotification = async (schedule, status) => {
+  const dateTimeFormatted = new Date(schedule.scheduledTime).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const message = status === 'started'
+    ? `The watering scheduled at ${dateTimeFormatted} is now starting.`
+    : `The watering scheduled at ${dateTimeFormatted} has ended.`;
+
+  const notificationId = `schedule-${schedule.id}-${status}`;
+
   try {
-    const dateTimeFormatted = new Date(schedule.scheduledTime).toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    const eventType = status === 'started' ? 'watering_start' : 'watering_end';
-    const message = status === 'started'
-      ? `The watering scheduled at ${dateTimeFormatted} is now starting.`
-      : `The watering scheduled at ${dateTimeFormatted} has ended.`;
-
-    // First show toast message
-    showToastMessage(message, 'info', `schedule-${schedule.id}-${eventType}`);
-
-    // Check for existing notification to prevent duplicates
-    const notificationsRef = collection(db, 'notifications');
-    const q = query(
-      notificationsRef,
-      where('scheduleId', '==', schedule.id),
-      where('eventType', '==', eventType)
+    await sendNotification(
+      message,
+      'Scheduled Watering',
+      'info',
+      notificationId
     );
 
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      console.log(`Notification for schedule ${schedule.id} (${eventType}) already exists. Skipping.`);
-      return;
+    // Send SMS if enabled
+    if (user.value?.phoneNumber && user.value.notifySchedules) {
+      await sendSMS(
+        user.value.phoneNumber,
+        `[Schedule] ${status === 'started' ? 'Started' : 'Completed'}: ${message}`
+      );
     }
+  } catch (error) {
+    console.error('Schedule notification error:', error);
+  }
+};
 
-    // Save new notification
-    await addDoc(notificationsRef, {
-      title: 'Scheduled Watering',
-      message,
-      severity: 'info',
-      type: 'watering_schedule',
-      scheduleId: schedule.id,
-      eventType,
-      read: false,
-      timestamp: serverTimestamp()
+// Weather Alert Functions
+const isSevereWeather = (condition) => {
+  if (!condition) return false;
+  const severeConditions = [
+    'Heavy Rain',
+    'Rain Showers',
+    'Heavy Rain Showers',
+    'Violent Rain Showers',
+    'Thunderstorm',
+    'Thunderstorm with Hail',
+    'Severe Thunderstorm',
+  ];
+  return severeConditions.includes(condition);
+};
+
+const checkWeatherForecastForAlerts = async () => {
+  try {
+    const weatherData = await getWeatherData();
+    if (!weatherData || !weatherData.forecast) return;
+
+    for (const day of weatherData.forecast.slice(0, 3)) {
+      const condition = mapWeatherCode(day.condition_code);
+      const dateStr = day.date.split('T')[0];
+      
+      if (isSevereWeather(condition)) {
+        const weekday = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+        const title = 'Severe Weather Alert';
+        const message = `${condition} forecast for ${weekday}.`;
+        
+        // Get current weather data for context
+        const current = weatherData.current || {};
+        const currentHourData = {
+          temperature: current.temperature_c ?? null,
+          humidity: current.humidity ?? null,
+          windSpeed: current.wind_speed ?? null,
+          pressure: current.pressure ?? null,
+          uvIndex: current.uv_index ?? null
+        };
+
+        // Build context data with null checks
+        const contextData = {
+          condition: condition || 'Unknown',
+          date: dateStr,
+          forecast: {
+            temperature_max: day.temperature_max ?? null,
+            temperature_min: day.temperature_min ?? null,
+            condition_code: day.condition_code ?? null
+          },
+          current: currentHourData,
+          timestamp: serverTimestamp()
+        };
+
+        // Clean the data before saving
+        const cleanedContext = cleanFirestoreData(contextData);
+
+        await sendNotification(
+          message,
+          title,
+          'warning',
+          `weather-${dateStr}-${condition}`,
+          cleanedContext
+        );
+        
+        // SMS remains simple as before
+        if (user.value?.phoneNumber && user.value.notifyWeather) {
+          await sendSMS(
+            user.value.phoneNumber,
+            `⚠️ ${title}: ${message} Prepare your irrigation system.`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Weather forecast check error:', error);
+  }
+};
+
+// Enhanced data cleaner
+const cleanFirestoreData = (data) => {
+  if (data === null || data === undefined) return null;
+  
+  if (typeof data !== 'object') return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(item => cleanFirestoreData(item));
+  }
+
+  const cleaned = {};
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    if (value !== undefined) {
+      cleaned[key] = cleanFirestoreData(value);
+    }
+  });
+  return cleaned;
+};
+
+const unsubscribeCombinedListener = ref(null);
+
+const setupCombinedRealtimeListener = () => {
+  // Clean up previous listener
+  if (unsubscribeCombinedListener.value) unsubscribeCombinedListener.value();
+
+  // Queries for latest readings
+  const waterQuery = query(
+    collection(db, "water_level_readings"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+  const sensor1Query = query(
+    collection(db, "3sensor_readings", "esp32-1", "readings"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+  const sensor2Query = query(
+    collection(db, "3sensor_readings", "esp32-2", "readings"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+
+  // Helper to fetch latest data from all sources
+  const fetchLatestCombinedData = async () => {
+    const [waterSnap, sensor1Snap, sensor2Snap] = await Promise.all([
+      getDocs(waterQuery),
+      getDocs(sensor1Query),
+      getDocs(sensor2Query)
+    ]);
+    const waterData = !waterSnap.empty ? waterSnap.docs[0].data() : {};
+    const sensor1Data = !sensor1Snap.empty ? sensor1Snap.docs[0].data() : {};
+    const sensor2Data = !sensor2Snap.empty ? sensor2Snap.docs[0].data() : {};
+    return { waterData, sensor1Data, sensor2Data };
+  };
+
+  // Listener callback
+  const onAnyChange = async () => {
+    const { waterData, sensor1Data, sensor2Data } = await fetchLatestCombinedData();
+    await evaluateAllRangesAndNotify({ waterData, sensor1Data, sensor2Data });
+  };
+
+  // Set up listeners for all three sources
+  const unsubWater = onSnapshot(waterQuery, onAnyChange);
+  const unsubSensor1 = onSnapshot(sensor1Query, onAnyChange);
+  const unsubSensor2 = onSnapshot(sensor2Query, onAnyChange);
+
+  // Store cleanup function
+  unsubscribeCombinedListener.value = () => {
+    unsubWater();
+    unsubSensor1();
+    unsubSensor2();
+  };
+};
+
+// Unified evaluation function for all ranges and sources
+const evaluateAllRangesAndNotify = async ({ waterData, sensor1Data, sensor2Data }) => {
+  // Water Level
+  if (typeof waterData.waterLevel === 'number') {
+    const contextData = {
+      waterLevel: waterData.waterLevel,
+      sensor1: sensor1Data,
+      sensor2: sensor2Data
+    };
+    if (waterData.waterLevel <= 15) {
+      await sendNotification(
+        `Water level is CRITICALLY LOW (${waterData.waterLevel}%)! Immediate action required.`,
+        '🚨 Emergency Alert',
+        'critical',
+        `water-critical-${Math.floor(waterData.waterLevel)}`,
+        contextData
+      );
+    } else if (waterData.waterLevel <= 30) {
+      await sendNotification(
+        `Water level is low (${waterData.waterLevel}%). Consider refilling soon.`,
+        'Low Water Alert',
+        'warning',
+        `water-warning-${Math.floor(waterData.waterLevel)}`,
+        contextData
+      );
+    } else if (waterData.waterLevel >= 45 && waterData.waterLevel <= 55) {
+      await sendNotification(
+        `Water level is at ${Math.round(waterData.waterLevel)}%`,
+        'Water Level Update',
+        'info',
+        'water-info-50',
+        contextData
+      );
+    }
+  }
+
+  // Sensor readings for esp32-1
+  if (sensor1Data && Object.keys(sensor1Data).length > 0) {
+    await evaluateSensorRangesAndNotify({
+      waterData,
+      sensorData: sensor1Data,
+      source: 'esp32-1',
+      sensor1Data,
+      sensor2Data
+    });
+  }
+  // Sensor readings for esp32-2
+  if (sensor2Data && Object.keys(sensor2Data).length > 0) {
+    await evaluateSensorRangesAndNotify({
+      waterData,
+      sensorData: sensor2Data,
+      source: 'esp32-2',
+      sensor1Data,
+      sensor2Data
+    });
+  }
+};
+
+// Updated evaluation function for sensor ranges and water
+const evaluateSensorRangesAndNotify = async ({ waterData, sensorData, source, sensor1Data, sensor2Data }) => {
+  if (!sensorData) return;
+
+  // Build context with all current data except for weather notifications
+  const context = {
+    waterLevel: waterData?.waterLevel,
+    sensor1: sensor1Data,
+    sensor2: sensor2Data,
+    source
+  };
+
+  // Soil pH
+  if (sensorData.soilPh !== undefined) {
+    if (sensorData.soilPh < 5.5) {
+      await sendNotification(
+        `Soil pH is LOW (${sensorData.soilPh}). Strongly acidic, poor nutrient availability.`,
+        'Soil pH Alert',
+        'warning',
+        `ph-low-${source}-${Math.floor(sensorData.soilPh * 10)}`,
+        context
+      );
+    } else if (sensorData.soilPh > 7.5) {
+      await sendNotification(
+        `Soil pH is HIGH (${sensorData.soilPh}). Alkaline, nutrients may be locked out.`,
+        'Soil pH Alert',
+        'warning',
+        `ph-high-${source}-${Math.floor(sensorData.soilPh * 10)}`,
+        context
+      );
+    }
+  }
+
+  // Nitrogen (N)
+  if (sensorData.nitrogen !== undefined) {
+    if (sensorData.nitrogen < 51) {
+      await sendNotification(
+        `Nitrogen is LOW (${sensorData.nitrogen} ppm). Deficiency in leafy growth.`,
+        'Nitrogen Alert',
+        'warning',
+        `n-low-${source}-${sensorData.nitrogen}`,
+        context
+      );
+    } else if (sensorData.nitrogen > 200) {
+      await sendNotification(
+        `Nitrogen is HIGH (${sensorData.nitrogen} ppm). May cause excessive vegetative growth.`,
+        'Nitrogen Alert',
+        'warning',
+        `n-high-${source}-${sensorData.nitrogen}`,
+        context
+      );
+    }
+  }
+
+  // Phosphorus (P)
+  if (sensorData.phosphorus !== undefined) {
+    if (sensorData.phosphorus < 21) {
+      await sendNotification(
+        `Phosphorus is LOW (${sensorData.phosphorus} ppm). Weak root & flower development.`,
+        'Phosphorus Alert',
+        'warning',
+        `p-low-${source}-${sensorData.phosphorus}`,
+        context
+      );
+    } else if (sensorData.phosphorus > 60) {
+      await sendNotification(
+        `Phosphorus is HIGH (${sensorData.phosphorus} ppm). Possible nutrient lockout.`,
+        'Phosphorus Alert',
+        'warning',
+        `p-high-${source}-${sensorData.phosphorus}`,
+        context
+      );
+    }
+  }
+
+  // Potassium (K)
+  if (sensorData.potassium !== undefined) {
+    if (sensorData.potassium < 101) {
+      await sendNotification(
+        `Potassium is LOW (${sensorData.potassium} ppm). Weak stress resistance.`,
+        'Potassium Alert',
+        'warning',
+        `k-low-${source}-${sensorData.potassium}`,
+        context
+      );
+    } else if (sensorData.potassium > 250) {
+      await sendNotification(
+        `Potassium is HIGH (${sensorData.potassium} ppm). Over-fertilization risk.`,
+        'Potassium Alert',
+        'warning',
+        `k-high-${source}-${sensorData.potassium}`,
+        context
+      );
+    }
+  }
+
+  // Soil Moisture
+  if (sensorData.soilMoisture !== undefined) {
+    if (sensorData.soilMoisture <= 10) {
+      await sendNotification(
+        `Soil moisture is critically low (${sensorData.soilMoisture}%)! Immediate watering required.`,
+        '🚨 Emergency Alert',
+        'critical',
+        `soil-critical-${source}-${Math.floor(sensorData.soilMoisture)}`,
+        context
+      );
+    } else if (sensorData.soilMoisture <= 20) {
+      await sendNotification(
+        `Soil moisture is low (${sensorData.soilMoisture}%). Consider watering soon.`,
+        'Low Soil Alert',
+        'warning',
+        `soil-warning-${source}-${Math.floor(sensorData.soilMoisture)}`,
+        context
+      );
+    } else if (sensorData.soilMoisture < 31) {
+      await sendNotification(
+        `Soil moisture is LOW (${sensorData.soilMoisture}%). Needs watering.`,
+        'Soil Moisture Alert',
+        'warning',
+        `moisture-low-${source}-${sensorData.soilMoisture}`,
+        context
+      );
+    } else if (sensorData.soilMoisture > 55) {
+      await sendNotification(
+        `Soil moisture is HIGH (${sensorData.soilMoisture}%). Risk of root rot.`,
+        'Soil Moisture Alert',
+        'warning',
+        `moisture-high-${source}-${sensorData.soilMoisture}`,
+        context
+      );
+    }
+  }
+
+  // Temperature (°C)
+  if (sensorData.temperature !== undefined) {
+    if (sensorData.temperature < 18) {
+      await sendNotification(
+        `Temperature is LOW (${sensorData.temperature}°C). Crop growth may slow.`,
+        'Temperature Alert',
+        'warning',
+        `temp-low-${source}-${sensorData.temperature}`,
+        context
+      );
+    } else if (sensorData.temperature > 30) {
+      await sendNotification(
+        `Temperature is HIGH (${sensorData.temperature}°C). May damage plants.`,
+        'Temperature Alert',
+        'warning',
+        `temp-high-${source}-${sensorData.temperature}`,
+        context
+      );
+    }
+  }
+
+  // Humidity (%)
+  if (sensorData.humidity !== undefined) {
+    if (sensorData.humidity < 40) {
+      await sendNotification(
+        `Humidity is LOW (${sensorData.humidity}%). Wilting risk.`,
+        'Humidity Alert',
+        'warning',
+        `humidity-low-${source}-${sensorData.humidity}`,
+        context
+      );
+    } else if (sensorData.humidity > 70) {
+      await sendNotification(
+        `Humidity is HIGH (${sensorData.humidity}%). Fungal disease risk.`,
+        'Humidity Alert',
+        'warning',
+        `humidity-high-${source}-${sensorData.humidity}`,
+        context
+      );
+    }
+  }
+
+  // Water Level (only if relevant for this sensor)
+  if (waterData && typeof waterData.waterLevel === 'number') {
+    if (waterData.waterLevel <= 15) {
+      await sendNotification(
+        `Water level is CRITICALLY LOW (${waterData.waterLevel}%)! Immediate action required.`,
+        '🚨 Emergency Alert',
+        'critical',
+        `water-critical-${source}-${Math.floor(waterData.waterLevel)}`,
+        context
+      );
+    } else if (waterData.waterLevel <= 30) {
+      await sendNotification(
+        `Water level is low (${waterData.waterLevel}%). Consider refilling soon.`,
+        'Low Water Alert',
+        'warning',
+        `water-warning-${source}-${Math.floor(waterData.waterLevel)}`,
+        context
+      );
+    } else if (waterData.waterLevel >= 45 && waterData.waterLevel <= 55) {
+      await sendNotification(
+        `Water level is at ${Math.round(waterData.waterLevel)}%`,
+        'Water Level Update',
+        'info',
+        `water-info-50-${source}`,
+        context
+      );
+    }
+  }
+};
+
+// Motor Control Functions
+const sendMotorCommandToBackend = async (status, scheduleId = null) => {
+  try {
+    const now = new Date();
+    const payload = {
+      status: status,
+      device_id: 'main_motor',
+      user: 'system',
+      timestamp: now.toISOString(),
+      formatted_time: now.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      source: 'schedule',
+      ...(scheduleId && { relatedSchedule: scheduleId })
+    };
+
+    await api.post('/motor_status', payload);
+    console.log('✅ Motor command sent to backend:', payload);
+    return true;
+  } catch (error) {
+    console.error('❌ Backend motor command failed:', error);
+    return false;
+  }
+};
+
+const updateMotorStatus = async (status, scheduleId = null) => {
+  const now = new Date();
+  const formattedTime = now.toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  try {
+    // Update current status
+    const motorRef = doc(db, 'motor_status', 'current');
+    await updateDoc(motorRef, {
+      status: status,
+      timestamp: serverTimestamp(),
+      formattedTime: formattedTime,
+      user: 'system',
+      device_id: 'main_motor',
+      ...(scheduleId && { relatedSchedule: scheduleId })
     });
 
-    console.log(`Created ${status} notification for schedule ${schedule.id}`);
+    // Add to history logs
+    await addDoc(collection(db, 'motor_status', 'history', 'logs'), {
+      device_id: 'main_motor',
+      formattedTime: formattedTime,
+      status: status,
+      timestamp: serverTimestamp(),
+      user: 'system',
+      ...(scheduleId && { relatedSchedule: scheduleId })
+    });
+
+    // Send to backend
+    await sendMotorCommandToBackend(status, scheduleId);
+
+    return true;
+  } catch (error) {
+    console.error('Error updating motor status:', error);
+    showToastMessage('Failed to update motor status', 'error');
+    return false;
+  }
+};
+
+// UPDATED SCHEDULE FUNCTIONS WITH PRECISE TIMING
+const setupScheduleListener = () => {
+  console.log('[DEBUG] Setting up schedule listeners...');
+  
+  // Clean up any existing listeners
+  if (unsubscribeSchedules.value) {
+    unsubscribeSchedules.value();
+  }
+
+  const unsubscribers = [];
+  
+  const setupSubcollectionListener = (subcollection, mode) => {
+    console.log(`[DEBUG] Setting up ${mode} schedule listener...`);
+    
+    const q = query(
+      collection(db, 'watering_schedules', 'schedules_root', subcollection),
+      orderBy('scheduledTime', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`[DEBUG] ${mode} schedules updated: ${snapshot.docs.length} schedules`);
+      
+      const updatedSchedules = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const schedule = {
+          id: doc.id,
+          mode: mode,
+          ...data,
+          daysArray: convertDaysFormat(data.days)
+        };
+        
+        // Convert scheduledTime to milliseconds
+        if (mode === 'one-time') {
+          // One-time schedules: convert to timestamp
+          schedule.scheduledTime = data.scheduledTime < 1e12 ? data.scheduledTime * 1000 : data.scheduledTime;
+        } else {
+          // Daily/Weekly schedules: convert to milliseconds since midnight
+          if (data.scheduledTime >= 86400000) {
+            // If it's a full timestamp, extract time of day
+            const date = new Date(data.scheduledTime);
+            schedule.scheduledTime = date.getHours() * 3600000 + 
+                                   date.getMinutes() * 60000 + 
+                                   date.getSeconds() * 1000;
+          } else {
+            // Already in milliseconds since midnight format
+            schedule.scheduledTime = data.scheduledTime;
+          }
+        }
+        
+        return schedule;
+      });
+
+      processScheduleUpdates(updatedSchedules, mode, snapshot.docChanges());
+    }, (error) => {
+      console.error(`Error in ${mode} schedule listener:`, error);
+      showToastMessage(`Error loading ${mode} schedules`, 'error');
+    });
+    
+    unsubscribers.push(unsubscribe);
+  };
+
+  setupSubcollectionListener('one_time', 'one-time');
+  setupSubcollectionListener('weekly', 'weekly');
+  setupSubcollectionListener('daily', 'daily');
+
+  unsubscribeSchedules.value = () => {
+    console.log('[DEBUG] Cleaning up schedule listeners...');
+    unsubscribers.forEach(unsub => unsub());
+  };
+  
+  console.log('[DEBUG] Schedule listeners set up successfully');
+};
+
+const processScheduleUpdates = (updatedSchedules, mode, changes) => {
+  schedulesCache.value = schedulesCache.value.filter(s => s.mode !== mode);
+  
+  updatedSchedules.forEach(schedule => {
+    schedulesCache.value.push(schedule);
+  });
+  
+  schedulesCache.value.sort((a, b) => a.scheduledTime - b.scheduledTime);
+
+  // Special handling for one-time schedules
+  if (mode === 'one-time') {
+    changes.forEach(change => {
+      if (change.type === 'modified') {
+        const newData = change.doc.data();
+        const oldData = change.doc.metadata.hasPendingWrites ? 
+          schedulesCache.value.find(s => s.id === change.doc.id) : null;
+        
+        if (newData.completed === true && (!oldData || oldData.completed !== true)) {
+          const schedule = {
+            id: change.doc.id,
+            mode: 'one-time',
+            ...newData,
+            scheduledTime: newData.scheduledTime < 1e12 ? newData.scheduledTime * 1000 : newData.scheduledTime
+          };
+          
+          if (activeSchedules.value[schedule.id]) {
+            processScheduleEnd(schedule, activeSchedules.value[schedule.id].currentDay);
+            saveToHistory(schedule, new Date(), activeSchedules.value[schedule.id].currentDay);
+            delete activeSchedules.value[schedule.id];
+            if (scheduleTimers.value[schedule.id]) {
+              clearTimeout(scheduleTimers.value[schedule.id]);
+              delete scheduleTimers.value[schedule.id];
+            }
+          }
+        }
+      }
+    });
+  }
+};
+
+// Add caching for sensor data to avoid frequent Firestore reads
+let sensorDataCache = {
+  data: null,
+  lastFetch: 0,
+  cacheDuration: 60000 // Cache for 1 minute
+};
+
+const getCachedSensorData = async () => {
+  const now = Date.now();
+  
+  // Return cached data if it's still fresh
+  if (sensorDataCache.data && (now - sensorDataCache.lastFetch) < sensorDataCache.cacheDuration) {
+    console.log('[DEBUG] Using cached sensor data');
+    return sensorDataCache.data;
+  }
+  
+  // Fetch fresh data if cache is expired or empty
+  try {
+    console.log('[DEBUG] Fetching fresh sensor data');
+    const freshData = await fetchSensorData();
+    sensorDataCache.data = freshData;
+    sensorDataCache.lastFetch = now;
+    return freshData;
+  } catch (error) {
+    console.error('Error fetching sensor data:', error);
+    // Return cached data if available, even if expired
+    return sensorDataCache.data || {};
+  }
+};
+
+const checkSchedules = async () => {
+  const now = new Date();
+  const currentDay = (now.getDay() + 6) % 7; // 0=Monday to 6=Sunday
+  const currentTimeMs = now.getHours() * 3600000 + 
+                       now.getMinutes() * 60000 + 
+                       now.getSeconds() * 1000 + 
+                       now.getMilliseconds();
+
+  // console.log(`[DEBUG] Checking schedules at ${now.toLocaleTimeString()}, Day: ${currentDay}`);
+
+  // Only fetch sensor data when we actually need to start a schedule
+  let contextData = null;
+
+  try {
+    for (const schedule of schedulesCache.value) {
+      if (!schedule.notifyWatering || schedule.completed) continue;
+
+      const scheduleKey = `${schedule.id}-${currentDay}`;
+      
+      // Skip if we already processed this schedule today
+      if (lastProcessedScheduleTimes.value[scheduleKey]) {
+        const lastProcessed = new Date(lastProcessedScheduleTimes.value[scheduleKey]);
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        
+        if (lastProcessed >= todayStart) {
+          continue; // Already processed today
+        }
+      }
+
+      let shouldRunToday = false;
+      let isTimeMatch = false;
+
+      if (schedule.mode === 'daily') {
+        shouldRunToday = true;
+        // For daily schedules, check if the current time matches exactly
+        isTimeMatch = Math.abs(currentTimeMs - schedule.scheduledTime) < 1000; // 1-second window
+        
+        // console.log(`[DEBUG] Daily schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, scheduledTime=${formatTimeDebug(schedule.scheduledTime, 'daily')}, currentTime=${formatTimeDebug(currentTimeMs, 'daily')}`);
+        
+      } else if (schedule.mode === 'weekly') {
+        shouldRunToday = schedule.daysArray?.includes(currentDay) ?? false;
+        // For weekly schedules, check if today is the right day AND time matches exactly
+        isTimeMatch = shouldRunToday && Math.abs(currentTimeMs - schedule.scheduledTime) < 1000; // 1-second window
+        
+        // console.log(`[DEBUG] Weekly schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, days=${schedule.daysArray}, currentDay=${currentDay}, scheduledTime=${formatTimeDebug(schedule.scheduledTime, 'weekly')}, currentTime=${formatTimeDebug(currentTimeMs, 'weekly')}`);
+        
+      } else if (schedule.mode === 'one-time') {
+        const scheduleDate = new Date(schedule.scheduledTime);
+        shouldRunToday = scheduleDate.toDateString() === now.toDateString();
+        isTimeMatch = shouldRunToday && Math.abs(now.getTime() - schedule.scheduledTime) < 1000; // 1-second window
+        
+        // console.log(`[DEBUG] One-time schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, scheduledTime=${scheduleDate.toLocaleString()}, currentTime=${now.toLocaleString()}`);
+      }
+
+      // Check if schedule should start
+      if (shouldRunToday && isTimeMatch && !activeSchedules.value[schedule.id]) {
+        console.log(`[DEBUG] ✅ Activating ${schedule.mode} schedule ${schedule.id} at ${now.toLocaleTimeString()}`);
+        
+        // Only fetch sensor data when we actually need it (when starting a schedule)
+        if (!contextData) {
+          contextData = await getCachedSensorData();
+        }
+        
+        // Mark this schedule as processed for today
+        lastProcessedScheduleTimes.value[scheduleKey] = now.getTime();
+        
+        activeSchedules.value[schedule.id] = {
+          startTime: now.getTime(),
+          duration: schedule.duration,
+          mode: schedule.mode,
+          currentDay: currentDay,
+          scheduleKey: scheduleKey
+        };
+        
+        await processScheduleStart(schedule, currentDay, contextData);
+        
+        // Calculate precise end time
+        const endTime = now.getTime() + (schedule.duration * 60000);
+        
+        // Set timer for schedule completion (all schedule types need this)
+        const timeUntilEnd = endTime - now.getTime();
+        scheduleTimers.value[schedule.id] = setTimeout(async () => {
+          if (activeSchedules.value[schedule.id]) {
+            console.log(`[DEBUG] ⏰ Completing ${schedule.mode} schedule ${schedule.id} at ${new Date().toLocaleTimeString()}`);
+            await processScheduleEnd(schedule, currentDay);
+            await saveToHistory(schedule, new Date(), currentDay);
+            delete activeSchedules.value[schedule.id];
+            delete scheduleTimers.value[schedule.id];
+            
+            // For one-time schedules, mark as completed in Firestore
+            if (schedule.mode === 'one-time') {
+              try {
+                const scheduleRef = doc(db, 'watering_schedules', 'schedules_root', 'one_time', schedule.id);
+                await updateDoc(scheduleRef, { completed: true });
+                console.log(`[DEBUG] Marked one-time schedule ${schedule.id} as completed`);
+              } catch (error) {
+                console.error('Error marking one-time schedule as completed:', error);
+              }
+            }
+          }
+        }, timeUntilEnd);
+      }
+    }
+  } catch (error) {
+    console.error('Schedule check error:', error);
+    showToastMessage('Error checking watering schedules', 'error');
+  }
+};
+
+// Update getDayName to match your system (0=Monday)
+const getDayName = (dayNumber) => {
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  return dayNames[dayNumber] || 'Unknown';
+};
+
+const fetchLatestContextData = async () => {
+  // Get latest water level
+  const waterSnap = await getDocs(
+    query(collection(db, "water_level_readings"), orderBy("timestamp", "desc"), limit(1))
+  );
+  const waterLevel = !waterSnap.empty ? waterSnap.docs[0].data().waterLevel : null;
+
+  // Get latest sensor readings (esp32-2 preferred, fallback to esp32-1)
+  const sensorSnap2 = await getDocs(
+    query(collection(db, "3sensor_readings", "esp32-2", "readings"), orderBy("timestamp", "desc"), limit(1))
+  );
+  const sensorSnap1 = await getDocs(
+    query(collection(db, "3sensor_readings", "esp32-1", "readings"), orderBy("timestamp", "desc"), limit(1))
+  );
+  const sensorData = !sensorSnap2.empty ? sensorSnap2.docs[0].data() : (!sensorSnap1.empty ? sensorSnap1.docs[0].data() : {});
+
+  return {
+    waterLevel: waterLevel,
+    soilMoisture: sensorData.soilMoisture ?? null,
+    humidity: sensorData.humidity ?? null,
+    temperature: sensorData.temperature ?? null
+  };
+};
+
+const processScheduleStart = async (schedule, currentDay, contextData) => {
+  const now = new Date();
+  const formattedTime = now.toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+
+  try {
+    // Create distinct message based on schedule type
+    let typeLabel = '';
+    let message = '';
+    
+    if (schedule.mode === 'one-time') {
+      typeLabel = 'One-time';
+      message = `One-time watering started at ${formattedTime} (Duration: ${schedule.duration} min)`;
+    } else if (schedule.mode === 'daily') {
+      typeLabel = 'Daily';
+      message = `Daily watering started at ${formattedTime} (Duration: ${schedule.duration} min)`;
+    } else if (schedule.mode === 'weekly') {
+      typeLabel = 'Weekly';
+      const dayName = getDayName(currentDay);
+      message = `Weekly watering (${dayName}) started at ${formattedTime} (Duration: ${schedule.duration} min)`;
+    }
+
+    console.log(`[DEBUG] 🚿 Starting schedule: ${message}`);
+
+    const contextData = await fetchLatestContextData();
+
+    // Send notification with unique ID to prevent duplicates
+    const notificationId = `schedule-start-${schedule.id}-${currentDay}-${now.getTime()}`;
+    await sendNotification(
+      message,
+      `${typeLabel} Watering Started`,
+      'info',
+      notificationId,
+      {
+        ...contextData,
+        scheduleType: schedule.mode,
+        duration: schedule.duration,
+        day: currentDay,
+        scheduleId: schedule.id
+      }
+    );
+    
+    // Show toast with unique key
+    showToastMessage(message, 'info', notificationId);
+    
+    // Update motor status
+    const motorSuccess = await updateMotorStatus(true, schedule.id);
+    if (!motorSuccess) {
+      console.error('Failed to start motor for schedule:', schedule.id);
+      showToastMessage('Warning: Motor may not have started properly', 'warning');
+    }
 
   } catch (error) {
-    console.error('Notification error:', error);
-    showToastMessage('Failed to save schedule notification', 'warning');
+    console.error(`Error starting schedule ${schedule.id}:`, error);
+    showToastMessage(`Failed to start ${schedule.mode} watering schedule`, 'error');
   }
+};
+
+const processScheduleEnd = async (schedule, currentDay) => {
+  const now = new Date();
+  const formattedTime = now.toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+
+  try {
+    // Use cached sensor data for schedule end
+    const contextData = await fetchLatestContextData();
+    
+    // Create distinct message based on schedule type
+    let typeLabel = '';
+    let message = '';
+    
+    if (schedule.mode === 'one-time') {
+      typeLabel = 'One-time';
+      message = `One-time watering completed at ${formattedTime}`;
+    } else if (schedule.mode === 'daily') {
+      typeLabel = 'Daily';
+      message = `Daily watering completed at ${formattedTime}`;
+    } else if (schedule.mode === 'weekly') {
+      typeLabel = 'Weekly';
+      const dayName = getDayName(currentDay);
+      message = `Weekly watering (${dayName}) completed at ${formattedTime}`;
+    }
+
+    console.log(`[DEBUG] ✅ Ending schedule: ${message}`);
+
+    // Send notification with unique ID
+    const notificationId = `schedule-end-${schedule.id}-${currentDay}-${now.getTime()}`;
+    await sendNotification(
+      message,
+      `${typeLabel} Watering Completed`,
+      'success', // Changed to success for completion
+      notificationId,
+      {
+        ...contextData,
+        scheduleType: schedule.mode,
+        duration: schedule.duration,
+        day: currentDay,
+        scheduleId: schedule.id
+      }
+    );
+    
+    // Show toast with unique key
+    showToastMessage(message, 'success', notificationId);
+    
+    // Update motor status
+    const motorSuccess = await updateMotorStatus(false, schedule.id);
+    if (!motorSuccess) {
+      console.error('Failed to stop motor for schedule:', schedule.id);
+      showToastMessage('Warning: Motor may not have stopped properly', 'warning');
+    }
+
+  } catch (error) {
+    console.error(`Error completing schedule ${schedule.id}:`, error);
+    showToastMessage(`Failed to complete ${schedule.mode} watering schedule`, 'error');
+  }
+};
+
+const saveToHistory = async (schedule, endTime, day) => {
+  try {
+    const historyData = {
+      scheduleId: schedule.id,
+      mode: schedule.mode,
+      originalScheduledTime: schedule.scheduledTime,
+      actualStartTime: activeSchedules.value[schedule.id]?.startTime || endTime.getTime(),
+      completedAt: endTime.getTime(),
+      duration: schedule.duration,
+      days: schedule.days,
+      dayOfWeek: schedule.mode === 'weekly' ? day : null,
+      notifyWatering: schedule.notifyWatering,  
+      skipIfRain: schedule.skipIfRain,
+      waterFlowRate: schedule.waterFlowRate,
+      createdAt: serverTimestamp()
+    };
+    
+    await addDoc(
+      collection(db, 'watering_schedules', 'schedules_root', 'history'),
+      historyData
+    );
+  } catch (error) {
+    console.error('Error saving to history:', error);
+  }
+};
+
+// Helper functions
+const convertDaysFormat = (daysObject) => {
+  if (!daysObject) return [];
+  return Object.entries(daysObject)
+    .filter(([_, value]) => value === true)
+    .map(([key, _]) => parseInt(key));
+};
+
+// Enhanced initialization with better timing precision
+const initScheduleSystem = () => {
+  console.log('[DEBUG] Initializing schedule system...');
+  
+  // Clear any existing interval first
+  if (scheduleCheckInterval.value) {
+    clearInterval(scheduleCheckInterval.value);
+  }
+  
+  // Clear any existing immediate timeout
+  if (immediateCheckTimeout.value) {
+    clearTimeout(immediateCheckTimeout.value);
+  }
+  
+  // Check schedules every second for precise timing
+  scheduleCheckInterval.value = setInterval(() => {
+    checkSchedules();
+  }, 1000); // Check every second for precise timing
+  
+  // Initial immediate check after a short delay to ensure everything is loaded
+  immediateCheckTimeout.value = setTimeout(() => {
+    console.log('[DEBUG] Running initial schedule check...');
+    checkSchedules();
+  }, 1000);
+  
+  console.log('[DEBUG] Schedule system initialized');
+};
+
+// Helper function to format time for debugging
+const formatTimeDebug = (timeMs, mode) => {
+  if (mode === 'one-time') {
+    return new Date(timeMs).toLocaleString();
+  } else {
+    const hours = Math.floor(timeMs / 3600000);
+    const minutes = Math.floor((timeMs % 3600000) / 60000);
+    const seconds = Math.floor((timeMs % 60000) / 1000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+};
+
+// Function to invalidate sensor data cache when needed
+const invalidateSensorDataCache = () => {
+  sensorDataCache.lastFetch = 0;
+  console.log('[DEBUG] Sensor data cache invalidated');
 };
 
 const fetchNotifications = async () => {
@@ -1056,1032 +1910,77 @@ const fetchNotifications = async () => {
   }
 };
 
-// Set up real-time listener for notifications
-const setupNotificationsListener = () => {
-  const notificationsRef = collection(db, 'notifications');
-  const q = query(notificationsRef, orderBy('timestamp', 'desc'));
-
-  return onSnapshot(q, (snapshot) => {
-    const notificationsList = [];
-    snapshot.forEach((doc) => {
-      notificationsList.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    notifications.value = notificationsList;
-    console.log('Notifications updated:', notifications.value.length);
-  }, (error) => {
-    console.error('Error in notifications listener:', error);
-  });
-};
-
-let unsubscribeNotifications = null;
-let unsubscribeSchedules = null;
-
-// const fetchWateringSchedules = () => {
-//   const schedulesRef = collection(db, 'watering_schedules');
-//   const schedulesQuery = query(schedulesRef, orderBy('scheduledTime', 'asc'));
-
-//   if (unsubscribeSchedules) unsubscribeSchedules();
-
-//   // Track processed schedule completions
-//   const processedCompletions = new Set();
-//   let isMotorOffOperationInProgress = false;
-
-//   unsubscribeSchedules = onSnapshot(schedulesQuery, async (snapshot) => {
-//     const schedules = [];
-//     const now = Date.now();
-
-//     // Process changes sequentially
-//     for (const change of snapshot.docChanges()) {
-//       const docSnap = change.doc;
-//       const data = docSnap.data();
-//       const scheduleId = docSnap.id;
-
-//       // Convert timestamp if needed
-//       if (data.scheduledTime && data.scheduledTime < 1e12) {
-//         data.scheduledTime = data.scheduledTime * 1000;
-//       }
-
-//       // Handle completed schedules
-//       if (change.type === 'modified' && data.completed === true) {
-//         // Skip if already processed or operation in progress
-//         if (processedCompletions.has(scheduleId) || isMotorOffOperationInProgress) {
-//           continue;
-//         }
-
-//         processedCompletions.add(scheduleId);
-//         isMotorOffOperationInProgress = true;
-
-//         try {
-//           const motorRef = doc(db, 'motor_status', 'current');
-//           const motorSnapshot = await getDoc(motorRef);
-
-//           if (motorSnapshot.exists()) {
-//             const motorData = motorSnapshot.data();
-
-//             // Only proceed if motor is actually ON
-//             if (motorData.status === true) {
-//               const nowDate = new Date();
-//               const formattedTime = nowDate.toLocaleString('en-US', {
-//                 weekday: 'short',
-//                 month: 'short',
-//                 day: 'numeric',
-//                 hour: '2-digit',
-//                 minute: '2-digit',
-//                 hour12: true
-//               });
-
-//               // 1. Update motor status (single operation)
-//               await updateDoc(motorRef, {
-//                 status: false,
-//                 timestamp: serverTimestamp(),
-//                 formattedTime: formattedTime,
-//                 user: 'system',
-//                 device_id: 'main_motor'
-//               });
-
-//               // 2. Create SINGLE history log
-//               const historyRef = collection(db, 'motor_status', 'history', 'logs');
-//               await addDoc(historyRef, {
-//                 status: false,
-//                 timestamp: serverTimestamp(),
-//                 device_id: 'main_motor',
-//                 user: 'system',
-//                 formattedTime: formattedTime,
-//                 relatedSchedule: scheduleId
-//               });
-
-//               showToastMessage('Motor turned OFF after watering completed.');
-//             }
-//           }
-//         } catch (err) {
-//           console.error(`Error processing schedule completion ${scheduleId}:`, err);
-//         } finally {
-//           isMotorOffOperationInProgress = false;
-//         }
-//       }
-//     }
-
-//     // Update schedules list
-//     snapshot.forEach((docSnap) => {
-//       const data = docSnap.data();
-//       const scheduleId = docSnap.id;
-
-//       if (data.scheduledTime && data.scheduledTime < 1e12) {
-//         data.scheduledTime = data.scheduledTime * 1000;
-//       }
-
-//       schedules.push({ id: scheduleId, ...data });
-//     });
-
-//     savedSchedules.value = schedules;
-//   }, (error) => {
-//     console.error("Error listening to watering schedules:", error);
-//   });
-// };
-
-const fetchWateringSchedules = () => {
-  const schedulesRef = collection(db, 'watering_schedules');
-  const schedulesQuery = query(schedulesRef, orderBy('scheduledTime', 'asc'));
-
-  if (unsubscribeSchedules) unsubscribeSchedules();
-
-  unsubscribeSchedules = onSnapshot(schedulesQuery, async (snapshot) => {
-    const schedules = [];
-    const now = Date.now();
-    const processedCompletions = new Set();
-
-    // Track previous states to detect changes
-    const previousStates = new Map(savedSchedules.value.map(s => [s.id, s.completed]));
-
-    // Process each change
-    for (const change of snapshot.docChanges()) {
-      const docSnap = change.doc;
-      const data = docSnap.data();
-      const scheduleId = docSnap.id;
-
-      // Convert timestamp if needed
-      if (data.scheduledTime && data.scheduledTime < 1e12) {
-        data.scheduledTime = data.scheduledTime * 1000;
-      }
-
-      // Handle schedule completion (end notification)
-      if (data.completed === true && previousStates.get(scheduleId) === false) {
-        if (processedCompletions.has(scheduleId)) continue;
-        processedCompletions.add(scheduleId);
-
-        try {
-          // Send end notification
-          await sendScheduleNotification({ ...data, id: scheduleId }, 'ended');
-          
-          // Turn off motor if needed
-          await handleMotorStatus(false, scheduleId);
-        } catch (err) {
-          console.error(`Error processing completion for ${scheduleId}:`, err);
-        }
-      }
-
-      schedules.push({ id: scheduleId, ...data });
-    }
-
-    savedSchedules.value = schedules;
-
-    // Handle schedule starts (separate from completion handling)
-    for (const schedule of schedules) {
-      if (!schedule.notifyWatering || schedule.completed) continue;
-
-      const isStarting = Math.abs(now - schedule.scheduledTime) <= 2000;
-      
-      if (isStarting && !notifiedStartIds.has(schedule.id)) {
-        try {
-          await sendScheduleNotification(schedule, 'started');
-          notifiedStartIds.add(schedule.id);
-          await handleMotorStatus(true, schedule.id);
-        } catch (err) {
-          console.error(`Error processing start for ${schedule.id}:`, err);
-        }
-      }
-    }
-  }, (error) => {
-    console.error("Error listening to watering schedules:", error);
-  });
-};
-
-// Centralized motor status handler
-const handleMotorStatus = async (shouldBeOn, scheduleId = null) => {
-  try {
-    const motorRef = doc(db, 'motor_status', 'current');
-    const motorSnapshot = await getDoc(motorRef);
-
-    const nowDate = new Date();
-    const formattedTime = nowDate.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    // Only update if needed
-    if (!motorSnapshot.exists() || motorSnapshot.data().status !== shouldBeOn) {
-      await updateDoc(motorRef, {
-        status: shouldBeOn,
-        timestamp: serverTimestamp(),
-        formattedTime,
-        user: 'system',
-        device_id: 'main_motor'
-      });
-      console.log(`✅ Motor turned ${shouldBeOn ? 'ON' : 'OFF'} for schedule ${scheduleId}`);
-    }
-
-    // Check for existing history log before creating new one
-    const historyQuery = query(
-      collection(db, 'motor_status', 'history', 'logs'),
-      where('relatedSchedule', '==', scheduleId),
-      where('status', '==', shouldBeOn),
-      limit(1)
-    );
-    
-    const historySnapshot = await getDocs(historyQuery);
-    if (historySnapshot.empty) {
-      await addDoc(collection(db, 'motor_status', 'history', 'logs'), {
-        status: shouldBeOn,
-        timestamp: serverTimestamp(),
-        device_id: 'main_motor',
-        user: 'system',
-        formattedTime,
-        relatedSchedule: scheduleId
-      });
-      console.log(`📜 Motor ${shouldBeOn ? 'ON' : 'OFF'} event logged in history.`);
-    }
-
-  } catch (err) {
-    console.error(`Error handling motor status for schedule ${scheduleId}:`, err);
-    showToastMessage(`Failed to ${shouldBeOn ? 'start' : 'stop'} motor`, 'warning');
-  }
-};
-
-const saveToLocalStorage = (notification) => {
-  const existing = JSON.parse(localStorage.getItem('notifications') || '[]') // Corrected: localStorage.getItem
-  // Prevent duplicates based on ID
-  const exists = existing.find(n => n.id === notification.id)
-  if (!exists) {
-    existing.push(notification)
-    localStorage.setItem('notifications', JSON.stringify(existing))
-  }
-}
-
-const getSignalStrengthClass = (strength) => {
-  if (strength >= 70) return 'bg-green-500'
-  if (strength >= 40) return 'bg-yellow-500'
-  return 'bg-red-500'
-}
-
-const menuItems = [
-  { name: 'Overview', href: '/app/dashboard', icon: LayoutDashboard },
-  { name: 'Crop Prediction', href: '/app/prediction', icon: Brain },
-  { name: 'Weather', href: '/app/weather', icon: Cloud },
-  { name: 'Device Control', href: '/app/control', icon: Cpu },
-  { name: 'Soil Analysis', href: '/app/soil', icon: Sprout }
-]
-
-const sensorTypes = [
-  { name: 'NPK Data', href: '/app/npkData', icon: Sprout },
-  { name: 'Soil pH', href: '/app/soilph', icon: Beaker },
-  { name: 'Soil Moisture', href: '/app/soil-moisture', icon: Droplets },
-  { name: 'Temp/Humid', href: '/app/temperature-humidity', icon: Thermometer },
-  { name: 'Water Level', href: '/app/water-level', icon: Gauge },
-  { name: 'Motor Control', href: '/app/motor-control', icon: Power }
-]
-
-const toggleSensorDropdown = () => {
-  isSensorDropdownOpen.value = !isSensorDropdownOpen.value
-}
-
-const isCurrentRoute = (path) => {
-  return route.path === path
-}
-
-const isInSensorRoutes = computed(() => {
-  return sensorTypes.some(sensor => route.path === sensor.href)
-})
-
-const closeDropdown = (e) => {
-  if (!e.target.closest('.relative.group') && !e.target.closest('.relative.ml-4')) {
-    isSensorDropdownOpen.value = false
-    isProfileDropdownOpen.value = false
-  }
-}
-
-const goToProfile = () => {
-  isProfileDropdownOpen.value = false
-  router.push({ name: 'UserProfile' })
-}
-
-let resizeTimeout
-const handleResize = () => {
-  clearTimeout(resizeTimeout)
-  resizeTimeout = setTimeout(() => {
-    if (window.innerWidth < 640) {
-      isSensorDropdownOpen.value = false
-      isProfileDropdownOpen.value = false
-      showNotifications.value = false
-      showWifiTooltip.value = false
-      showWebSocketTooltip.value = false
-      showRecalibrationTooltip.value = false
-      showNotificationTooltip.value = false
-      showProfileTooltip.value = false
-    }
-  }, 150)
-}
-
-const avatarOptions = ref([
-  { id: 1, icon: '🌱', name: 'Seedling' },
-  { id: 2, icon: '🌿', name: 'Herb' },
-  { id: 3, icon: '🌾', name: 'Wheat' },
-  { id: 4, icon: '🌽', name: 'Corn' },
-  { id: 5, icon: '🥕', name: 'Carrot' },
-  { id: 6, icon: '🍅', name: 'Tomato' },
-  { id: 7, icon: '🥬', name: 'Lettuce' },
-  { id: 8, icon: '🌻', name: 'Sunflower' },
-  { id: 9, icon: '🌳', name: 'Tree' },
-  { id: 10, icon: '🍃', name: 'Leaves' },
-  { id: 11, icon: '🌵', name: 'Cactus' },
-  { id: 12, icon: '🌸', name: 'Blossom' },
-  { id: 13, icon: '🍄', name: 'Mushroom' },
-  { id: 14, icon: '🌺', name: 'Hibiscus' },
-  { id: 15, icon: '🌹', name: 'Rose' },
-  { id: 16, icon: '🌷', name: 'Tulip' },
-  { id: 17, icon: '🥦', name: 'Broccoli' },
-  { id: 18, icon: '🌶️', name: 'Pepper' },
-  { id: 19, icon: '🥒', name: 'Cucumber' },
-  { id: 20, icon: '🍆', name: 'Eggplant' },
-  { id: 21, icon: '🥔', name: 'Potato' },
-  { id: 22, icon: '🧄', name: 'Garlic' },
-  { id: 23, icon: '🧅', name: 'Onion' },
-  { id: 24, icon: '🥜', name: 'Peanut' }
-])
-
-const fetchUserRealtime = () => {
-  const uid = localStorage.getItem('uid') || sessionStorage.getItem('uid')
-  if (!uid) {
-    console.error('⚠️ No user ID found in local/session storage.')
-    return
-  }
-
-  const userDocRef = doc(db, 'users', uid)
-
-  const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-    if (docSnap.exists()) {
-      user.value = docSnap.data()
-    } else {
-      console.warn('User document not found.')
-    }
-  }, (error) => {
-    console.error('Real-time fetch failed:', error)
-  })
-
-  return unsubscribe // Optional: in case you want to unsubscribe on unmount
-}
-
-const isSevereWeather = (condition) => {
-  if (!condition) return false;
-  const severeConditions = [
-    'Heavy Rain',
-    'Rain Showers',
-    'Heavy Rain Showers',
-    'Violent Rain Showers',
-    'Thunderstorm',
-    'Thunderstorm with Hail',
-    'Severe Thunderstorm',
-  ];
-  return severeConditions.includes(condition);
-};
-
-const sendSmsAlert = async (phoneNumber, message) => {
-  if (!phoneNumber) {
-    console.warn('No phone number available for user to send SMS alert.');
-    return;
-  }
-  try {
-    // This requires a backend endpoint to handle the actual SMS sending logic
-    // for security and to manage credentials.
-    // await api.post('/send-sms', {
-    //   phone: phoneNumber,
-    //   message: message,
-    // });
-    console.log(`SMS alert sent to ${phoneNumber}`);
-  } catch (error) {
-    console.error('Error sending SMS alert via backend:', error);
-  }
-};
-
-const saveWeatherAlertToFirebase = async (notificationDetails) => {
-  try {
-    // Check for existing notification for this date and type
-    const notificationsRef = collection(db, 'notifications');
-    const q = query(
-      notificationsRef,
-      where('date', '==', notificationDetails.date),
-      where('type', '==', 'weather_alert')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      console.log('Weather alert already exists for this date. Skipping save.');
-      return false; // Return false to indicate duplicate
-    }
-
-    // If not found, save it
-    await addDoc(notificationsRef, {
-      ...notificationDetails,
-      read: false,
-      timestamp: serverTimestamp(),
-    });
-    console.log('Weather alert notification saved to Firebase.');
-    return true; // Return true to indicate new notification
-  } catch (error) {
-    console.error('Error saving weather alert to Firebase:', error);
-    return false;
-  }
-};
-
-
-const thunderstormConditions = [
-  'Thunderstorm',
-  'Thunderstorm with Hail',
-  'Severe Thunderstorm'
-];
-
-const severityMap = {
-  'Heavy Rain': 1,
-  'Rain Showers': 1,
-  'Heavy Rain Showers': 2,
-  'Violent Rain Showers': 3,
-  'Thunderstorm': 4,
-  'Thunderstorm with Hail': 5,
-  'Severe Thunderstorm': 6
-};
-
-const getSeverityLevel = (condition) => {
-  return severityMap[condition] || 0;
-};
-
-
-const checkWeatherForecastForAlerts = async () => {
-  console.log('Checking weather forecast for alerts...');
-  try {
-    const weatherData = await getWeatherData();
-    
-    if (!weatherData || !weatherData.forecast) {
-      console.warn('Could not retrieve weather forecast data.');
-      return;
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const shownAlerts = JSON.parse(localStorage.getItem('shownWeatherAlerts') || '{}');
-    const smsSentDates = new Set(JSON.parse(localStorage.getItem('smsSentDates') || '[]'));
-
-    // Collect all severe weather alerts
-    for (const day of weatherData.forecast.slice(0, 3)) {
-      const condition = mapWeatherCode(day.condition_code);
-      const dateStr = day.date.split('T')[0];
-      
-      if (isSevereWeather(condition)) {
-        const weekday = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
-        const message = `Warning: ${condition} forecasted for ${weekday}.`;
-        
-        // Skip if we've already shown this alert today
-        if (shownAlerts[dateStr] === today) continue;
-        
-        // Save notification to Firebase if it doesn't exist
-        const notificationSaved = await saveWeatherAlertToFirebase({ 
-          title: 'Severe Weather Alert', 
-          message, 
-          severity: 'warning', 
-          type: 'weather_alert', 
-          date: dateStr 
-        });
-
-        // Only show toast if notification was saved (new)
-        if (notificationSaved) {
-          showToastMessage(message, 'warning');
-          shownAlerts[dateStr] = today; // Mark as shown today
-          localStorage.setItem('shownWeatherAlerts', JSON.stringify(shownAlerts));
-        }
-        
-        // Send SMS only for thunderstorm conditions and only once per day
-        if (thunderstormConditions.includes(condition)) {
-          const shouldSendSms = !smsSentDates.has(dateStr) && user.value?.phoneNumber;
-          
-          if (shouldSendSms) {
-            await sendSmsAlert(user.value.phoneNumber, message);
-            smsSentDates.add(dateStr);
-            localStorage.setItem('smsSentDates', JSON.stringify([...smsSentDates]));
-          }
-        }
-      }
-    }
-    
-  } catch (error) {
-    console.error('Failed to check weather forecast for alerts:', error);
-    showToastMessage('Failed to check weather alerts', 'warning');
-  }
-};
-
-// const checkWeatherForecastForAlerts = async () => {
-//   console.log('Checking weather forecast for alerts...');
-//   try {
-//     const weatherData = await getWeatherData();
-    
-//     if (!weatherData || !weatherData.forecast) {
-//       console.warn('Could not retrieve weather forecast data.');
-//       return;
-//     }
-
-//     const today = new Date().toISOString().split('T')[0];
-//     const notifiedDates = new Set(JSON.parse(localStorage.getItem('notifiedWeatherDates') || '[]'));
-
-//     for (const day of weatherData.forecast.slice(0, 3)) {
-//       // Map condition code to human-readable string
-//       const condition = mapWeatherCode(day.condition_code);
-//       const dateStr = day.date.split('T')[0]; // Extract date part only
-      
-//       if (isSevereWeather(condition)) {
-//         // Skip if we've already notified for this date
-//         if (notifiedDates.has(dateStr)) continue;
-        
-//         const weekday = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
-//         const message = `Warning: ${condition} forecasted for ${weekday}.`;
-        
-//         // Show toast immediately
-//         showToastMessage(message, 'warning');
-        
-//         // Save to Firebase (with duplicate check)
-//         await saveWeatherAlertToFirebase({ 
-//           title: 'Severe Weather Alert', 
-//           message, 
-//           severity: 'warning', 
-//           type: 'weather_alert', 
-//           date: dateStr 
-//         });
-        
-//         // Send SMS if user has phone number
-//         if (user.value && user.value.phoneNumber) {
-//           await sendSmsAlert(user.value.phoneNumber, message);
-//         }
-        
-//         // Mark this date as notified
-//         notifiedDates.add(dateStr);
-//       }
-//     }
-    
-//     // Save notified dates to localStorage
-//   } catch (error) {
-//     console.error('Failed to check weather forecast for alerts:', error);
-//     showToastMessage('Failed to check weather alerts', 'warning');
-//   }
-// };
-
-let userPhone = ref(null)
-
-const evaluateSoilMoisture = (level) => {
-  const today = new Date().toISOString().split('T')[0];
-  
-  if (level <= 10) {
-    saveSoilMoistureAlertToFirebase({
-      title: 'Critical Soil Moisture',
-      message: `Soil moisture is critically low (${level}%)! Immediate watering required.`,
-      severity: 'critical',
-      type: 'soil_moisture',
-      date: today
-    });
-  } else if (level <= 20) {
-    saveSoilMoistureAlertToFirebase({
-      title: 'Low Soil Moisture',
-      message: `Soil moisture is low (${level}%). Consider watering soon.`,
-      severity: 'warning',
-      type: 'soil_moisture',
-      date: today
-    });
-  }
-}
-
-const saveSoilMoistureAlertToFirebase = async (notificationDetails) => {
-  try {
-    // Check for existing notifications of same type and severity today
-    const q = query(
-      collection(db, 'notifications'),
-      where('date', '==', notificationDetails.date),
-      where('type', '==', 'soil_moisture'),
-      where('severity', '==', notificationDetails.severity)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      console.log(`${notificationDetails.severity} soil moisture alert already exists for today. Skipping save.`);
-      return;
-    }
-
-    await addDoc(collection(db, 'notifications'), {
-      ...notificationDetails,
-      read: false,
-      timestamp: serverTimestamp()
-    });
-    
-    console.log('Soil moisture notification saved:', notificationDetails.severity);
-    showToastMessage(notificationDetails.message, notificationDetails.severity);
-    
-    // Use the new SMS function for critical alerts
-    if (notificationDetails.severity === 'critical' && user.value?.phoneNumber) {
-      const smsMessage = `${notificationDetails.title}: ${notificationDetails.message}`;
-      await sendSoilMoistureSmsAlert(user.value.phoneNumber, smsMessage);
-    }
-  } catch (error) {
-    console.error('Error saving soil moisture alert:', error);
-    showToastMessage('Failed to save soil moisture alert', 'warning');
-  }
-};
-
-const sendSoilMoistureSmsAlert = async (phoneNumber, message) => {
-  if (!phoneNumber) {
-    console.warn('No phone number available to send soil moisture SMS alert');
-    return;
-  }
-  
-  try {
-    // Replace with your actual SMS endpoint
-    // const response = await axios.post('http://127.0.0.1:8000/send-sms', {
-    //   phone: phoneNumber,
-    //   message: message
-    // });
-        // await api.post('/send-sms', {
-    //   phone: phoneNumber,
-    //   message: message,
-    // });
-
-    console.log(`✅ SMS alert sent to ${phoneNumber}` );
-    return true;
-  } catch (error) {
-    console.error('❌ Soil moisture SMS error:', error);
-    showToastMessage('Failed to send soil moisture SMS', 'warning');
-    return false;
-  }
-}
-
-const setupSoilMoistureListener = () => {
-  try {
-    const soilMoistureQuery = query(
-      collection(db, "3sensor_readings", "esp32-2", "readings"),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    );
-    
-    const unsubscribe = onSnapshot(soilMoistureQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        const sensorData = snapshot.docs[0].data();
-        const soilMoistureValue = sensorData.soilMoisture;
-        
-        console.log("🔄 Latest soil moisture reading:", soilMoistureValue);
-        
-        if (typeof soilMoistureValue === 'number') {
-          evaluateSoilMoisture(soilMoistureValue);
-        } else {
-          console.warn("⚠️ Soil moisture value is not a number:", soilMoistureValue);
-        }
-      } else {
-        console.log("ℹ️ No soil moisture data available yet.");
-      }
-    }, (error) => {
-      console.error("❌ Soil moisture listener error:", error);
-      showToastMessage('Soil moisture monitoring failed', 'warning');
-    });
-    
-    return unsubscribe;  // Return the unsubscribe function
-    
-  } catch (err) {
-    console.error("❌ Soil moisture setup error:", err);
-    showToastMessage('Failed to setup soil moisture monitoring', 'warning');
-    return () => {}; // Return dummy function for cleanup
-  }
-}
-
-let unsubscribeSoilMoisture = null;
-const previousScheduleStates = ref({});
-
+// Lifecycle Hooks
 onMounted(async () => {
-  fetchUserRealtime()
-
-  document.addEventListener('click', closeDropdown)
-  window.addEventListener('resize', handleResize)
-  handleResize()
+  await fetchNotifications()
+  document.addEventListener('click', closeDropdown);
+  window.addEventListener('resize', handleResize);
 
   // Get IP Address
   try {
-    const res = await fetch('https://api.ipify.org?format=json')
-    const ipData = await res.json()
-    ipAddress.value = ipData.ip
+    const res = await fetch('https://api.ipify.org?format=json');
+    const ipData = await res.json();
+    ipAddress.value = ipData.ip;
   } catch (error) {
-    console.error('Error fetching IP:', error)
-    ipAddress.value = 'Unknown'
+    ipAddress.value = 'Unknown';
   }
 
   // Network Info
   if ('connection' in navigator) {
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection
-
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const updateWifiInfo = () => {
-      wifiStrength.value = conn.downlinkMax ? Math.min(conn.downlinkMax * 10, 100) : 70
-      wifiNetwork.value = conn.effectiveType || 'WiFi'
-    }
-
-    updateWifiInfo()
-
-    if (conn.addEventListener) {
-      conn.addEventListener('change', updateWifiInfo)
-    }
+      wifiStrength.value = conn.downlinkMax ? Math.min(conn.downlinkMax * 10, 100) : 70;
+      wifiNetwork.value = conn.effectiveType || 'WiFi';
+    };
+    updateWifiInfo();
+    if (conn.addEventListener) conn.addEventListener('change', updateWifiInfo);
   }
 
-  // Load notifications from localStorage
-  const saved = localStorage.getItem('notifications')
-  if (saved) {
-    notifications.value = JSON.parse(saved)
-  }
+  // Setup listeners
+  setupWaterLevelListener();
+  setupScheduleListener(); // This loads the initial schedules
 
-  // await fetchNotifications()
-  unsubscribeNotifications = setupNotificationsListener()
-
-  // Watch watering schedules
-  fetchWateringSchedules()
+  // Check weather every 3 hours
   checkWeatherForecastForAlerts();
-  setInterval(checkWeatherForecastForAlerts, 3 * 60 * 60 * 1000); // Every 3 hours
+  const weatherInterval = setInterval(checkWeatherForecastForAlerts, 3 * 60 * 60 * 1000);
 
+  // Initialize the schedule system with precise checking
+  initScheduleSystem();
 
-  // Check for scheduled watering every second
-  // setInterval(() => {
-  //   currentTime.value = Date.now();
-  //   const now = Date.now();
+  // --- MODIFICATION: Use unified sensor & water listener ---
+  setupCombinedRealtimeListener();
 
-  //   savedSchedules.value.forEach(async (schedule) => {
-  //     if (!schedule.notifyWatering || !schedule.scheduledTime || schedule.completed) return;
-
-  //     const start = schedule.scheduledTime;
-  //     const isStarting = Math.abs(now - start) <= 2000;
-
-  //     if (isStarting && !notifiedStartIds.has(schedule.id)) {
-  //       sendScheduleNotification(schedule, 'started');
-  //       notifiedStartIds.add(schedule.id);
-
-  //       try {
-  //         const motorDocRef = doc(db, 'motor_status', 'current');
-  //         const motorSnapshot = await getDoc(motorDocRef);
-
-  //         const nowDate = new Date();
-  //         const formattedTime = nowDate.toLocaleString('en-US', {
-  //           weekday: 'short',
-  //           month: 'short',
-  //           day: 'numeric',
-  //           hour: '2-digit',
-  //           minute: '2-digit',
-  //           hour12: true
-  //         });
-
-  //         if (!motorSnapshot.exists() || motorSnapshot.data().status === false) {
-  //           // ✅ Turn ON the motor
-  //           await updateDoc(motorDocRef, {
-  //             status: true,
-  //             timestamp: serverTimestamp(),
-  //             formattedTime: formattedTime,
-  //             user: 'system',
-  //             device_id: 'main_motor'
-  //           });
-  //           console.log(`✅ Motor turned ON for schedule ${schedule.id}`);
-  //         }
-
-  //         // ✅ Always log to history (even if already ON)
-  //         const historyRef = collection(db, 'motor_status', 'history', 'logs');
-  //         await addDoc(historyRef, {
-  //           status: true,
-  //           scheduleId: schedule.id,
-  //           triggeredBy: 'auto',
-  //           timestamp: serverTimestamp(),
-  //           device_id: 'main_motor',
-  //           user: 'system',
-  //           formattedTime: formattedTime
-  //         });
-  //         console.log(`📜 Motor ON event logged in history.`);
-
-  //       } catch (err) {
-  //         console.error(`❌ Error processing motor status for schedule ${schedule.id}:`, err);
-  //       }
-  //     }
-  //   });
-  // }, 1000);
-
-  setInterval(async () => {
-    const now = Date.now();
-    const processedThisRun = new Set();
-
-    for (const schedule of savedSchedules.value) {
-      if (!schedule.notifyWatering || !schedule.scheduledTime || schedule.completed || 
-          processedThisRun.has(schedule.id)) {
-        continue;
-      }
-
-      processedThisRun.add(schedule.id);
-
-      const start = schedule.scheduledTime;
-      const isStarting = Math.abs(now - start) <= 2000;
-
-      if (isStarting && !notifiedStartIds.has(schedule.id)) {
-        try {
-          // 1. Send notification (with built-in deduplication)
-          await sendScheduleNotification(schedule, 'started');
-          notifiedStartIds.add(schedule.id);
-
-          // 2. Check if motor update is needed
-          const motorDocRef = doc(db, 'motor_status', 'current');
-          const motorSnapshot = await getDoc(motorDocRef);
-          
-          const nowDate = new Date();
-          const formattedTime = nowDate.toLocaleString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          });
-
-          // Only update if motor is not already ON
-          if (!motorSnapshot.exists() || motorSnapshot.data().status === false) {
-            await updateDoc(motorDocRef, {
-              status: true,
-              timestamp: serverTimestamp(),
-              formattedTime,
-              user: 'system',
-              device_id: 'main_motor'
-            });
-            console.log(`✅ Motor turned ON for schedule ${schedule.id}`);
-          }
-
-          // 3. Create history log (with deduplication check)
-          const historyQuery = query(
-            collection(db, 'motor_status', 'history', 'logs'),
-            where('scheduleId', '==', schedule.id),
-            where('status', '==', true),
-            limit(1)
-          );
-          
-          const historySnapshot = await getDocs(historyQuery);
-          if (historySnapshot.empty) {
-            await addDoc(collection(db, 'motor_status', 'history', 'logs'), {
-              status: true,
-              timestamp: serverTimestamp(),
-              device_id: 'main_motor',
-              user: 'system',
-              formattedTime,
-              relatedSchedule: schedule.id
-            });
-            console.log(`📜 Motor ON event logged in history.`);
-          }
-
-        } catch (err) {
-          console.error(`❌ Error processing schedule ${schedule.id}:`, err);
-        }
-      }
-    }
-  }, 1000);
-
-
-  //   setInterval(async () => {
-//   currentTime.value = Date.now();
-//   const now = Date.now();
-//   const processedThisRun = new Set();
-//   let motorOperationLock = false; // Lock to prevent duplicate motor operations
-
-//   // Process schedules sequentially
-//   for (const schedule of savedSchedules.value) {
-//     // Skip conditions
-//     if (!schedule.notifyWatering || 
-//         !schedule.scheduledTime || 
-//         schedule.completed ||
-//         processedThisRun.has(schedule.id) ||
-//         processingScheduleIds.value.has(schedule.id)) {
-//       continue;
-//     }
-
-//     // Mark as processed
-//     processedThisRun.add(schedule.id);
-//     processingScheduleIds.value.add(schedule.id);
-
-//     const start = schedule.scheduledTime;
-//     const isStarting = Math.abs(now - start) <= 2000;
-
-//     if (isStarting && !notifiedStartIds.has(schedule.id)) {
-//       try {
-//         // 1. Send notification
-//         sendScheduleNotification(schedule, 'started');
-//         notifiedStartIds.add(schedule.id);
-
-//         // 2. Prepare common data
-//         const nowDate = new Date();
-//         const formattedTime = nowDate.toLocaleString('en-US', {
-//           weekday: 'short',
-//           month: 'short',
-//           day: 'numeric',
-//           hour: '2-digit',
-//           minute: '2-digit',
-//           hour12: true
-//         });
-
-//         // 3. Check motor status (with lock to prevent duplicates)
-//         if (!motorOperationLock) {
-//           motorOperationLock = true;
-          
-//           const motorDocRef = doc(db, 'motor_status', 'current');
-//           const motorSnapshot = await getDoc(motorDocRef);
-
-//           // Only update if motor is not already ON
-//           if (!motorSnapshot.exists() || motorSnapshot.data().status === false) {
-//             await updateDoc(motorDocRef, {
-//               status: true,
-//               timestamp: serverTimestamp(),
-//               formattedTime: formattedTime,
-//               user: 'system',
-//               device_id: 'main_motor'
-//             });
-//             console.log(`✅ Motor turned ON for schedule ${schedule.id}`);
-//           }
-
-//           // 4. Create SINGLE history log
-//           const historyRef = collection(db, 'motor_status', 'history', 'logs');
-//           await addDoc(historyRef, {
-//             status: true,
-//             scheduleId: schedule.id,
-//             triggeredBy: 'auto',
-//             timestamp: serverTimestamp(),
-//             device_id: 'main_motor',
-//             user: 'system',
-//             formattedTime: formattedTime
-//           });
-
-//           // 5. Send SINGLE request to backend
-//           try {
-//             const response = await axios.post('http://localhost:8000/api/motor_status/', {
-//               status: true,
-//               device_id: 'main_motor',
-//               user: 'system',
-//               timestamp: nowDate.toISOString(),
-//               formatted_time: formattedTime,
-//               source: 'schedule'
-//             });
-//             console.log('📤 Motor status sent to backend');
-//           } catch (apiErr) {
-//             console.error('❌ Backend update error:', apiErr);
-//           }
-//         } else {
-//           console.log('🔒 Motor operation already in progress, skipping duplicate');
-//         }
-//       } catch (err) {
-//         console.error(`❌ Error processing schedule ${schedule.id}:`, err);
-//       } finally {
-//         motorOperationLock = false;
-//         processingScheduleIds.value.delete(schedule.id);
-//       }
-//     }
-//   }
-// }, 1000);
-
-  const user = await fetchUserRealtime(); 
-  unsubscribeSoilMoisture = setupSoilMoistureListener();
-})
-
-// Clean up localStorage for old schedules periodically
-setInterval(() => {
-  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('toast-') && 
-        key.includes('-start') || key.includes('-end')) {
-      const timestamp = parseInt(key.split('-').pop());
-      if (timestamp && timestamp < oneWeekAgo) {
-        localStorage.removeItem(key);
-      }
-    }
+  // Store interval for cleanup
+  onBeforeUnmount(() => {
+    document.removeEventListener('click', closeDropdown);
+    window.removeEventListener('resize', handleResize);
+    if (unsubscribeSoilMoisture) unsubscribeSoilMoisture();
+    if (unsubscribeWaterLevel.value) unsubscribeWaterLevel.value();
+    if (unsubscribeSchedules.value) unsubscribeSchedules.value();
+    if (scheduleCheckInterval.value) clearInterval(scheduleCheckInterval.value);
+    if (weatherInterval) clearInterval(weatherInterval);
+    Object.values(scheduleTimers.value).forEach(timer => clearTimeout(timer));
+    // Remove old sensor listeners if present
+    if (unsubscribeSensorListeners?.value?.esp32_1) unsubscribeSensorListeners.value.esp32_1();
+    if (unsubscribeSensorListeners?.value?.esp32_2) unsubscribeSensorListeners.value.esp32_2();
+    // Remove unified combined listener
+    if (unsubscribeCombinedListener.value) unsubscribeCombinedListener.value();
   });
-}, 24 * 60 * 60 * 1000);
+});
 
-onBeforeUnmount(() => {
-  // Clean up event listeners
-  document.removeEventListener('click', closeDropdown)
-  window.removeEventListener('resize', handleResize)
-  clearTimeout(resizeTimeout)
-
-  // Clean up Firestore listeners
-  if (unsubscribeSchedules) unsubscribeSchedules();
-  if (unsubscribeNotifications) unsubscribeNotifications();
-  if (unsubscribeSoilMoisture) unsubscribeSoilMoisture();
-  if (toastTimeout.value) clearTimeout(toastTimeout.value);
-})
-
-// Watch for route changes to close dropdowns
 watch(() => route.path, () => {
-  isSensorDropdownOpen.value = false
-  isProfileDropdownOpen.value = false
-  showNotifications.value = false
-  showWifiTooltip.value = false
-  showWebSocketTooltip.value = false
-  showRecalibrationTooltip.value = false
-  showNotificationTooltip.value = false
-  showProfileTooltip.value = false
-})
+  isSensorDropdownOpen.value = false;
+  isProfileDropdownOpen.value = false;
+  showNotifications.value = false;
+  showWifiTooltip.value = false;
+  showWebSocketTooltip.value = false;
+  showRecalibrationTooltip.value = false;
+  showNotificationTooltip.value = false;
+  showProfileTooltip.value = false;
+});
 </script>
 
 <style scoped>
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 .router-link-active {
   position: relative;
@@ -2234,5 +2133,44 @@ html {
 .toast-leave-to {
   opacity: 0;
   transform: translateX(100%);
+}
+/* Transition effects */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Smooth transitions for dropdowns */
+.dropdown-link {
+  transition: all 0.3s ease;
+}
+
+/* Ensure dropdowns appear above other content */
+.z-\[9999\] {
+  z-index: 9999;
+}
+
+/* Mobile menu transitions */
+.md\:hidden {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 </style>

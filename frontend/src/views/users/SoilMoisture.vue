@@ -1,420 +1,442 @@
 <template>
-      <div class="flex-1 w-full px-4 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
-        <!-- Enhanced main container with more appealing design -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-140px)] flex flex-col overflow-hidden">
-          <!-- Gradient header for visual appeal -->
-          <div class="bg-gradient-to-r from-emerald-50 to-white p-6 border-b border-gray-100 rounded-t-lg">
-            <!-- Header with controls aligned side by side -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <!-- Title and breadcrumb with enhanced styling -->
-              <div>
-                <h1 class="text-xl font-semibold text-gray-800 mb-1">Soil Moisture Data Table</h1>
-                <div class="flex items-center text-sm text-gray-500">
-                  <span class="text-emerald-600 font-medium">Soil Moisture</span>
-                  <ChevronRight class="h-3.5 w-3.5 mx-1 text-gray-400" />
-                  <span class="text-gray-600">Data Table</span>
-                </div>
-              </div>
-              
-              <!-- Controls aligned horizontally with improved styling -->
-              <div class="flex items-center gap-2 flex-wrap md:flex-nowrap">
-                <!-- Wider search bar -->
-                <div class="relative w-72">
-                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search measurements..."
-                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-gray-700 placeholder-gray-400 shadow-sm"
-                    v-model="searchQuery"
-                    @input="performSearch"
-                  />
-                </div>
-  
-                <!-- Filter Button with enhanced styling -->
-                <div class="relative">
-                  <button 
-                    @click.stop="toggleDropdown('filter')"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                  >
-                    <Filter class="h-4 w-4 text-gray-500" />
-                    Filter
-                    <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
-                  </button>
-                  
-                  <div 
-                    v-show="activeDropdown === 'filter'"
-                    class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                    @click.stop
-                  >
-                    <div class="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-                      <div v-for="field in filterFields" :key="field.key" class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
-                        <div class="flex items-center gap-2">
-                          <input
-                            v-model="filters[field.key].min"
-                            type="number"
-                            placeholder="Min"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                          />
-                          <span class="text-gray-400">-</span>
-                          <input
-                            v-model="filters[field.key].max"
-                            type="number"
-                            placeholder="Max"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-                      <button 
-                        @click="applyFilters"
-                        class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </div>
-                </div>
-  
-                <!-- Sort Button with enhanced styling -->
-                <div class="relative">
-                  <button 
-                    @click.stop="toggleDropdown('sort')"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                  >
-                    <ArrowUpDown class="h-4 w-4 text-gray-500" />
-                    Sort
-                    <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
-                  </button>
-                  
-                  <div 
-                    v-show="activeDropdown === 'sort'"
-                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                    @click.stop
-                  >
-                    <div class="py-1">
-                      <button
-                        v-for="header in headers"
-                        :key="header.key"
-                        @click="setSortKey(header.key)"
-                        class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                      >
-                        {{ header.label }}
-                        <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-  
-                <!-- Export Button with enhanced styling -->
-                <div class="relative">
-                  <button 
-                    @click.stop="toggleDropdown('export')"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
-                  >
-                    <Download class="h-4 w-4" />
-                    Export
-                    <ChevronDown class="h-4 w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
-                  </button>
-                  
-                  <div 
-                    v-show="activeDropdown === 'export'"
-                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                    @click.stop
-                  >
-                    <div class="py-1">
-                      <button
-                        v-for="format in exportFormats"
-                        :key="format"
-                        @click="exportData(format)"
-                        class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                      >
-                        <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-4 w-4" /></span>
-                        <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
-                        <span v-else class="mr-2 text-blue-500"><FileText class="h-4 w-4" /></span>
-                        Export as {{ format.toUpperCase() }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+  <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
+    <!-- Enhanced main container with more appealing design -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden">
+      <!-- Gradient header for visual appeal -->
+      <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
+        <!-- Header with controls aligned side by side -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <!-- Title and breadcrumb with enhanced styling -->
+          <div>
+            <h1 class="text-sm md:text-xl font-semibold text-gray-800 mb-1">Soil Moisture Data Table</h1>
+            <div class="flex items-center text-xs md:text-sm text-gray-500">
+              <span class="text-emerald-600 font-medium">Soil Moisture</span>
+              <ChevronRight class="h-3.5 w-3.5 mx-1 text-gray-400" />
+              <span class="text-gray-600">Data Table</span>
             </div>
           </div>
-  
-          <!-- Table and Graph Section - Flex container for side-by-side layout -->
-          <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
-            <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
-            <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 overflow-y-auto">
-              <div class="mb-3">
-                <h3 class="text-sm font-semibold text-gray-700">Live Soil Moisture</h3>
-                <p class="text-xs text-gray-500">Real-time monitoring</p>
-              </div>
+          
+          <!-- Controls aligned horizontally with improved styling -->
+          <div class="flex items-center gap-2 flex-wrap md:flex-nowrap">
+            <!-- Wider search bar -->
+            <div class="relative w-72">
+              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search measurements..."
+                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs md:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
+                v-model="searchQuery"
+                @input="performSearch"
+              />
+            </div>
+
+            <!-- Filter Button with enhanced styling -->
+            <div class="relative">
+              <button 
+                @click.stop="toggleDropdown('filter')"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-xs md:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
+              >
+                <Filter class="h-3 w-3 md:h-4 md:w-4 text-gray-500" />
+                Filter
+                <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
+              </button>
               
-              <!-- Enhanced Combined Graph Container -->
-              <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
-                <!-- Graph Header with improved styling -->
-                <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                  <div class="flex items-center">
-                    <div class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></div>
-                    <span class="text-xs font-medium text-gray-700">Moisture (%)</span>
-                  </div>
-                  <div class="text-xs text-gray-500">
-                    Last updated: {{ lastUpdated }}
-                  </div>
-                </div>
-                
-                <!-- Graph Canvas with current values overlay -->
-                <div class="h-[280px] p-3 relative">
-                  <canvas ref="chartCanvas" class="w-full h-full"></canvas>
-                  
-                  <!-- Repositioned and Resized Current Values Indicator -->
-                  <div class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-md px-2 py-1 shadow-sm border border-gray-100" style="max-width: 80px; z-index: 10;">
-                    <div class="text-[10px] font-medium text-gray-500 mb-0.5">Current</div>
-                    <div class="flex items-center">
-                      <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></div>
-                      <div class="text-xs font-bold text-emerald-600">
-                        {{ currentMoistureValue }}%
-                      </div>
+              <div 
+                v-show="activeDropdown === 'filter'"
+                class="absolute md:right-0 mt-2 w-[250px] md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                @click.stop
+              >
+                <div class="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+                  <div v-for="field in filterFields" :key="field.key" class="space-y-2">
+                    <label class="block text-xs md:text-sm font-medium text-gray-700">{{ field.label }}</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model="filters[field.key].min"
+                        type="number"
+                        placeholder="Min"
+                        class="w-full px-3 py-1.5 text-xs md:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                      />
+                      <span class="text-gray-400">-</span>
+                      <input
+                        v-model="filters[field.key].max"
+                        type="number"
+                        placeholder="Max"
+                        class="w-full px-3 py-1.5 text-xs md:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                      />
                     </div>
                   </div>
-                </div>
-                
-                <!-- Enhanced Graph Footer with Stats -->
-                <div class="border-t border-gray-100 p-3">
-                  <!-- Moisture Stats -->
-                  <div>
-                    <div class="flex items-center mb-2">
-                      <div class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></div>
-                      <div class="text-sm font-medium text-gray-700">Soil Moisture</div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 bg-emerald-50/50 rounded-md p-2">
-                      <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
-                        <div class="text-xs text-gray-500 mb-1">Min</div>
-                        <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.min }}%</div>
-                      </div>
-                      <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
-                        <div class="text-xs text-gray-500 mb-1">Avg</div>
-                        <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.avg }}%</div>
-                      </div>
-                      <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
-                        <div class="text-xs text-gray-500 mb-1">Max</div>
-                        <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.max }}%</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Soil Status Information -->
-              <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4 mb-4">
-                <h4 class="text-sm font-semibold text-gray-700 mb-2">Soil Status Guide</h4>
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 mr-2"></span>
-                      <span class="text-xs font-medium text-gray-700">Wet</span>
-                    </div>
-                    <span class="text-xs text-gray-500">≥ 70%</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>
-                      <span class="text-xs font-medium text-gray-700">Medium</span>
-                    </div>
-                    <span class="text-xs text-gray-500">30% - 70%</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
-                      <span class="text-xs font-medium text-gray-700">Dry</span>
-                    </div>
-                    <span class="text-xs text-gray-500">< 30%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Optimal Ranges section -->
-              <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
-                <h4 class="text-sm font-semibold text-gray-700 mb-2">Optimal Ranges</h4>
-                <div class="space-y-3">
-                  <div>
-                    <div class="flex items-center mb-1">
-                      <div class="w-2 h-2 rounded-full bg-emerald-500 mr-1"></div>
-                      <span class="text-xs font-medium text-gray-700">Soil Moisture</span>
-                    </div>
-                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div class="h-full bg-gradient-to-r from-red-300 via-yellow-300 to-emerald-500 rounded-full" style="width: 70%"></div>
-                    </div>
-                    <div class="flex justify-between mt-1 text-[10px] text-gray-500">
-                      <span>30%</span>
-                      <span>50%</span>
-                      <span>70%</span>
-                    </div>
-                  </div>
+                  <button 
+                    @click="applyFilters"
+                    class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors"
+                  >
+                    Apply Filters
+                  </button>
                 </div>
               </div>
             </div>
-            
-            <!-- Table Container - Larger width -->
-            <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
-              <!-- Fixed Header with enhanced styling -->
-              <div class="w-full border-b border-gray-200 sticky top-0 z-10 bg-gray-50">
-                <table class="min-w-full">
-                  <thead>
-                    <tr>
-                      <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                        ID
-                      </th>
-                      <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                        <div class="text-blue-600">Soil Moisture</div>
-                        <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
-                      </th>
-                      <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                        <div class="text-emerald-600">Soil Status</div>
-                        <div class="text-gray-400 text-[10px]">CONDITION</div>
-                      </th>
-                      <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                        <div class="text-gray-600">Date</div>
-                        <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
-                      </th>
-                      <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                        <div class="text-gray-600">Time</div>
-                        <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
-                      </th>
-                    </tr>
-                  </thead>
-                </table>
-              </div>
+
+            <!-- Sort Button with enhanced styling -->
+            <div class="relative">
+              <button 
+                @click.stop="toggleDropdown('sort')"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
+              >
+                <ArrowUpDown class="h-4 w-4 text-gray-500" />
+                Sort
+                <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
+              </button>
               
-              <!-- Scrollable Body with enhanced styling -->
-              <div class="flex-1 overflow-y-auto">
-                <table class="min-w-full">
-                  <tbody>
-                    <tr 
-                      v-for="(row, index) in paginatedData" 
-                      :key="index"
-                      class="border-b border-gray-50 last:border-0"
-                    >
-                      <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                      </td>
-                      <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
-                        <div class="text-sm font-medium text-blue-600">
-                          {{ row.soilMoisture }}
-                        </div>
-                      </td>
-                      <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
-                        <span 
-                          :class="[
-                            'px-3 py-1 rounded-full text-xs font-medium',
-                            row.soilStatus === 'WET' ? 'bg-emerald-100 text-emerald-800' :
-                            row.soilStatus === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          ]"
-                        >
-                          {{ row.soilStatus }}
-                        </span>
-                      </td>
-                      <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
-                      </td>
-                      <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
-                      </td>
-                    </tr>
-                    <!-- Empty state when no data - Enhanced styling -->
-                    <tr v-if="paginatedData.length === 0 && !isLoading">
-                      <td colspan="5" class="px-6 py-16 text-center">
-                        <div class="flex flex-col items-center justify-center">
-                          <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
-                          <p class="text-gray-500 text-lg font-medium">No soil moisture data found</p>
-                          <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-  
-          <!-- Fixed Pagination Section with enhanced styling -->
-          <div class="border-t border-gray-100 py-4 px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
-            <!-- Enhanced Pagination -->
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div class="text-sm text-gray-600 flex items-center gap-2">
-                <span class="hidden sm:inline">Showing</span>
-                <select 
-                  v-model="itemsPerPage" 
-                  class="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
-                  @change="updatePagination"
-                >
-                  <option value="20">20</option>
-                  <option value="25">25</option>
-                  <option value="30">30</option>
-                  <option value="50">50</option>
-                </select>
-                <span class="hidden sm:inline">entries per page</span>
-                <span class="text-gray-400 mx-2 hidden sm:inline">|</span>
-                <span>
-                  {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-                  <span class="text-gray-400">of</span>
-                  {{ sortedData.length }}
-                </span>
-              </div>
-  
-              <div class="flex items-center gap-1">
-                <button 
-                  @click="prevPage"
-                  :disabled="currentPage === 1"
-                  class="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium transition-colors rounded-md
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                    enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-                >
-                  <ChevronLeft class="w-4 h-4 mr-1" />
-                  Prev
-                </button>
-  
-                <div class="flex items-center">
+              <div 
+                v-show="activeDropdown === 'sort'"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                @click.stop
+              >
+                <div class="py-1">
                   <button
-                    v-for="page in displayedPages"
-                    :key="page"
-                    @click="goToPage(page)"
-                    :class="[
-                      'relative inline-flex items-center justify-center w-8 h-8 text-sm transition-colors mx-0.5 rounded-md',
-                      page === currentPage
-                        ? 'text-white bg-emerald-500 font-semibold'
-                        : page === '...'
-                          ? 'cursor-default text-gray-400'
-                          : 'text-gray-700 hover:text-emerald-600 hover:hover:bg-emerald-50'
-                    ]"
+                    v-for="header in headers"
+                    :key="header.key"
+                    @click="setSortKey(header.key)"
+                    class="w-full px-4 py-2 text-left text-xs md:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
                   >
-                    {{ page }}
+                    {{ header.label }}
+                    <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
                   </button>
                 </div>
-  
-                <button 
-                  @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium transition-colors rounded-md
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                    enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-                >
-                  Next
-                  <ChevronRight class="w-4 h-4 ml-1" />
-                </button>
+              </div>
+            </div>
+
+            <!-- Export Button with enhanced styling -->
+            <div class="relative">
+              <button 
+                @click.stop="toggleDropdown('export')"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-white text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
+              >
+                <Download class="h-3 w-3 md:h-4 md:w-4" />
+                Export
+                <ChevronDown class="h-4 w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+              </button>
+              
+              <div 
+                v-show="activeDropdown === 'export'"
+                class="absolute md:right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                @click.stop
+              >
+                <div class="py-1">
+                  <button
+                    v-for="format in exportFormats"
+                    :key="format"
+                    @click="exportData(format)"
+                    class="w-full px-4 py-2 text-left text-xs md:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                  >
+                    <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-4 w-4" /></span>
+                    <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
+                    Export as {{ format.toUpperCase() }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-    <!-- Loading Page Component -->
-    <LoadingPage 
-      :isVisible="isLoading" 
-      title="Loading Soil Moisture Data" 
-      message="Please wait while we fetch the latest soil moisture measurements"
-    />
-  <Settings />
+      <!-- Table and Graph Section - Flex container for side-by-side layout -->
+      <div class="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row">
+        <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
+        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+          <div class="mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Live Soil Moisture</h3>
+            <p class="text-xs text-gray-500">Real-time monitoring</p>
+          </div>
+          
+          <!-- Enhanced Combined Graph Container -->
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+            <!-- Graph Header with improved styling -->
+            <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></div>
+                <span class="text-[10px] md:text-xs font-medium text-gray-700">Moisture (%)</span>
+              </div>
+              <div class="text-[10px] md:text-xs text-gray-500">
+                Last updated: {{ lastUpdated }}
+              </div>
+            </div>
+            
+            <!-- Graph Canvas with current values overlay -->
+            <div class="h-[280px] p-3 relative">
+              <canvas ref="chartCanvas" class="w-full h-full"></canvas>
+              
+              <!-- Repositioned and Resized Current Values Indicator -->
+              <div class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-md px-2 py-1 shadow-sm border border-gray-100" style="max-width: 80px; z-index: 10;">
+                <div class="text-[10px] font-medium text-gray-500 mb-0.5">Current</div>
+                <div class="flex items-center">
+                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></div>
+                  <div class="text-xs font-bold text-emerald-600">
+                    {{ currentMoistureValue }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Enhanced Graph Footer with Stats -->
+            <div class="border-t border-gray-100 p-3">
+              <!-- Moisture Stats -->
+              <div>
+                <div class="flex items-center mb-2">
+                  <div class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></div>
+                  <div class="text-sm font-medium text-gray-700">Soil Moisture</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 bg-emerald-50/50 rounded-md p-2">
+                  <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
+                    <div class="text-xs text-gray-500 mb-1">Min</div>
+                    <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.min }}%</div>
+                  </div>
+                  <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
+                    <div class="text-xs text-gray-500 mb-1">Avg</div>
+                    <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.avg }}%</div>
+                  </div>
+                  <div class="flex flex-col items-center p-1.5 bg-white rounded shadow-sm">
+                    <div class="text-xs text-gray-500 mb-1">Max</div>
+                    <div class="text-sm font-semibold text-emerald-600">{{ moistureStats.max }}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Soil Status Information -->
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4 mb-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Soil Status Guide</h4>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 mr-2"></span>
+                  <span class="text-xs font-medium text-gray-700">Wet</span>
+                </div>
+                <span class="text-xs text-gray-500">≥ 70%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span class="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>
+                  <span class="text-xs font-medium text-gray-700">Medium</span>
+                </div>
+                <span class="text-xs text-gray-500">30% - 70%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                  <span class="text-xs font-medium text-gray-700">Dry</span>
+                </div>
+                <span class="text-xs text-gray-500">< 30%</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Optimal Ranges section -->
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Optimal Ranges</h4>
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center mb-1">
+                  <div class="w-2 h-2 rounded-full bg-emerald-500 mr-1"></div>
+                  <span class="text-xs font-medium text-gray-700">Soil Moisture</span>
+                </div>
+                <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-red-300 via-yellow-300 to-emerald-500 rounded-full" style="width: 70%"></div>
+                </div>
+                <div class="flex justify-between mt-1 text-[10px] text-gray-500">
+                  <span>30%</span>
+                  <span>50%</span>
+                  <span>70%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Table Container - Larger width -->
+        <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
+          <!-- Fixed Header with enhanced styling -->
+          <div class="w-full border-b border-gray-200 sticky top-0 z-10 bg-gray-50">
+            <table class="hidden md:block min-w-full">
+              <thead>
+                <tr>
+                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    ID
+                  </th>
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-blue-600">Soil Moisture</div>
+                    <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
+                  </th>
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-emerald-600">Soil Status</div>
+                    <div class="text-gray-400 text-[10px]">CONDITION</div>
+                  </th>
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-gray-600">Date</div>
+                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
+                  </th>
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-gray-600">Time</div>
+                    <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
+                  </th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          
+          <!-- Scrollable Body with enhanced styling -->
+          <div class="flex-1 overflow-y-auto">
+            <table class="w-[600px] md:min-w-full">
+              <thead class="md:hidden">
+                <tr>
+                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    ID
+                  </th>
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-blue-600">Soil Moisture</div>
+                    <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
+                  </th>
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-emerald-600">Soil Status</div>
+                    <div class="text-gray-400 text-[10px]">CONDITION</div>
+                  </th>
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-gray-600">Date</div>
+                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
+                  </th>
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                    <div class="text-gray-600">Time</div>
+                    <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="(row, index) in paginatedData" 
+                  :key="index"
+                  class="border-b border-gray-50 last:border-0"
+                >
+                  <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
+                  </td>
+                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <div class="text-sm font-medium text-blue-600">
+                      {{ row.soilMoisture }}
+                    </div>
+                  </td>
+                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <span 
+                      :class="[
+                        'px-3 py-1 rounded-full text-xs font-medium',
+                        row.soilStatus === 'WET' ? 'bg-emerald-100 text-emerald-800' :
+                        row.soilStatus === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      ]"
+                    >
+                      {{ row.soilStatus }}
+                    </span>
+                  </td>
+                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
+                  </td>
+                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
+                  </td>
+                </tr>
+                <!-- Empty state when no data - Enhanced styling -->
+                <tr v-if="paginatedData.length === 0 && !isLoading">
+                  <td colspan="5" class="px-6 py-16 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
+                      <p class="text-gray-500 text-lg font-medium">No soil moisture data found</p>
+                      <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Pagination Section with enhanced styling -->
+      <div class="border-t border-gray-100 py-4 px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
+        <!-- Enhanced Pagination -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-xs md:text-sm text-gray-600 flex items-center gap-2">
+            <span class="hidden sm:inline">Showing</span>
+            <select 
+              v-model="itemsPerPage" 
+              class="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs md:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
+              @change="updatePagination"
+            >
+              <option value="20">20</option>
+              <option value="25">25</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+            </select>
+            <span class="hidden sm:inline">entries per page</span>
+            <span class="text-gray-400 mx-2 hidden sm:inline">|</span>
+            <span>
+              {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
+              <span class="text-gray-400">of</span>
+              {{ sortedData.length }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button 
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
+                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
+            >
+              <ChevronLeft class="w-4 h-4 mr-1" />
+              Prev
+            </button>
+
+            <div class="flex items-center">
+              <button
+                v-for="page in displayedPages"
+                :key="page"
+                @click="goToPage(page)"
+                :class="[
+                  'relative inline-flex items-center justify-center w-8 h-8 text-xs md:text-sm transition-colors mx-0.5 rounded-md',
+                  page === currentPage
+                    ? 'text-white bg-emerald-500 font-semibold'
+                    : page === '...'
+                      ? 'cursor-default text-gray-400'
+                      : 'text-gray-700 hover:text-emerald-600 hover:hover:bg-emerald-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+            </div>
+
+            <button 
+              @click="nextPage"
+              :disabled="currentPage >= totalPages"
+              class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
+                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
+            >
+              Next
+              <ChevronRight class="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Page Component -->
+  <!-- <LoadingPage 
+    :isVisible="isLoading" 
+    title="Loading Soil Moisture Data" 
+    message="Please wait while we fetch the latest soil moisture measurements"
+  /> -->
+  <!-- <Settings /> -->
 </template>
   
 <script setup>
@@ -433,6 +455,10 @@ import {
   limit,
   Timestamp
 } from 'firebase/firestore'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
+import { saveAs } from 'file-saver'
 
 // Chart.js import
 import Chart from 'chart.js/auto'
@@ -985,7 +1011,7 @@ const headers = [
   { key: 'time', label: 'Time' }
 ]
 
-const exportFormats = ['csv', 'pdf', 'docs']
+const exportFormats = ['csv', 'pdf']
 
 // Computed properties with memoization for better performance
 const filteredData = computed(() => {
@@ -1151,62 +1177,69 @@ const goToPage = (page) => {
   }
 }
 
-const exportData = (format) => {
+const exportData = async (format) => {
   // Get the data to export (all filtered and sorted data, not just current page)
   const dataToExport = sortedData.value
+  if (!dataToExport.length) return
+
+  // Prepare headers and rows
+  const exportHeaders = headers.map(h => h.label)
+  const exportRows = dataToExport.map(row =>
+    headers.map(header => row[header.key] ?? '')
+  )
 
   if (format === 'csv') {
-    exportAsCSV(dataToExport)
+    // CSV Export
+    let csvContent = exportHeaders.join(',') + '\n'
+    exportRows.forEach(row => {
+      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+    })
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    saveAs(blob, 'soil_moisture_data.csv')
+    window.showToast('Soil Moisture exported as CSV', 'success')
   } else if (format === 'pdf') {
-    exportAsPDF(dataToExport)
+    // PDF Export
+    const doc = new jsPDF()
+    doc.text('Soil Moisture Data Table', 14, 16)
+    autoTable(doc, {
+      head: [exportHeaders],
+      body: exportRows,
+      startY: 22,
+      styles: { fontSize: 10 }
+    })
+    doc.save('soil_moisture_data.pdf')
+    window.showToast('Soil Moisture exported as PDF', 'success')
   } else if (format === 'docs') {
-    exportAsDocs(dataToExport)
+    // Word Export (DOCX)
+    const tableRows = [
+      new TableRow({
+        children: exportHeaders.map(h => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
+        }))
+      }),
+      ...exportRows.map(row =>
+        new TableRow({
+          children: row.map(cell =>
+            new TableCell({
+              children: [new Paragraph(cell ? cell.toString() : '')]
+            })
+          )
+        })
+      )
+    ]
+    const docxDoc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ text: 'Soil Moisture Data Table', heading: 'Heading1' }),
+          new Table({ rows: tableRows })
+        ]
+      }]
+    })
+    const buffer = await Packer.toBlob(docxDoc)
+    saveAs(buffer, 'soil_moisture_data.docx')
   }
 
   activeDropdown.value = null // Close dropdown after exporting
-}
-
-const exportAsCSV = (data) => {
-  // Get headers
-  const headerRow = headers.map(h => h.label).join(',')
-
-  // Convert data to CSV rows
-  const rows = data.map(row => {
-    return headers.map(header => {
-      // Handle special cases like objects or arrays
-      const value = row[header.key]
-      if (typeof value === 'string' && value.includes(',')) {
-        return `"${value}"`
-      }
-      return value
-    }).join(',')
-  })
-
-  // Combine headers and rows
-  const csvContent = [headerRow, ...rows].join('\n')
-
-  // Create a blob and download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'soil_moisture_data.csv')
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
-const exportAsPDF = (data) => {
-  // In a real application, you would use a library like jsPDF
-  alert('PDF export would be implemented with a library like jsPDF')
-  console.log('Data to export as PDF:', data)
-}
-
-const exportAsDocs = (data) => {
-  // In a real application, you would use a library to generate DOCS
-  alert('DOCS export would be implemented with a library for document generation')
-  console.log('Data to export as DOCS:', data)
 }
 
 // Watch for changes that should reset pagination

@@ -1,31 +1,34 @@
-# from fastapi import APIRouter, HTTPException
-# from pydantic import BaseModel
-# import vonage
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from datetime import datetime
+import os
+import requests
+from dotenv import load_dotenv
 
-# router = APIRouter()
+load_dotenv()
+FIREBASE_URL = os.getenv("FIREBASE_URL")
 
-# # Your Vonage API credentials
-# VONAGE_API_KEY = '6f176aee'
-# VONAGE_API_SECRET = 'P9KyL6hCHMFY7ULT'
-# VONAGE_SENDER = 'ProjIsrael'
+router = APIRouter()
 
-# # Initialize client (v3.1.0 syntax)
-# client = vonage.Client(key=VONAGE_API_KEY, secret=VONAGE_API_SECRET)
-# sms = vonage.Sms(client)
+class SMSRequest(BaseModel):
+    number: str
+    message: str
 
-# class SMSRequest(BaseModel):
-#     phone: str
-#     message: str
+@router.post("/send-sms")
+def send_sms(req: SMSRequest):
+    if not FIREBASE_URL:
+        raise HTTPException(status_code=500, detail="FIREBASE_URL is not configured")
 
-# @router.post("/send-sms")
-# def send_sms(payload: SMSRequest):
-#     response = sms.send_message({
-#         "from": VONAGE_SENDER,
-#         "to": payload.phone,
-#         "text": payload.message,
-#     })
+    payload = {
+        "number": req.number,
+        "message": req.message,
+        "sent": False,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
-#     if response["messages"][0]["status"] != "0":
-#         raise HTTPException(status_code=400, detail=response["messages"][0]["error-text"])
-    
-#     return {"success": True, "response": response}
+    try:
+        response = requests.post(FIREBASE_URL, json=payload)
+        response.raise_for_status()
+        return {"status": "queued", "firebase_key": response.json()["name"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
