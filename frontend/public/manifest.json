@@ -1,0 +1,21 @@
+{
+  "name": "PROJECT ISRAEL",
+  "short_name": "PJIR",
+  "description": "Project Israel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#42b983",
+   "icons": [
+        {
+        "src": "public/maskable_icon_x_192.png", 
+        "sizes": "192x192",
+        "type": "image/png"
+        },
+        {
+        "src": "public/maskable_icon_x_512.png", 
+        "sizes": "512x512",
+        "type": "image/png"
+        }
+    ]
+}
