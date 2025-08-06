@@ -535,9 +535,11 @@ const scheduleCheckInterval = ref(null);
 const activeSchedules = ref({});
 const activeSystemSchedules = ref({}); 
 const immediateCheckTimeout = ref(null);
-const notificationCooldowns = ref(new Map());
 const lastProcessedScheduleTimes = ref({});
 const activeWateringSchedules = ref({});
+const lastNotificationDates = ref({});
+const notificationHistory = ref({}); // Tracks notifications by day
+const notificationCooldowns = ref(new Map()); 
 
 // Reactive state
 const isMobileMenuOpen = ref(false);
@@ -626,6 +628,61 @@ const sensorTypes = [
   { name: 'Water Level', href: '/app/water-level', icon: Gauge },
   { name: 'Motor Control', href: '/app/motor-control', icon: Power }
 ];
+
+const notificationTracker = {
+  savedToday: new Set(),
+  lastCleanup: null
+};
+
+const cleanNotificationCache = () => {
+  const today = new Date().toDateString();
+  if (notificationTracker.lastCleanup === today) return;
+  
+  notificationTracker.savedToday.clear();
+  notificationTracker.lastCleanup = today;
+};
+
+const wasNotificationSavedToday = async (notificationKey) => {
+  cleanNotificationCache();
+  
+  // Check memory cache first
+  if (notificationTracker.savedToday.has(notificationKey)) {
+    return true;
+  }
+
+  // Fallback to Firestore check
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('uniqueKey', '==', notificationKey),
+      where('timestamp', '>=', startOfToday())
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error('Error checking notification:', error);
+    return false;
+  }
+};
+
+const markNotificationSaved = (notificationKey) => {
+  cleanNotificationCache();
+  notificationTracker.savedToday.add(notificationKey);
+};
+
+const startOfToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const formatDate = (date) => {
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    weekday: 'short'
+  });
+};
 
 // SMS Function
 const sendSMS = async (phone, message) => {
@@ -746,52 +803,42 @@ const showToastMessage = (message, severity = 'info', persistKey = null) => {
 
 // Notification Functions
 const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}) => {
-  const notificationId = uniqueKey || generateNotificationId(severity, message);
+  // Generate consistent notification ID
+  const notificationId = uniqueKey || `${severity}-${title}-${message}`.replace(/\s+/g, '-').toLowerCase();
   
-  if (sentNotifications.value.has(notificationId)) return;
-  if (processingNotifications.value.has(notificationId)) return;
+  // ALWAYS show toast
+  showToastMessage(message, severity, notificationId);
 
-  processingNotifications.value.add(notificationId);
+  // Skip Firestore if already saved today
+  if (await wasNotificationSavedToday(notificationId)) {
+    console.log(`[Notification] Already saved today: ${notificationId}`);
+    return;
+  }
 
   try {
-    showToastMessage(message, severity, notificationId);
-
-    // Clean the context data before saving
-    const cleanedContext = cleanFirestoreData(contextData);
-
-    const notification = {
+    // Prepare notification data
+    const notificationData = {
       message,
       title,
       type: 'system',
       severity,
       read: false,
       timestamp: serverTimestamp(),
-      context: cleanedContext
+      formattedDate: formatDate(new Date()),
+      context: cleanFirestoreData(contextData),
+      uniqueKey: notificationId
     };
 
-    await addDoc(collection(db, 'notifications'), notification);
-    sentNotifications.value.add(notificationId);
+    // Save to Firestore
+    await addDoc(collection(db, 'notifications'), notificationData);
+    markNotificationSaved(notificationId);
     
-    // SMS remains unchanged
-    if (user.value?.phoneNumber) {
-      if (severity === 'critical') {
-        await sendSMS(user.value.phoneNumber, `[URGENT] ${title}: ${message}`);
-      } 
-      else if (severity === 'warning' && user.value.notifyWarnings !== false) {
-        await sendSMS(user.value.phoneNumber, `[Warning] ${title}: ${message}`);
-      }
-      else if (title.includes('Scheduled Watering') && user.value.notifySchedules !== false) {
-        await sendSMS(user.value.phoneNumber, `[Schedule] ${title}: ${message}`);
-      }
+    // Send SMS if configured
+    if (user.value?.phoneNumber && severity === 'critical') {
+      await sendSMS(user.value.phoneNumber, `[URGENT] ${title}: ${message}`);
     }
   } catch (error) {
-    console.error('Notification processing error:', {
-      error: error.message,
-      notificationId,
-      contextData // Log the problematic data
-    });
-  } finally {
-    processingNotifications.value.delete(notificationId);
+    console.error('Failed to save notification:', error);
   }
 };
 
@@ -833,6 +880,23 @@ const setupWaterLevelListener = () => {
   });
 };
 
+// Helper function to get latest sensor data
+const getLatestSensorData = async () => {
+  try {
+    const sensorSnapshot = await getDocs(
+      query(
+        collection(db, "3sensor_readings", "esp32-2", "readings"),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      )
+    );
+    return sensorSnapshot.empty ? {} : sensorSnapshot.docs[0].data();
+  } catch (error) {
+    console.error("Error fetching sensor data:", error);
+    return {};
+  }
+};
+
 const evaluateWaterLevel = async (level) => {
   if (typeof level !== 'number' || level < 0 || level > 100) {
     console.warn(`Invalid water level value: ${level}`);
@@ -840,41 +904,35 @@ const evaluateWaterLevel = async (level) => {
   }
 
   try {
-    // Get additional context data for Firestore only
-    const sensorSnapshot = await getDocs(query(
-      collection(db, "3sensor_readings", "esp32-2", "readings"),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    ));
-    
-    let contextData = { waterLevel: level };
-    
-    if (!sensorSnapshot.empty) {
-      const sensorData = sensorSnapshot.docs[0].data();
-      contextData = {
-        ...contextData,
-        temperature: sensorData.temperature,
-        humidity: sensorData.humidity,
-        soilMoisture: sensorData.soilMoisture
-      };
-    }
+    const dateKey = new Date().toISOString().split('T')[0];
+    const formattedDate = formatDate(new Date());
+    const sensorData = await getLatestSensorData();
+
+    const context = {
+      date: formattedDate,
+      waterLevel: level,
+      temperature: sensorData.temperature,
+      humidity: sensorData.humidity,
+      soilMoisture: sensorData.soilMoisture,
+      timestamp: serverTimestamp()
+    };
 
     if (level <= 15) {
       await sendNotification(
         `Water level is CRITICALLY LOW (${level}%)! Immediate action required.`,
-        '🚨 Emergency Alert',
+        '🚨 Water Emergency',
         'critical',
-        `water-critical-${Math.floor(level)}`,
-        contextData // Only saved to Firestore
+        `water-critical-${dateKey}`,
+        context
       );
     } 
     else if (level <= 30) {
       await sendNotification(
         `Water level is low (${level}%). Consider refilling soon.`,
-        'Low Water Alert',
+        'Low Water Warning',
         'warning',
-        `water-warning-${Math.floor(level)}`,
-        contextData // Only saved to Firestore
+        `water-warning-${dateKey}`,
+        context
       );
     }
     else if (level >= 45 && level <= 55) {
@@ -882,12 +940,12 @@ const evaluateWaterLevel = async (level) => {
         `Water level is at ${Math.round(level)}%`,
         'Water Level Update',
         'info',
-        'water-info-50',
-        contextData // Only saved to Firestore
+        `water-info-${dateKey}`,
+        context
       );
     }
   } catch (error) {
-    console.error('Water level notification failed:', error);
+    console.error('Water level alert error:', error);
   }
 };
 
@@ -944,62 +1002,57 @@ const isSevereWeather = (condition) => {
 const checkWeatherForecastForAlerts = async () => {
   try {
     const weatherData = await getWeatherData();
-    if (!weatherData || !weatherData.forecast) return;
+    if (!weatherData?.forecast) return;
+
+    const now = new Date();
+    const dateKey = now.toISOString().split('T')[0];
+    const formattedDate = formatDate(now);
 
     for (const day of weatherData.forecast.slice(0, 3)) {
       const condition = mapWeatherCode(day.condition_code);
-      const dateStr = day.date.split('T')[0];
-      
-      if (isSevereWeather(condition)) {
-        const weekday = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
-        const title = 'Severe Weather Alert';
-        const message = `${condition} forecast for ${weekday}.`;
-        
-        // Get current weather data for context
-        const current = weatherData.current || {};
-        const currentHourData = {
-          temperature: current.temperature_c ?? null,
-          humidity: current.humidity ?? null,
-          windSpeed: current.wind_speed ?? null,
-          pressure: current.pressure ?? null,
-          uvIndex: current.uv_index ?? null
-        };
+      if (!isSevereWeather(condition)) continue;
 
-        // Build context data with null checks
-        const contextData = {
-          condition: condition || 'Unknown',
-          date: dateStr,
-          forecast: {
-            temperature_max: day.temperature_max ?? null,
-            temperature_min: day.temperature_min ?? null,
-            condition_code: day.condition_code ?? null
+      const dayDate = new Date(day.date);
+      const dayFormattedDate = formatDate(dayDate);
+
+      // Prepare the context with detailed temperature data
+      const context = {
+        forecast: {
+          date: dayFormattedDate,
+          condition,
+          temperatures: {
+            current: day.temperature,
+            min: day.temperature_min,
+            max: day.temperature_max,
+            unit: '°C'
           },
-          current: currentHourData,
-          timestamp: serverTimestamp()
-        };
+          precipitation: day.precipitation,
+          humidity: day.humidity
+        },
+        currentWeather: {
+          temperature: weatherData.current?.temperature_c,
+          humidity: weatherData.current?.humidity,
+          pressure: weatherData.current?.pressure,
+          windSpeed: weatherData.current?.wind_speed,
+          uvIndex: weatherData.current?.uv_index
+        },
+        recordedAt: serverTimestamp()
+      };
 
-        // Clean the data before saving
-        const cleanedContext = cleanFirestoreData(contextData);
+      // Prepare the clean toast message (without min/max temps)
+      const toastMessage = `${condition} expected on ${dayFormattedDate}`;
 
-        await sendNotification(
-          message,
-          title,
-          'warning',
-          `weather-${dateStr}-${condition}`,
-          cleanedContext
-        );
-        
-        // SMS remains simple as before
-        if (user.value?.phoneNumber && user.value.notifyWeather) {
-          await sendSMS(
-            user.value.phoneNumber,
-            `⚠️ ${title}: ${message} Prepare your irrigation system.`
-          );
-        }
-      }
+      await sendNotification(
+        toastMessage, // Clean message for toast
+        'Severe Weather Alert',
+        'warning',
+        `weather-${condition}-${dateKey}`,
+        context      // Detailed data saved in context
+      );
     }
   } catch (error) {
-    console.error('Weather forecast check error:', error);
+    console.error('Weather alert error:', error);
+    showToastMessage('Failed to check weather alerts', 'error');
   }
 };
 
@@ -1062,7 +1115,7 @@ const setupCombinedRealtimeListener = () => {
   // Listener callback
   const onAnyChange = async () => {
     const { waterData, sensor1Data, sensor2Data } = await fetchLatestCombinedData();
-    await evaluateAllRangesAndNotify({ waterData, sensor1Data, sensor2Data });
+    await evaluateSensorRangesAndNotify({ waterData, sensor1Data, sensor2Data });
   };
 
   // Set up listeners for all three sources
@@ -1079,337 +1132,181 @@ const setupCombinedRealtimeListener = () => {
 };
 
 // Unified evaluation function for all ranges and sources
-const evaluateAllRangesAndNotify = async ({ waterData, sensor1Data, sensor2Data }) => {
-  // Water Level
-  if (typeof waterData.waterLevel === 'number') {
-    const contextData = {
-      waterLevel: waterData.waterLevel,
-      sensor1: sensor1Data,
-      sensor2: sensor2Data
-    };
-    if (waterData.waterLevel <= 15) {
-      await sendNotification(
-        `Water level is CRITICALLY LOW (${waterData.waterLevel}%)! Immediate action required.`,
-        '🚨 Emergency Alert',
-        'critical',
-        `water-critical-${Math.floor(waterData.waterLevel)}`,
-        contextData
-      );
-    } else if (waterData.waterLevel <= 30) {
-      await sendNotification(
-        `Water level is low (${waterData.waterLevel}%). Consider refilling soon.`,
-        'Low Water Alert',
-        'warning',
-        `water-warning-${Math.floor(waterData.waterLevel)}`,
-        contextData
-      );
-    } else if (waterData.waterLevel >= 45 && waterData.waterLevel <= 55) {
-      await sendNotification(
-        `Water level is at ${Math.round(waterData.waterLevel)}%`,
-        'Water Level Update',
-        'info',
-        'water-info-50',
-        contextData
-      );
-    }
+const evaluateSensorRangesAndNotify = async ({ waterData, sensorData, source }) => {
+  if (!sensorData) {
+    console.warn('No sensor data provided');
+    return;
   }
 
-  // Sensor readings for esp32-1
-  if (sensor1Data && Object.keys(sensor1Data).length > 0) {
-    await evaluateSensorRangesAndNotify({
-      waterData,
-      sensorData: sensor1Data,
-      source: 'esp32-1',
-      sensor1Data,
-      sensor2Data
-    });
-  }
-  // Sensor readings for esp32-2
-  if (sensor2Data && Object.keys(sensor2Data).length > 0) {
-    await evaluateSensorRangesAndNotify({
-      waterData,
-      sensorData: sensor2Data,
-      source: 'esp32-2',
-      sensor1Data,
-      sensor2Data
-    });
-  }
-};
+  // Get current date info
+  const now = new Date();
+  const dateKey = now.toISOString().split('T')[0]; // For deduplication
+  const formattedDate = formatDate(now); // "August 3 2025, Thu"
 
-// Updated evaluation function for sensor ranges and water
-const evaluateSensorRangesAndNotify = async ({ waterData, sensorData, source, sensor1Data, sensor2Data }) => {
-  if (!sensorData) return;
-
-  // Build context with all current data except for weather notifications
+  // Prepare context data
   const context = {
-    waterLevel: waterData?.waterLevel,
-    sensor1: sensor1Data,
-    sensor2: sensor2Data,
-    source
+    source,
+    date: formattedDate,
+    timestamp: serverTimestamp(),
+    readings: cleanFirestoreData(sensorData), // Ensure data is Firestore-compatible
+    waterLevel: typeof waterData?.waterLevel === 'number' ? waterData.waterLevel : null
   };
 
-  // Soil pH
-  if (sensorData.soilPh !== undefined) {
-    if (sensorData.soilPh < 5.5) {
-      await sendNotification(
-        `Soil pH is LOW (${sensorData.soilPh}). Strongly acidic, poor nutrient availability.`,
-        'Soil pH Alert',
-        'warning',
-        `ph-low-${source}-${Math.floor(sensorData.soilPh * 10)}`,
-        context
-      );
-    } else if (sensorData.soilPh > 7.5) {
-      await sendNotification(
-        `Soil pH is HIGH (${sensorData.soilPh}). Alkaline, nutrients may be locked out.`,
-        'Soil pH Alert',
-        'warning',
-        `ph-high-${source}-${Math.floor(sensorData.soilPh * 10)}`,
-        context
-      );
-    }
+  // Helper function for sensor checks
+  const checkSensorValue = (value, thresholds) => {
+    if (typeof value !== 'number') return null;
+    if (value < thresholds.low) return 'low';
+    if (value > thresholds.high) return 'high';
+    return null;
+  };
+
+  // Temperature Alerts (°C)
+  const tempStatus = checkSensorValue(sensorData.temperature, { low: 18, high: 30 });
+  if (tempStatus === 'high') {
+    await sendNotification(
+      `High temperature (${sensorData.temperature}°C) detected at ${formattedDate}`,
+      'Temperature Alert',
+      'warning',
+      `temp-high-${source}-${dateKey}`,
+      context
+    );
+  } else if (tempStatus === 'low') {
+    await sendNotification(
+      `Low temperature (${sensorData.temperature}°C) detected at ${formattedDate}`,
+      'Temperature Alert',
+      'warning',
+      `temp-low-${source}-${dateKey}`,
+      context
+    );
   }
 
-  // Nitrogen (N)
-  if (sensorData.nitrogen !== undefined) {
-    if (sensorData.nitrogen < 51) {
-      await sendNotification(
-        `Nitrogen is LOW (${sensorData.nitrogen} ppm). Deficiency in leafy growth.`,
-        'Nitrogen Alert',
-        'warning',
-        `n-low-${source}-${sensorData.nitrogen}`,
-        context
-      );
-    } else if (sensorData.nitrogen > 200) {
-      await sendNotification(
-        `Nitrogen is HIGH (${sensorData.nitrogen} ppm). May cause excessive vegetative growth.`,
-        'Nitrogen Alert',
-        'warning',
-        `n-high-${source}-${sensorData.nitrogen}`,
-        context
-      );
-    }
+  // Humidity Alerts (%)
+  const humidityStatus = checkSensorValue(sensorData.humidity, { low: 40, high: 70 });
+  if (humidityStatus === 'high') {
+    await sendNotification(
+      `High humidity (${sensorData.humidity}%) detected at ${formattedDate}`,
+      'Humidity Alert',
+      'warning',
+      `humidity-high-${source}-${dateKey}`,
+      context
+    );
+  } else if (humidityStatus === 'low') {
+    await sendNotification(
+      `Low humidity (${sensorData.humidity}%) detected at ${formattedDate}`,
+      'Humidity Alert',
+      'warning',
+      `humidity-low-${source}-${dateKey}`,
+      context
+    );
   }
 
-  // Phosphorus (P)
-  if (sensorData.phosphorus !== undefined) {
-    if (sensorData.phosphorus < 21) {
-      await sendNotification(
-        `Phosphorus is LOW (${sensorData.phosphorus} ppm). Weak root & flower development.`,
-        'Phosphorus Alert',
-        'warning',
-        `p-low-${source}-${sensorData.phosphorus}`,
-        context
-      );
-    } else if (sensorData.phosphorus > 60) {
-      await sendNotification(
-        `Phosphorus is HIGH (${sensorData.phosphorus} ppm). Possible nutrient lockout.`,
-        'Phosphorus Alert',
-        'warning',
-        `p-high-${source}-${sensorData.phosphorus}`,
-        context
-      );
-    }
-  }
-
-  // Potassium (K)
-  if (sensorData.potassium !== undefined) {
-    if (sensorData.potassium < 101) {
-      await sendNotification(
-        `Potassium is LOW (${sensorData.potassium} ppm). Weak stress resistance.`,
-        'Potassium Alert',
-        'warning',
-        `k-low-${source}-${sensorData.potassium}`,
-        context
-      );
-    } else if (sensorData.potassium > 250) {
-      await sendNotification(
-        `Potassium is HIGH (${sensorData.potassium} ppm). Over-fertilization risk.`,
-        'Potassium Alert',
-        'warning',
-        `k-high-${source}-${sensorData.potassium}`,
-        context
-      );
-    }
-  }
-
-  // Soil Moisture
-  if (sensorData.soilMoisture !== undefined) {
+  // Soil Moisture Alerts (%)
+  if (typeof sensorData.soilMoisture === 'number') {
     if (sensorData.soilMoisture <= 10) {
       await sendNotification(
-        `Soil moisture is critically low (${sensorData.soilMoisture}%)! Immediate watering required.`,
-        '🚨 Emergency Alert',
+        `CRITICALLY LOW soil moisture (${sensorData.soilMoisture}%) - Water immediately!`,
+        '🚨 Soil Emergency',
         'critical',
-        `soil-critical-${source}-${Math.floor(sensorData.soilMoisture)}`,
+        `soil-critical-${source}-${dateKey}`,
         context
       );
     } else if (sensorData.soilMoisture <= 20) {
       await sendNotification(
-        `Soil moisture is low (${sensorData.soilMoisture}%). Consider watering soon.`,
-        'Low Soil Alert',
-        'warning',
-        `soil-warning-${source}-${Math.floor(sensorData.soilMoisture)}`,
-        context
-      );
-    } else if (sensorData.soilMoisture < 31) {
-      await sendNotification(
-        `Soil moisture is LOW (${sensorData.soilMoisture}%). Needs watering.`,
+        `Low soil moisture (${sensorData.soilMoisture}%) - Water soon`,
         'Soil Moisture Alert',
         'warning',
-        `moisture-low-${source}-${sensorData.soilMoisture}`,
+        `soil-low-${source}-${dateKey}`,
         context
       );
     } else if (sensorData.soilMoisture > 55) {
       await sendNotification(
-        `Soil moisture is HIGH (${sensorData.soilMoisture}%). Risk of root rot.`,
+        `High soil moisture (${sensorData.soilMoisture}%) - Root rot risk`,
         'Soil Moisture Alert',
         'warning',
-        `moisture-high-${source}-${sensorData.soilMoisture}`,
+        `soil-high-${source}-${dateKey}`,
         context
       );
     }
   }
 
-  // Temperature (°C)
-  if (sensorData.temperature !== undefined) {
-    if (sensorData.temperature < 18) {
+  // Soil pH Alerts
+  if (typeof sensorData.soilPh === 'number') {
+    if (sensorData.soilPh < 5.5) {
       await sendNotification(
-        `Temperature is LOW (${sensorData.temperature}°C). Crop growth may slow.`,
-        'Temperature Alert',
+        `Low soil pH (${sensorData.soilPh}) - Acidic conditions`,
+        'Soil pH Alert',
         'warning',
-        `temp-low-${source}-${sensorData.temperature}`,
+        `ph-low-${source}-${dateKey}`,
         context
       );
-    } else if (sensorData.temperature > 30) {
+    } else if (sensorData.soilPh > 7.5) {
       await sendNotification(
-        `Temperature is HIGH (${sensorData.temperature}°C). May damage plants.`,
-        'Temperature Alert',
+        `High soil pH (${sensorData.soilPh}) - Alkaline conditions`,
+        'Soil pH Alert',
         'warning',
-        `temp-high-${source}-${sensorData.temperature}`,
-        context
-      );
-    }
-  }
-
-  // Humidity (%)
-  if (sensorData.humidity !== undefined) {
-    if (sensorData.humidity < 40) {
-      await sendNotification(
-        `Humidity is LOW (${sensorData.humidity}%). Wilting risk.`,
-        'Humidity Alert',
-        'warning',
-        `humidity-low-${source}-${sensorData.humidity}`,
-        context
-      );
-    } else if (sensorData.humidity > 70) {
-      await sendNotification(
-        `Humidity is HIGH (${sensorData.humidity}%). Fungal disease risk.`,
-        'Humidity Alert',
-        'warning',
-        `humidity-high-${source}-${sensorData.humidity}`,
+        `ph-high-${source}-${dateKey}`,
         context
       );
     }
   }
 
-  // Water Level (only if relevant for this sensor)
-  if (waterData && typeof waterData.waterLevel === 'number') {
+  // NPK Nutrient Alerts (ppm)
+  const nutrientChecks = [
+    { name: 'nitrogen', low: 51, high: 200 },
+    { name: 'phosphorus', low: 21, high: 60 },
+    { name: 'potassium', low: 101, high: 250 }
+  ];
+
+  for (const nutrient of nutrientChecks) {
+    const value = sensorData[nutrient.name];
+    if (typeof value !== 'number') continue;
+
+    if (value < nutrient.low) {
+      await sendNotification(
+        `Low ${nutrient.name} (${value}ppm) detected`,
+        `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
+        'warning',
+        `${nutrient.name}-low-${source}-${dateKey}`,
+        context
+      );
+    } else if (value > nutrient.high) {
+      await sendNotification(
+        `High ${nutrient.name} (${value}ppm) detected`,
+        `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
+        'warning',
+        `${nutrient.name}-high-${source}-${dateKey}`,
+        context
+      );
+    }
+  }
+
+  // Water Level Alerts (%)
+  if (typeof waterData?.waterLevel === 'number') {
     if (waterData.waterLevel <= 15) {
       await sendNotification(
-        `Water level is CRITICALLY LOW (${waterData.waterLevel}%)! Immediate action required.`,
-        '🚨 Emergency Alert',
+        `CRITICALLY LOW water level (${waterData.waterLevel}%) - Refill immediately!`,
+        '🚨 Water Emergency',
         'critical',
-        `water-critical-${source}-${Math.floor(waterData.waterLevel)}`,
+        `water-critical-${source}-${dateKey}`,
         context
       );
     } else if (waterData.waterLevel <= 30) {
       await sendNotification(
-        `Water level is low (${waterData.waterLevel}%). Consider refilling soon.`,
-        'Low Water Alert',
+        `Low water level (${waterData.waterLevel}%) - Consider refilling`,
+        'Water Level Alert',
         'warning',
-        `water-warning-${source}-${Math.floor(waterData.waterLevel)}`,
+        `water-low-${source}-${dateKey}`,
         context
       );
     } else if (waterData.waterLevel >= 45 && waterData.waterLevel <= 55) {
       await sendNotification(
-        `Water level is at ${Math.round(waterData.waterLevel)}%`,
+        `Water level at ${Math.round(waterData.waterLevel)}%`,
         'Water Level Update',
         'info',
-        `water-info-50-${source}`,
+        `water-info-${source}-${dateKey}`,
         context
       );
     }
-  }
-};
-
-// Motor Control Functions
-const sendMotorCommandToBackend = async (status, scheduleId = null) => {
-  try {
-    const now = new Date();
-    const payload = {
-      status: status,
-      device_id: 'main_motor',
-      user: 'system',
-      timestamp: now.toISOString(),
-      formatted_time: now.toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      source: 'schedule',
-      ...(scheduleId && { relatedSchedule: scheduleId })
-    };
-
-    await api.post('/motor_status', payload);
-    console.log('✅ Motor command sent to backend:', payload);
-    return true;
-  } catch (error) {
-    console.error('❌ Backend motor command failed:', error);
-    return false;
-  }
-};
-
-const updateMotorStatus = async (status, scheduleId = null) => {
-  const now = new Date();
-  const formattedTime = now.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  try {
-    // Update current status
-    const motorRef = doc(db, 'motor_status', 'current');
-    await updateDoc(motorRef, {
-      status: status,
-      timestamp: serverTimestamp(),
-      formattedTime: formattedTime,
-      user: 'system',
-      device_id: 'main_motor',
-      ...(scheduleId && { relatedSchedule: scheduleId })
-    });
-
-    // Add to history logs
-    await addDoc(collection(db, 'motor_status', 'history', 'logs'), {
-      device_id: 'main_motor',
-      formattedTime: formattedTime,
-      status: status,
-      timestamp: serverTimestamp(),
-      user: 'system',
-      ...(scheduleId && { relatedSchedule: scheduleId })
-    });
-
-    // Send to backend
-    await sendMotorCommandToBackend(status, scheduleId);
-
-    return true;
-  } catch (error) {
-    console.error('Error updating motor status:', error);
-    showToastMessage('Failed to update motor status', 'error');
-    return false;
   }
 };
 
@@ -1724,13 +1621,16 @@ const processScheduleStart = async (schedule, currentDay, contextData) => {
 
     const contextData = await fetchLatestContextData();
 
-    // Send notification with unique ID to prevent duplicates
-    const notificationId = `schedule-start-${schedule.id}-${currentDay}-${now.getTime()}`;
+    // Create a unique key that includes the schedule ID and date
+    const dateKey = now.toISOString().split('T')[0];
+    const notificationKey = `schedule-start-${schedule.id}-${dateKey}`;
+    
+    // Will show toast but only save to Firestore if not already saved today
     await sendNotification(
       message,
       `${typeLabel} Watering Started`,
       'info',
-      notificationId,
+      notificationKey,
       {
         ...contextData,
         scheduleType: schedule.mode,
@@ -1739,9 +1639,6 @@ const processScheduleStart = async (schedule, currentDay, contextData) => {
         scheduleId: schedule.id
       }
     );
-    
-    // Show toast with unique key
-    showToastMessage(message, 'info', notificationId);
     
     // Update motor status
     const motorSuccess = await updateMotorStatus(true, schedule.id);
@@ -1764,7 +1661,6 @@ const processScheduleEnd = async (schedule, currentDay) => {
   });
 
   try {
-    // Use cached sensor data for schedule end
     const contextData = await fetchLatestContextData();
     
     // Create distinct message based on schedule type
@@ -1785,13 +1681,15 @@ const processScheduleEnd = async (schedule, currentDay) => {
 
     console.log(`[DEBUG] ✅ Ending schedule: ${message}`);
 
-    // Send notification with unique ID
-    const notificationId = `schedule-end-${schedule.id}-${currentDay}-${now.getTime()}`;
+    // Create a unique key that includes the schedule ID and date
+    const dateKey = now.toISOString().split('T')[0];
+    const notificationKey = `schedule-end-${schedule.id}-${dateKey}`;
+    
     await sendNotification(
       message,
       `${typeLabel} Watering Completed`,
-      'success', // Changed to success for completion
-      notificationId,
+      'success',
+      notificationKey,
       {
         ...contextData,
         scheduleType: schedule.mode,
@@ -1800,9 +1698,6 @@ const processScheduleEnd = async (schedule, currentDay) => {
         scheduleId: schedule.id
       }
     );
-    
-    // Show toast with unique key
-    showToastMessage(message, 'success', notificationId);
     
     // Update motor status
     const motorSuccess = await updateMotorStatus(false, schedule.id);
@@ -1915,6 +1810,18 @@ onMounted(async () => {
   await fetchNotifications()
   document.addEventListener('click', closeDropdown);
   window.addEventListener('resize', handleResize);
+
+  const todayKey = new Date().toDateString();
+  notificationHistory.value[todayKey] = [];
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const msUntilMidnight = midnight - now;
+
+  setTimeout(() => {
+    notificationTracker.value.dailyCache = {};
+    notificationTracker.value.lastCleanup = null;
+  }, msUntilMidnight);
 
   // Get IP Address
   try {

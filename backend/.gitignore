@@ -13,13 +13,10 @@ __pycache__/
 forecast_log.txt
 
 # API keys and secrets
-hindiItoApiKey.json
+
 *.key
 *.secret
 
-# Environment variables
-.env
-.env.*
 
 # Specific files
 get-pip.py

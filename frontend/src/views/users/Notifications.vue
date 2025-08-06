@@ -31,15 +31,15 @@
     </div>
   </div>
 
-  <!-- Enhanced Notification Details Modal -->
+  <!-- Enhanced Notification Details Modal - REDUCED WIDTH -->
   <div v-if="showDetailsModal && selectedNotification" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div 
-              class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+              class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
               :class="getNotificationIcon(selectedNotification).bgColor"
             >
               <component 
@@ -47,40 +47,40 @@
                 class="h-5 w-5 text-white" 
               />
             </div>
-            <div>
+            <div class="min-w-0">
               <h2 class="text-sm md:text-lg font-semibold text-gray-800">Notification Details</h2>
               <p class="text-xs md:text-sm text-gray-500">{{ formatTime(selectedNotification.time) }}</p>
             </div>
           </div>
           <button 
             @click="closeDetails"
-            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            class="p-2 text-gray-400 rounded-lg transition-colors flex-shrink-0"
           >
             <X class="h-5 w-5" />
           </button>
         </div>
       </div>
 
-      <!-- Modal Content -->
-      <div class="p-6 overflow-y-auto max-h-[calc(90vh-160px)]">
-        <div class="space-y-6">
+      <!-- Modal Content - FIXED LAYOUT -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-160px)] static">
+        <div class="space-y-6 static">
           <!-- Title and Status -->
-          <div>
-            <div class="flex items-start justify-between mb-3">
-              <h3 class="text-md md:text-xl font-semibold text-gray-900">{{ selectedNotification.title }}</h3>
-              <div class="flex items-center space-x-2">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between">
+              <h3 class="text-md md:text-xl font-semibold text-gray-900 min-w-0 flex-1 pr-4">{{ selectedNotification.title }}</h3>
+              <div class="flex items-center space-x-2 flex-shrink-0">
                 <span 
-                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
                   :class="getNotificationIcon(selectedNotification).badgeColor"
                 >
                   {{ selectedNotification.category || selectedNotification.type }}
                 </span>
-                <div v-if="!selectedNotification.read && !selectedNotification.archived" class="flex items-center text-blue-600 text-xs font-medium">
-                  <div class="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1"></div>
+                <div v-if="!selectedNotification.read && !selectedNotification.archived" class="flex items-center text-blue-600 text-xs font-medium whitespace-nowrap">
+                  <div class="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1 flex-shrink-0"></div>
                   Unread
                 </div>
-                <div v-if="selectedNotification.archived" class="flex items-center text-orange-600 text-xs font-medium">
-                  <Archive class="h-3 w-3 mr-1" />
+                <div v-if="selectedNotification.archived" class="flex items-center text-orange-600 text-xs font-medium whitespace-nowrap">
+                  <Archive class="h-3 w-3 mr-1 flex-shrink-0" />
                   Archived
                 </div>
               </div>
@@ -88,277 +88,307 @@
           </div>
 
           <!-- Message -->
-          <div>
-            <h4 class="text-xs md:text-sm font-medium text-gray-700 mb-2">Message</h4>
+          <div class="space-y-2">
+            <h4 class="text-xs md:text-sm font-medium text-gray-700">Message</h4>
             <p class="text-md text-gray-700 leading-relaxed font-medium">
               {{ selectedNotification.message }}
             </p>
           </div>
 
-          <!-- Enhanced Detailed Analysis Container -->
-          <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-5 border-2 border-indigo-100 shadow-lg">
-            <h4 class="text-sm md:text-lg font-bold text-gray-800 mb-4 flex items-center">
-              <div class="w-7 h-7 bg-indigo-500 rounded-full flex items-center justify-center mr-3">
-                <Info class="h-4 w-4 text-white" />
-              </div>
-              Detailed Analysis & Context
-            </h4>
-            
-            <!-- Weather Notifications -->
-            <div v-if="isWeatherNotification(selectedNotification)" class="space-y-5">
-              <p class="text-xs md:text-sm text-gray-600 mb-4 bg-white/70 rounded-lg p-3 border border-indigo-200">
-                Weather forecast analysis for {{ selectedNotification.context?.date || 'today' }}.
-              </p>
-              
-              <!-- Current Weather Summary -->
-              <div class="bg-blue-100 rounded-xl p-4 border-2 border-blue-300 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center space-x-2">
-                    <CloudRain class="h-5 w-5 text-blue-600" />
-                    <span class="text-base font-semibold text-blue-700">Current Weather Conditions</span>
+          <!-- Enhanced Detailed Analysis Container - COMPLETELY STABLE POSITIONING -->
+          <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl border-2 border-indigo-100 shadow-lg relative">
+            <div class="p-5 static">
+              <div class="mb-4 static">
+                <h4 class="text-sm md:text-lg font-bold text-gray-800 flex items-center static">
+                  <div class="w-7 h-7 bg-indigo-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0 static">
+                    <Info class="h-4 w-4 text-white" />
                   </div>
-                  <span class="text-sm md:text-lg font-bold text-blue-800">
-                    {{ selectedNotification.context?.condition || 'N/A' }}
-                    <span v-if="selectedNotification.context?.current?.temperature">({{ selectedNotification.context.current.temperature }}°C)</span>
-                  </span>
-                </div>
-              </div>
-
-              <!-- Weather Parameters Grid -->
-              <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <!-- Humidity -->
-                <div class="bg-blue-50 rounded-xl p-2 md:p-4 border-2 border-blue-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Droplet class="h-4 w-4 text-blue-600" />
-                    <span class="text-xs md:text-sm font-medium text-blue-700">Humidity</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-blue-800">{{ selectedNotification.context?.current?.humidity || '--' }}%</p>
-                  <p class="text-xs text-blue-600 mt-1">
-                    {{ selectedNotification.context?.current?.humidity ? getHumidityDescription(selectedNotification.context.current.humidity) : 'No data' }}
-                  </p>
-                </div>
-                
-                <!-- Pressure -->
-                <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Gauge class="h-4 w-4 text-gray-600" />
-                    <span class="text-xs md:text-sm font-medium text-gray-700">Pressure</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-gray-800">{{ selectedNotification.context?.current?.pressure || '--' }} hPa</p>
-                  <p class="text-xs text-gray-600 mt-1">
-                    {{ selectedNotification.context?.current?.pressure ? getPressureDescription(selectedNotification.context.current.pressure) : 'No data' }}
-                  </p>
-                </div>
-                
-                <!-- Wind Speed -->
-                <div class="bg-green-50 rounded-xl p-4 border-2 border-green-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Wind class="h-4 w-4 text-green-600" />
-                    <span class="text-xs md:text-sm font-medium text-green-700">Wind Speed</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-green-800">{{ selectedNotification.context?.current?.windSpeed || '--' }} km/h</p>
-                  <p class="text-xs text-green-600 mt-1">
-                    {{ selectedNotification.context?.current?.windSpeed ? getWindDescription(selectedNotification.context.current.windSpeed) : 'No data' }}
-                  </p>
-                </div>
-                
-                <!-- UV Index -->
-                <div class="bg-yellow-50 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Sun class="h-4 w-4 text-yellow-600" />
-                    <span class="text-xs md:text-sm font-medium text-yellow-700">UV Index</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-yellow-800">{{ selectedNotification.context?.current?.uvIndex ? selectedNotification.context.current.uvIndex.toFixed(1) : '--' }}</p>
-                  <p class="text-xs text-yellow-600 mt-1">
-                    {{ selectedNotification.context?.current?.uvIndex ? getUVDescription(selectedNotification.context.current.uvIndex) : 'No data' }}
-                  </p>
-                </div>
+                  <span class="min-w-0 static">Detailed Analysis & Context</span>
+                </h4>
               </div>
               
-              <!-- Forecast -->
-              <div v-if="selectedNotification.context?.forecast" class="bg-purple-100 rounded-xl p-4 border-2 border-purple-300 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center space-x-2">
-                    <CalendarClock class="h-5 w-5 text-purple-600" />
-                    <span class="text-base font-semibold text-purple-700">Weather Forecast</span>
-                  </div>
-                  <span class="text-sm md:text-lg font-bold text-purple-800">
-                    {{ mapWeatherCode(selectedNotification.context.forecast.condition_code) }}
-                  </span>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-3">
-                  <div class="bg-white/60 rounded-lg p-3">
-                    <p class="text-xs md:text-sm text-purple-600 font-medium">Max Temperature</p>
-                    <p class="text-sm md:text-lg font-bold text-purple-800">{{ selectedNotification.context.forecast.temperature_max }}°C</p>
-                  </div>
-                  <div class="bg-white/60 rounded-lg p-3">
-                    <p class="text-xs md:text-sm text-purple-600 font-medium">Min Temperature</p>
-                    <p class="text-sm md:text-lg font-bold text-purple-800">{{ selectedNotification.context.forecast.temperature_min }}°C</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Weather Recommendations -->
-              <div class="bg-emerald-100 rounded-xl p-4 border-2 border-emerald-300 shadow-sm">
-                <div class="flex items-center space-x-2 mb-3">
-                  <Sprout class="h-5 w-5 text-emerald-600" />
-                  <span class="text-base font-semibold text-emerald-700">Weather-Based Recommendations</span>
-                </div>
-                <p class="text-xs md:text-sm text-emerald-800 font-medium">
-                  {{ getWeatherRecommendation(selectedNotification) }}
-                </p>
-              </div>
-            </div>
-            
-            <!-- Sensor and Agricultural Data Notifications -->
-            <div v-else-if="isSensorNotification(selectedNotification)" class="space-y-5">
-              <p class="text-xs md:text-sm text-gray-600 mb-4 bg-white/70 rounded-lg p-3 border border-indigo-200">
-                Current agricultural sensor readings and environmental conditions.
-              </p>
-              
-              <!-- Water Level Display (if available) -->
-              <div v-if="selectedNotification.context?.waterLevel !== undefined" class="bg-cyan-100 rounded-xl p-4 border-2 border-cyan-300 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center space-x-2">
-                    <Gauge class="h-5 w-5 text-cyan-600" />
-                    <span class="text-base font-semibold text-cyan-700">Water Level Status</span>
-                  </div>
-                  <span class="text-sm md:text-lg font-bold text-cyan-800">{{ selectedNotification.context.waterLevel }}%</span>
-                </div>
-                <p class="text-xs md:text-sm text-cyan-700">{{ getWaterLevelDescription(selectedNotification.context.waterLevel) }}</p>
-              </div>
-
-              <!-- Sensor Data Grid -->
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- Soil Moisture -->
-                <div v-if="getSensorValue(selectedNotification, 'soilMoisture') !== null" class="bg-amber-50 rounded-xl p-4 border-2 border-amber-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Droplet class="h-4 w-4 text-amber-600" />
-                    <span class="text-xs md:text-sm font-medium text-amber-700">Soil Moisture</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-amber-800">{{ getSensorValue(selectedNotification, 'soilMoisture') }}%</p>
-                  <p class="text-xs text-amber-600 mt-1">{{ getEnhancedMoistureDescription(getSensorValue(selectedNotification, 'soilMoisture')) }}</p>
+              <!-- Weather Notifications -->
+              <div v-if="isWeatherNotification(selectedNotification)" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  Weather forecast analysis for {{ selectedNotification.context?.forecast?.date || 'today' }}.
                 </div>
                 
-                <!-- Temperature -->
-                <div v-if="getSensorValue(selectedNotification, 'temperature') !== null" class="bg-red-50 rounded-xl p-4 border-2 border-red-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Thermometer class="h-4 w-4 text-red-600" />
-                    <span class="text-xs md:text-sm font-medium text-red-700">Temperature</span>
+                <!-- Current Weather Summary -->
+                <div class="bg-blue-100 rounded-xl border-2 border-blue-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="flex items-center justify-between mb-3 static">
+                      <div class="flex items-center space-x-2 min-w-0 flex-1 static">
+                        <CloudRain class="h-5 w-5 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-base font-semibold text-blue-700 min-w-0 static">Current Weather Conditions</span>
+                      </div>
+                      <span class="text-sm md:text-lg font-bold text-blue-800 flex-shrink-0 ml-2 static">
+                        {{ selectedNotification.context?.currentWeather?.condition || selectedNotification.context?.forecast?.condition || 'N/A' }}
+                        <span v-if="selectedNotification.context?.currentWeather?.temperature">({{ selectedNotification.context.currentWeather.temperature }}°C)</span>
+                      </span>
+                    </div>
                   </div>
-                  <p class="text-sm md:text-xl font-bold text-red-800">{{ getSensorValue(selectedNotification, 'temperature') }}°C</p>
-                  <p class="text-xs text-red-600 mt-1">{{ getEnhancedTemperatureDescription(getSensorValue(selectedNotification, 'temperature')) }}</p>
+                </div>
+
+                <!-- Weather Parameters Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 static">
+                  <!-- Humidity -->
+                  <div class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                    <div class="p-3 md:p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Humidity</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-blue-800 mb-1 static">{{ selectedNotification.context?.currentWeather?.humidity || '--' }}%</p>
+                      <p class="text-xs text-blue-600 leading-tight static">
+                        {{ selectedNotification.context?.currentWeather?.humidity ? getHumidityDescription(selectedNotification.context.currentWeather.humidity) : 'No data' }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Pressure -->
+                  <div class="bg-gray-50 rounded-xl border-2 border-gray-200 shadow-sm static">
+                    <div class="p-3 md:p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Gauge class="h-4 w-4 text-gray-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-gray-700 static">Pressure</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-gray-800 mb-1 static">{{ selectedNotification.context?.currentWeather?.pressure || '--' }} hPa</p>
+                      <p class="text-xs text-gray-600 leading-tight static">
+                        {{ selectedNotification.context?.currentWeather?.pressure ? getPressureDescription(selectedNotification.context.currentWeather.pressure) : 'No data' }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Wind Speed -->
+                  <div class="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm static">
+                    <div class="p-3 md:p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Wind class="h-4 w-4 text-green-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-green-700 static">Wind Speed</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-green-800 mb-1 static">{{ selectedNotification.context?.currentWeather?.windSpeed || '--' }} km/h</p>
+                      <p class="text-xs text-green-600 leading-tight static">
+                        {{ selectedNotification.context?.currentWeather?.windSpeed ? getWindDescription(selectedNotification.context.currentWeather.windSpeed) : 'No data' }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- UV Index -->
+                  <div class="bg-yellow-50 rounded-xl border-2 border-yellow-200 shadow-sm static">
+                    <div class="p-3 md:p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Sun class="h-4 w-4 text-yellow-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-yellow-700 static">UV Index</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-yellow-800 mb-1 static">{{ selectedNotification.context?.currentWeather?.uvIndex ? selectedNotification.context.currentWeather.uvIndex.toFixed(1) : '--' }}</p>
+                      <p class="text-xs text-yellow-600 leading-tight static">
+                        {{ selectedNotification.context?.currentWeather?.uvIndex ? getUVDescription(selectedNotification.context.currentWeather.uvIndex) : 'No data' }}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
-                <!-- Humidity -->
-                <div v-if="getSensorValue(selectedNotification, 'humidity') !== null" class="bg-blue-50 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Droplet class="h-4 w-4 text-blue-600" />
-                    <span class="text-xs md:text-sm font-medium text-blue-700">Humidity</span>
+                <!-- Forecast -->
+                <div v-if="selectedNotification.context?.forecast" class="bg-purple-100 rounded-xl border-2 border-purple-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="flex items-center justify-between mb-3 static">
+                      <div class="flex items-center space-x-2 min-w-0 flex-1 static">
+                        <CalendarClock class="h-5 w-5 text-purple-600 flex-shrink-0 static" />
+                        <span class="text-base font-semibold text-purple-700 static">Weather Forecast</span>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-3 static">
+                      <div class="bg-white/60 rounded-lg p-3 static">
+                        <p class="text-xs md:text-sm text-purple-600 font-medium static">Max Temperature</p>
+                        <p class="text-sm md:text-lg font-bold text-purple-800 static">{{ selectedNotification.context.forecast.temperatures.max }}°C</p>
+                      </div>
+                      <div class="bg-white/60 rounded-lg p-3 static">
+                        <p class="text-xs md:text-sm text-purple-600 font-medium static">Min Temperature</p>
+                        <p class="text-sm md:text-lg font-bold text-purple-800 static">{{ selectedNotification.context.forecast.temperatures.min }}°C</p>
+                      </div>
+                    </div>
                   </div>
-                  <p class="text-sm md:text-xl font-bold text-blue-800">{{ getSensorValue(selectedNotification, 'humidity') }}%</p>
-                  <p class="text-xs text-blue-600 mt-1">{{ getHumidityDescription(getSensorValue(selectedNotification, 'humidity')) }}</p>
-                </div>
-
-                <!-- Soil pH -->
-                <div v-if="getSensorValue(selectedNotification, 'soilPh') !== null" class="bg-purple-50 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Gauge class="h-4 w-4 text-purple-600" />
-                    <span class="text-xs md:text-sm font-medium text-purple-700">Soil pH</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-purple-800">{{ getSensorValue(selectedNotification, 'soilPh') }}</p>
-                  <p class="text-xs text-purple-600 mt-1">{{ getPhDescription(getSensorValue(selectedNotification, 'soilPh')) }}</p>
-                </div>
-
-                <!-- Nitrogen -->
-                <div v-if="getSensorValue(selectedNotification, 'nitrogen') !== null" class="bg-green-50 rounded-xl p-4 border-2 border-green-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Leaf class="h-4 w-4 text-green-600" />
-                    <span class="text-sm font-medium text-green-700">Nitrogen (N)</span>
-                  </div>
-                  <p class="text-xl font-bold text-green-800">{{ getSensorValue(selectedNotification, 'nitrogen') }} ppm</p>
-                  <p class="text-xs text-green-600 mt-1">{{ getNitrogenDescription(getSensorValue(selectedNotification, 'nitrogen')) }}</p>
-                </div>
-
-                <!-- Phosphorus -->
-                <div v-if="getSensorValue(selectedNotification, 'phosphorus') !== null" class="bg-orange-50 rounded-xl p-4 border-2 border-orange-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Sprout class="h-4 w-4 text-orange-600" />
-                    <span class="text-xs md:text-sm font-medium text-orange-700">Phosphorus (P)</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-orange-800">{{ getSensorValue(selectedNotification, 'phosphorus') }} ppm</p>
-                  <p class="text-xs text-orange-600 mt-1">{{ getPhosphorusDescription(getSensorValue(selectedNotification, 'phosphorus')) }}</p>
-                </div>
-
-                <!-- Potassium -->
-                <div v-if="getSensorValue(selectedNotification, 'potassium') !== null" class="bg-yellow-50 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <Activity class="h-4 w-4 text-yellow-600" />
-                    <span class="text-xs md:text-sm font-medium text-yellow-700">Potassium (K)</span>
-                  </div>
-                  <p class="text-sm md:text-xl font-bold text-yellow-800">{{ getSensorValue(selectedNotification, 'potassium') }} ppm</p>
-                  <p class="text-xs text-yellow-600 mt-1">{{ getPotassiumDescription(getSensorValue(selectedNotification, 'potassium')) }}</p>
                 </div>
               </div>
               
-              <!-- Comprehensive Recommendations -->
-              <div class="bg-emerald-100 rounded-xl p-4 border-2 border-emerald-300 shadow-sm">
-                <div class="flex items-center space-x-2 mb-3">
-                  <Sprout class="h-5 w-5 text-emerald-600" />
-                  <span class="text-base font-semibold text-emerald-700">Agricultural Recommendations</span>
+              <!-- Sensor and Agricultural Data Notifications - COMPLETELY STABLE -->
+              <div v-else-if="isSensorNotification(selectedNotification)" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  Current agricultural sensor readings and environmental conditions.
                 </div>
-                <div class="space-y-2">
-                  <p class="text-xs md:text-sm text-emerald-800 font-medium">
-                    {{ getComprehensiveAgriculturalRecommendation(selectedNotification) }}
-                  </p>
-                  <div class="mt-3 p-3 bg-white/60 rounded-lg">
-                    <p class="text-xs text-emerald-700 font-medium">Action Priority: {{ getActionPriority(selectedNotification) }}</p>
+                
+                <!-- Water Level Display (if available) - CENTERED PERCENTAGE -->
+                <div v-if="selectedNotification.context?.waterLevel !== undefined" class="bg-cyan-100 rounded-xl border-2 border-cyan-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="flex items-center space-x-2 mb-3 static">
+                      <Gauge class="h-5 w-5 text-cyan-600 flex-shrink-0 static" />
+                      <span class="text-base font-semibold text-cyan-700 static">Water Level Status</span>
+                    </div>
+                    <!-- Centered Large Percentage -->
+                    <div class="text-center mb-3 static">
+                      <span class="text-4xl md:text-5xl font-bold text-cyan-800 static">{{ selectedNotification.context.waterLevel }}%</span>
+                    </div>
+                    <p class="text-xs md:text-sm text-cyan-700 leading-relaxed text-center static">{{ getWaterLevelDescription(selectedNotification.context.waterLevel) }}</p>
+                  </div>
+                </div>
+
+                <!-- Sensor Data Grid - COMPLETELY STABLE -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 static">
+                  <!-- Soil Moisture -->
+                  <div v-if="getSensorValue(selectedNotification, 'soilMoisture') !== null" class="bg-amber-50 rounded-xl border-2 border-amber-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-amber-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-amber-700 static">Soil Moisture</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-amber-800 mb-1 static">{{ getSensorValue(selectedNotification, 'soilMoisture') }}%</p>
+                      <p class="text-xs text-amber-600 leading-tight static">{{ getEnhancedMoistureDescription(getSensorValue(selectedNotification, 'soilMoisture')) }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Temperature -->
+                  <div v-if="getSensorValue(selectedNotification, 'temperature') !== null" class="bg-red-50 rounded-xl border-2 border-red-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Thermometer class="h-4 w-4 text-red-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-red-700 static">Temperature</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-red-800 mb-1 static">{{ getSensorValue(selectedNotification, 'temperature') }}°C</p>
+                      <p class="text-xs text-red-600 leading-tight static">{{ getEnhancedTemperatureDescription(getSensorValue(selectedNotification, 'temperature')) }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Humidity -->
+                  <div v-if="getSensorValue(selectedNotification, 'humidity') !== null" class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Humidity</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-blue-800 mb-1 static">{{ getSensorValue(selectedNotification, 'humidity') }}%</p>
+                      <p class="text-xs text-blue-600 leading-tight static">{{ getHumidityDescription(getSensorValue(selectedNotification, 'humidity')) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Soil pH -->
+                  <div v-if="getSensorValue(selectedNotification, 'soilPh') !== null" class="bg-purple-50 rounded-xl border-2 border-purple-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Gauge class="h-4 w-4 text-purple-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-purple-700 static">Soil pH</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-purple-800 mb-1 static">{{ getSensorValue(selectedNotification, 'soilPh') }}</p>
+                      <p class="text-xs text-purple-600 leading-tight static">{{ getPhDescription(getSensorValue(selectedNotification, 'soilPh')) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Nitrogen -->
+                  <div v-if="getSensorValue(selectedNotification, 'nitrogen') !== null" class="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Leaf class="h-4 w-4 text-green-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-green-700 static">Nitrogen (N)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-green-800 mb-1 static">{{ getSensorValue(selectedNotification, 'nitrogen') }} ppm</p>
+                      <p class="text-xs text-green-600 leading-tight static">{{ getNitrogenDescription(getSensorValue(selectedNotification, 'nitrogen')) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Phosphorus -->
+                  <div v-if="getSensorValue(selectedNotification, 'phosphorus') !== null" class="bg-orange-50 rounded-xl border-2 border-orange-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Sprout class="h-4 w-4 text-orange-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-orange-700 static">Phosphorus (P)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-orange-800 mb-1 static">{{ getSensorValue(selectedNotification, 'phosphorus') }} ppm</p>
+                      <p class="text-xs text-orange-600 leading-tight static">{{ getPhosphorusDescription(getSensorValue(selectedNotification, 'phosphorus')) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Potassium -->
+                  <div v-if="getSensorValue(selectedNotification, 'potassium') !== null" class="bg-yellow-50 rounded-xl border-2 border-yellow-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Activity class="h-4 w-4 text-yellow-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-yellow-700 static">Potassium (K)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-yellow-800 mb-1 static">{{ getSensorValue(selectedNotification, 'potassium') }} ppm</p>
+                      <p class="text-xs text-yellow-600 leading-tight static">{{ getPotassiumDescription(getSensorValue(selectedNotification, 'potassium')) }}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Agricultural Recommendations - COMPLETELY STABLE LAYOUT -->
+                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="mb-3 static">
+                      <div class="flex items-center space-x-2 static">
+                        <Sprout class="h-5 w-5 text-emerald-600 flex-shrink-0 static" />
+                        <span class="text-base font-semibold text-emerald-700 static">Agricultural Recommendations</span>
+                      </div>
+                    </div>
+                    <div class="space-y-3 static">
+                      <div class="static">
+                        <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
+                          {{ getComprehensiveAgriculturalRecommendation(selectedNotification) }}
+                        </p>
+                      </div>
+                      <div class="bg-white/60 rounded-lg p-3 static">
+                        <p class="text-xs text-emerald-700 font-medium static">Action Priority: {{ getActionPriority(selectedNotification) }}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- Other Notifications -->
-            <div v-else class="space-y-4">
-              <p class="text-xs mdLtext-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200">
-                {{ selectedNotification.context?.additionalInfo || getDynamicAdditionalInfo(selectedNotification) }}
-              </p>
-              <div class="bg-blue-50 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
-                <div class="flex items-center space-x-2 mb-2">
-                  <Info class="h-4 w-4 text-blue-600" />
-                  <span class="text-xs md:text-sm font-semibold text-blue-700">Status Information</span>
+              
+              <!-- Other Notifications -->
+              <div v-else class="space-y-4 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  {{ selectedNotification.context?.additionalInfo || getDynamicAdditionalInfo(selectedNotification) }}
                 </div>
-                <p class="text-xs md:text-sm text-blue-800 font-medium">
-                  {{ selectedNotification.context?.status || 'All systems operating within normal parameters' }}
-                </p>
+                <div class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="flex items-center space-x-2 mb-2 static">
+                      <Info class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                      <span class="text-xs md:text-sm font-semibold text-blue-700 static">Status Information</span>
+                    </div>
+                    <p class="text-xs md:text-sm text-blue-800 font-medium leading-relaxed static">
+                      {{ selectedNotification.context?.status || 'All systems operating within normal parameters' }}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Enhanced Metadata -->
+          <!-- Enhanced Metadata - COMPLETELY STABLE -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Received Container -->
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 border-2 border-emerald-200 shadow-lg">
-              <div class="flex items-center space-x-2 mb-2">
-                <div class="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                  <CalendarClock class="h-3 w-3 text-white" />
+            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-200 shadow-lg">
+              <div class="p-4">
+                <div class="flex items-center space-x-2 mb-2">
+                  <div class="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CalendarClock class="h-3 w-3 text-white" />
+                  </div>
+                  <h4 class="text-xs md:text-sm font-bold text-emerald-700">Received</h4>
                 </div>
-                <h4 class="text-xs md:text-sm font-bold text-emerald-700">Received</h4>
+                <p class="text-xs md:text-sm text-emerald-800 font-semibold leading-relaxed">{{ formatFullDate(selectedNotification.time) }}</p>
               </div>
-              <p class="text-xs md:text-sm text-emerald-800 font-semibold">{{ formatFullDate(selectedNotification.time) }}</p>
             </div>
             
             <!-- Priority Container -->
-            <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-4 border-2 border-orange-200 shadow-lg">
-              <div class="flex items-center space-x-2 mb-2">
-                <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                  <AlertTriangle class="h-3 w-3 text-white" />
+            <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border-2 border-orange-200 shadow-lg">
+              <div class="p-4">
+                <div class="flex items-center space-x-2 mb-2">
+                  <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle class="h-3 w-3 text-white" />
+                  </div>
+                  <h4 class="text-xs md:text-sm font-bold text-orange-700">Priority</h4>
                 </div>
-                <h4 class="text-xs md:text-sm font-bold text-orange-700">Priority</h4>
+                <p class="text-xs md:text-sm text-orange-800 font-semibold capitalize leading-relaxed">{{ selectedNotification.severity || 'Normal' }}</p>
               </div>
-              <p class="text-xs md:text-sm text-orange-800 font-semibold capitalize">{{ selectedNotification.severity || 'Normal' }}</p>
             </div>
-
           </div>
         </div>
       </div>
@@ -367,36 +397,36 @@
       <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end space-x-3">
         <button 
           @click="closeDetails"
-          class="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-xs md:text-sm font-medium transition-colors border border-gray-200"
+          class="px-4 py-2 bg-white text-gray-700 rounded-lg text-xs md:text-sm font-medium transition-colors border border-gray-200"
         >
           Close
         </button>
         <button 
           v-if="!selectedNotification.read && !selectedNotification.archived"
           @click="markAsReadAndClose(selectedNotification.id)"
-          class="flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs md:text-sm font-medium transition-colors shadow-sm"
+          class="flex items-center px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs md:text-sm font-medium transition-colors shadow-sm"
         >
-          <Check class="h-4 w-4 mr-1.5" />
+          <Check class="h-4 w-4 mr-1.5 flex-shrink-0" />
           <span class="hidden md:block">Mark as Read</span>
         </button>
         <button 
           v-if="!selectedNotification.archived"
           @click="archiveCurrentNotification"
           :disabled="isArchiving"
-          class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg text-xs md:text-sm font-medium shadow-sm transition-colors duration-200 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg text-xs md:text-sm font-medium shadow-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Archive v-if="!isArchiving" class="h-4 w-4 mr-1.5" />
-          <Loader2 v-else class="h-4 w-4 mr-1.5 animate-spin" />
+          <Archive v-if="!isArchiving" class="h-4 w-4 mr-1.5 flex-shrink-0" />
+          <Loader2 v-else class="h-4 w-4 mr-1.5 animate-spin flex-shrink-0" />
           {{ isArchiving ? 'Archiving...' : 'Archive' }}
         </button>
         <button 
           v-if="selectedNotification.archived"
           @click="unarchiveCurrentNotification"
           :disabled="isUnarchiving"
-          class="flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg text-xs md:text-sm font-medium shadow-sm transition-colors duration-200 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg text-xs md:text-sm font-medium shadow-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ArchiveRestore v-if="!isUnarchiving" class="h-4 w-4 mr-1.5" />
-          <Loader2 v-else class="h-4 w-4 mr-1.5 animate-spin" />
+          <ArchiveRestore v-if="!isUnarchiving" class="h-4 w-4 mr-1.5 flex-shrink-0" />
+          <Loader2 v-else class="h-4 w-4 mr-1.5 animate-spin flex-shrink-0" />
           {{ isUnarchiving ? 'Unarchiving...' : 'Unarchive' }}
         </button>
       </div>
@@ -404,9 +434,9 @@
   </div>
 
   <!-- Main Content -->
-  <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
-    <!-- Main Container - Enhanced Design -->
-    <div class="bg-white rounded-2xl shadow-md border border-emerald-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-hidden">
+  <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 xl:px-12 overflow-hidden">
+    <!-- Main Container - Enhanced Design with proper alignment -->
+     <div class="bg-white rounded-2xl shadow-md border border-emerald-100 w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-hidden">
       <!-- Content Wrapper -->
       <div class="flex flex-col h-full">
         <!-- Enhanced Header Section -->
@@ -433,8 +463,8 @@
                 :disabled="isLoading"
                 class="flex items-center px-2 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 :class="isSelectMode 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'"
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-gray-100 text-gray-700'"
               >
                 <Check class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">{{ isSelectMode ? 'Cancel Selection' : 'Select' }}</span>
@@ -445,7 +475,7 @@
                 v-if="isSelectMode && selectedNotifications.size > 0"
                 @click="deleteSelectedNotifications"
                 :disabled="isLoading"
-                class="flex items-center px-2 md:px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center px-2 md:px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash2 class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">Delete Selected ({{ selectedNotifications.size }})</span>
@@ -457,8 +487,8 @@
                 :disabled="isLoading"
                 class="flex items-center px-2 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 :class="showArchived 
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'"
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-gray-100 text-gray-700'"
               >
                 <component :is="showArchived ? Bell : Archive" class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">{{ showArchived ? 'Show Active' : 'Show Archived' }}</span>
@@ -468,7 +498,7 @@
                 v-if="!showArchived"
                 @click="markAllAsRead"
                 :disabled="isLoading"
-                class="flex items-center px-2 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center px-2 md:px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">Mark all read</span>
@@ -478,7 +508,7 @@
                 v-if="!showArchived && !isSelectMode"
                 @click="confirmDeleteAll"
                 :disabled="isLoading || currentNotifications.length === 0"
-                class="flex items-center px-2 md:px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center px-2 md:px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash2 class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">Delete All</span>
@@ -486,7 +516,7 @@
 
               <button 
                 @click="goBack"
-                class="flex items-center px-2 md:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                class="flex items-center px-2 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
                 <ArrowLeft class="h-4 w-4 mr-1.5" />
                 <span class="hidden md:block">Back</span>
@@ -496,26 +526,28 @@
 
           <!-- Enhanced Filters and Search -->
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <!-- Filter Buttons - Updated for archived view -->
-            <div class="flex items-center grid grid-cols-3 justify-start gap-2 md:flex-wrap">
-              <button 
-                v-for="filter in (showArchived ? archivedFilters : filters)" 
-                :key="filter.value"
-                @click="activeFilter = filter.value"
-                :disabled="isLoading"
-                :class="[
-                  'px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
-                  activeFilter === filter.value 
-                    ? 'bg-emerald-500 text-white shadow-sm' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                ]"
-              >
-                {{ filter.label }}
-              </button>
+            <!-- Filter Buttons - Fixed for single row layout -->
+            <div class="flex items-center justify-start gap-1 sm:gap-2 overflow-x-auto scrollbar-hide min-w-0">
+              <div class="flex items-center gap-1 sm:gap-2 flex-nowrap">
+                <button 
+                  v-for="filter in (showArchived ? archivedFilters : filters)" 
+                  :key="filter.value"
+                  @click="activeFilter = filter.value"
+                  :disabled="isLoading"
+                  :class="[
+                    'px-2 sm:px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0',
+                    activeFilter === filter.value 
+                      ? 'bg-emerald-500 text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-200'
+                  ]"
+                >
+                  {{ filter.label }}
+                </button>
+              </div>
             </div>
             
             <!-- Search Bar - Reduced width and improved responsiveness -->
-            <div class="relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm">
+            <div class="relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search class="h-4 w-4 text-gray-400" />
               </div>
@@ -600,7 +632,7 @@
                   v-for="notification in group.notifications" 
                   :key="notification.id"
                   @click="handleNotificationClick($event, notification)"
-                  class="group p-3 rounded-xl border border-gray-100 hover:border-emerald-200 bg-white hover:bg-gray-50/50 transition-all duration-200 cursor-pointer"
+                  class="group p-3 rounded-xl border border-gray-100 bg-white transition-all duration-200 cursor-pointer"
                   :class="{ 
                     'bg-blue-50/30 border-blue-200': !notification.read && !showArchived,
                     'bg-orange-50/30 border-orange-200': showArchived,
@@ -655,7 +687,7 @@
                             v-if="showArchived"
                             @click.stop="handleQuickUnarchive(notification.id)"
                             :disabled="unarchivingIds.has(notification.id)"
-                            class="flex items-center text-orange-600 hover:text-orange-700 text-xs font-medium bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="flex items-center text-orange-600 text-xs font-medium bg-orange-50 px-2 py-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <component 
                               :is="unarchivingIds.has(notification.id) ? 'div' : Archive" 
@@ -666,7 +698,7 @@
                           <!-- Green See Details Button -->
                           <button 
                             @click.stop="openDetailsModal(notification)"
-                            class="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors"
+                            class="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-md transition-colors"
                           >
                             <Eye class="h-4 w-4 md:h-3 md:w-3 mr-1" />
                             <span class="hidden md:block">See Details</span>
@@ -678,7 +710,7 @@
                       <button 
                         v-if="!notification.read && !showArchived"
                         @click.stop="markAsRead(notification.id)"
-                        class="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        class="p-1.5 text-gray-400 rounded-lg transition-colors"
                         title="Mark as read"
                       >
                         <Check class="h-4 w-4" />
@@ -686,7 +718,7 @@
                       <button 
                         v-if="!showArchived"
                         @click.stop="archiveNotification(notification.id)"
-                        class="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        class="p-1.5 text-gray-400 rounded-lg transition-colors"
                         title="Archive"
                       >
                         <Archive class="h-4 w-4" />
@@ -694,14 +726,14 @@
                       <button 
                         v-if="showArchived"
                         @click.stop="unarchiveNotification(notification.id)"
-                        class="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        class="p-1.5 text-gray-400 rounded-lg transition-colors"
                         title="Unarchive"
                       >
                         <ArchiveRestore class="h-4 w-4" />
                       </button>
                       <button 
                         @click.stop="deleteNotification(notification.id)"
-                        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        class="p-1.5 text-gray-400 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash2 class="h-4 w-4" />
@@ -718,7 +750,7 @@
               <p class="text-gray-500">No notifications on this page</p>
               <button 
                 @click="currentPage = 1"
-                class="mt-3 text-sm text-emerald-600 hover:text-emerald-700"
+                class="mt-3 text-sm text-emerald-600"
               >
                 Go to first page
               </button>
@@ -760,7 +792,7 @@
                 :disabled="currentPage === 1 || isLoading"
                 class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-lg
                   disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                  enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50 enabled:border enabled:border-gray-200"
+                  enabled:text-gray-700 enabled:border enabled:border-gray-200"
               >
                 <ChevronLeft class="w-4 h-4 mr-1" />
                 Prev
@@ -778,7 +810,7 @@
                       ? 'text-white bg-emerald-500 shadow-sm'
                       : page === '...'
                         ? 'cursor-default text-gray-400'
-                        : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 border border-gray-200'
+                        : 'text-gray-700 border border-gray-200'
                   ]"
                 >
                   {{ page }}
@@ -790,7 +822,7 @@
                 :disabled="currentPage >= totalPages || totalPages === 0 || isLoading"
                 class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-lg
                   disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                  enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50 enabled:border enabled:border-gray-200"
+                  enabled:text-gray-700 enabled:border enabled:border-gray-200"
               >
                 Next
                 <ChevronRight class="w-4 h-4 ml-1" />
@@ -807,7 +839,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Confirm Delete All</h3>
-        <button @click="showDeleteAllConfirmation = false" class="text-gray-400 hover:text-gray-600">
+        <button @click="showDeleteAllConfirmation = false" class="text-gray-400">
           <X class="w-5 w-5" />
         </button>
       </div>
@@ -815,14 +847,14 @@
       <div class="flex justify-end space-x-3">
         <button 
           @click="showDeleteAllConfirmation = false"
-          class="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+          class="px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200"
         >
           Cancel
         </button>
         <button 
           @click="deleteAllNotifications"
           :disabled="isDeletingAll"
-          class="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Trash2 class="h-4 w-4 mr-1.5" />
           {{ isDeletingAll ? 'Deleting...' : 'Delete All' }}
@@ -1105,10 +1137,10 @@ const displayedPages = computed(() => {
 
     if (current <= 3) {
       // If near start, show 2-5 then ellipsis
-      pages.push( '...', total)
+      pages.push(2, 3, 4, 5, '...', total)
     } else if (current >= total - 2) {
       // If near end, show ellipsis then last 4
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
+      pages.push('...', total - 3, total - 2, total - 1, total)
     } else {
       // Otherwise show ellipsis, current -1, current, current + 1, ellipsis
       pages.push('...', current - 1, current, current + 1, '...', total)
@@ -2425,6 +2457,14 @@ watch([activeFilter, searchQuery], () => {
   }
 }
 
+/* Hide scrollbar for filter buttons on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
 
 /* Print styles */
 @media print {
@@ -2457,5 +2497,24 @@ watch([activeFilter, searchQuery], () => {
     min-width: fit-content;
     flex-shrink: 0;
   }
+}
+
+/* Prevent any movement during scroll */
+.static {
+  position: static !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Ensure smooth scrolling without element movement */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent layout shifts during scroll */
+* {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 </style>
