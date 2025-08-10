@@ -18,9 +18,9 @@ export const useUserStore = defineStore('user', () => {
 
   // Configuration - adjust these values as needed
   const config = {
-    warningTimeout: 5 * 60 * 1000,  // 1 minute warning before logout
-    inactivityTimeout: 1440 * 60 * 1000, // 30 minutes of inactivity
-    sessionDuration: 1440 * 60 * 1000, // 1 hour total session duration
+    warningTimeout: 5 * 60 * 1000,  // 5 minute warning before inactivity logout
+    inactivityTimeout: 10 * 60 * 1000, // 30 minutes of inactivity
+    sessionDuration: 240 * 60 * 60 * 1000, // 24 hours total session duration
     debug: true // Enable debug logging
   };
 
@@ -36,7 +36,6 @@ export const useUserStore = defineStore('user', () => {
   const isSessionValid = computed(() => {
     if (!user.value) return false;
     
-    // Check both inactivity and total session duration
     const now = Date.now();
     const inactiveTooLong = (now - lastActivity.value) >= config.inactivityTimeout;
     const sessionTooLong = sessionStart.value ? (now - sessionStart.value) >= config.sessionDuration : false;
@@ -62,16 +61,42 @@ export const useUserStore = defineStore('user', () => {
         return false;
       }
 
-      const { user: userData, userId: id, sessionStart: startTime } = JSON.parse(storedUser);
+      const parsedData = JSON.parse(storedUser);
+      const { user: userData, userId: id, sessionStart: startTime, lastActivity: lastActive } = parsedData;
+      
+      const now = Date.now();
+      
+      // Check if session has expired based on stored timestamp
+      if (startTime && (now - startTime) >= config.sessionDuration) {
+        debugLog('Session expired before loading');
+        clearUser();
+        return false;
+      }
+      
+      // Check if inactive period has exceeded
+      if (lastActive && (now - lastActive) >= config.inactivityTimeout) {
+        debugLog('Inactivity period exceeded before loading');
+        clearUser();
+        return false;
+      }
+
       user.value = userData;
       userId.value = id;
-      sessionStart.value = startTime || Date.now();
-      lastActivity.value = Date.now();
+      sessionStart.value = startTime; // Keep original session start time
+      lastActivity.value = now; // Update last activity to now
       
+      localStorage.setItem('user', JSON.stringify({
+        user: userData,
+        userId: id,
+        sessionStart: startTime,
+        lastActivity: lastActivity.value
+      }));
+
       debugLog('User loaded from storage:', {
         user: user.value,
         userId: userId.value,
-        sessionStart: new Date(sessionStart.value)
+        sessionStart: new Date(sessionStart.value),
+        lastActivity: new Date(lastActivity.value)
       });
 
       startSessionTimers();
@@ -93,21 +118,24 @@ export const useUserStore = defineStore('user', () => {
       ...userData
     };
 
+    const now = Date.now();
     user.value = completeUserData;
     userId.value = id;
-    sessionStart.value = Date.now();
-    lastActivity.value = Date.now();
+    sessionStart.value = now;
+    lastActivity.value = now;
     
     localStorage.setItem('user', JSON.stringify({
       user: completeUserData,
       userId: id,
-      sessionStart: sessionStart.value
+      sessionStart: now,
+      lastActivity: now
     }));
 
     debugLog('User set:', {
       user: user.value,
       userId: userId.value,
-      sessionStart: new Date(sessionStart.value)
+      sessionStart: new Date(sessionStart.value),
+      lastActivity: new Date(lastActivity.value)
     });
 
     startSessionTimers();
@@ -118,6 +146,7 @@ export const useUserStore = defineStore('user', () => {
     user.value = null;
     userId.value = null;
     sessionStart.value = null;
+    lastActivity.value = Date.now();
     localStorage.removeItem('user');
     clearTimers();
     showTimeoutWarning.value = false;
@@ -145,25 +174,31 @@ export const useUserStore = defineStore('user', () => {
       timeSinceSessionStart
     });
 
-    // Set timer for showing warning
-    const timeToWarning = config.inactivityTimeout - timeSinceLastActivity - config.warningTimeout;
-    if (timeToWarning > 0) {
-      warningTimer = setTimeout(() => {
-        debugLog('Showing inactivity warning');
-        showTimeoutWarning.value = true;
-      }, timeToWarning);
-    }
+    // Only set timers if session hasn't expired
+    if (timeSinceSessionStart < config.sessionDuration) {
+      // 1. Set timer for showing inactivity warning
+      const timeToWarning = config.inactivityTimeout - timeSinceLastActivity - config.warningTimeout;
+      if (timeToWarning > 0) {
+        warningTimer = setTimeout(() => {
+          debugLog('Showing inactivity warning');
+          showTimeoutWarning.value = true;
+        }, timeToWarning);
+      }
 
-    // Set timer for actual logout due to inactivity
-    const timeToInactiveLogout = config.inactivityTimeout - timeSinceLastActivity;
-    if (timeToInactiveLogout > 0) {
-      inactivityTimer = setTimeout(() => {
-        debugLog('Logging out due to inactivity');
+      // 2. Set timer for actual inactivity logout
+      const timeToInactiveLogout = config.inactivityTimeout - timeSinceLastActivity;
+      if (timeToInactiveLogout > 0) {
+        inactivityTimer = setTimeout(() => {
+          debugLog('Logging out due to inactivity');
+          logout();
+        }, timeToInactiveLogout);
+      } else {
+        debugLog('Inactivity period already exceeded');
         logout();
-      }, timeToInactiveLogout);
+      }
     }
 
-    // Set timer for session duration limit
+    // 3. Set timer for absolute session duration
     if (sessionStart.value) {
       const timeLeft = config.sessionDuration - timeSinceSessionStart;
       if (timeLeft > 0) {
@@ -178,19 +213,18 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  // In user.js
   const resetInactivityTimer = () => {
-    debugLog('Resetting inactivity timer and extending session');
+    debugLog('Resetting inactivity timer');
     lastActivity.value = Date.now();
-    sessionStart.value = Date.now(); // This resets the session duration clock
     showTimeoutWarning.value = false;
     
-    // Update localStorage to persist the new session start time
+    // Update localStorage with new lastActivity
     if (user.value) {
       localStorage.setItem('user', JSON.stringify({
         user: user.value,
         userId: userId.value,
-        sessionStart: sessionStart.value
+        sessionStart: sessionStart.value,
+        lastActivity: lastActivity.value
       }));
     }
     

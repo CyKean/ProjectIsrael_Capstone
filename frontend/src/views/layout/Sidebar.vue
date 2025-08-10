@@ -630,8 +630,41 @@ const sensorTypes = [
 ];
 
 const notificationTracker = {
-  savedToday: new Set(),
-  lastCleanup: null
+  // Check if notification was saved today (using localStorage)
+  async wasSavedToday(notificationKey) {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const fullKey = `notification-${notificationKey}-${todayKey}`;
+    return localStorage.getItem(fullKey) === 'saved' || await this.checkFirestore(notificationKey);
+  },
+
+  // Check Firestore as fallback
+  async checkFirestore(notificationKey) {
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('uniqueKey', '==', notificationKey),
+        where('timestamp', '>=', startOfToday())
+      );
+      const snapshot = await getDocs(q);
+      return !snapshot.empty;
+    } catch (error) {
+      console.error('Error checking notification:', error);
+      return false;
+    }
+  },
+
+  // Clean old localStorage entries (older than 1 day)
+  cleanOldEntries() {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('notification-')) {
+        const timestamp = parseInt(key.split('-').pop());
+        if (timestamp && timestamp < oneDayAgo) {
+          localStorage.removeItem(key);
+        }
+      }
+    });
+  }
 };
 
 const cleanNotificationCache = () => {
@@ -643,13 +676,15 @@ const cleanNotificationCache = () => {
 };
 
 const wasNotificationSavedToday = async (notificationKey) => {
-  cleanNotificationCache();
+  const todayKey = new Date().toISOString().split('T')[0];
+  const storageKey = `${notificationKey}-${todayKey}`;
   
-  // Check memory cache first
-  if (notificationTracker.savedToday.has(notificationKey)) {
+  // First check localStorage
+  const state = notificationStorage.get(storageKey);
+  if (state === 'complete') {
     return true;
   }
-
+  
   // Fallback to Firestore check
   try {
     const q = query(
@@ -666,8 +701,9 @@ const wasNotificationSavedToday = async (notificationKey) => {
 };
 
 const markNotificationSaved = (notificationKey) => {
-  cleanNotificationCache();
-  notificationTracker.savedToday.add(notificationKey);
+  const todayKey = new Date().toISOString().split('T')[0];
+  const fullKey = `notification-${notificationKey}-${todayKey}`;
+  localStorage.setItem(fullKey, 'saved');
 };
 
 const startOfToday = () => {
@@ -801,17 +837,81 @@ const showToastMessage = (message, severity = 'info', persistKey = null) => {
   window.showToast(message, severity)
 }
 
+const notificationStorage = {
+  set(key, value, ttl = 24 * 60 * 60 * 1000) {
+    const now = new Date();
+    const item = {
+      value: value,
+      expiry: now.getTime() + ttl,
+    };
+    localStorage.setItem(`notif_${key}`, JSON.stringify(item));
+  },
+
+  get(key) {
+    const itemStr = localStorage.getItem(`notif_${key}`);
+    if (!itemStr) return null;
+    
+    const item = JSON.parse(itemStr);
+    const now = new Date();
+    
+    // If expired, delete and return null
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(`notif_${key}`);
+      return null;
+    }
+    
+    return item.value;
+  },
+
+  has(key) {
+    return this.get(key) !== null;
+  },
+
+  cleanExpired() {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('notif_')) {
+        this.get(key.replace('notif_', '')); // This will auto-clean expired items
+      }
+    });
+  }
+};
+
+// Fix the cleanExpired method to not use 'this'
+notificationStorage.cleanExpired = function() {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('notif_')) {
+      notificationStorage.get(key.replace('notif_', ''));
+    }
+  });
+};
+
 // Notification Functions
 const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}) => {
   // Generate consistent notification ID
   const notificationId = uniqueKey || `${severity}-${title}-${message}`.replace(/\s+/g, '-').toLowerCase();
-  
-  // ALWAYS show toast
-  showToastMessage(message, severity, notificationId);
+  const todayKey = new Date().toISOString().split('T')[0];
+  const storageKey = `${notificationId}-${todayKey}`;
 
-  // Skip Firestore if already saved today
-  if (await wasNotificationSavedToday(notificationId)) {
-    console.log(`[Notification] Already saved today: ${notificationId}`);
+  // Check if we've already processed this notification today
+  const notificationState = notificationStorage.get(storageKey);
+  
+  // If already fully processed (toast shown AND saved to Firestore), skip everything
+  if (notificationState === 'complete') {
+    return;
+  }
+
+  // Show toast only if not shown today (even after refresh)
+  if (!notificationState) {
+    showToastMessage(message, severity);
+    notificationStorage.set(storageKey, 'toast-shown');
+  }
+
+  // Skip Firestore if already saved today (even after refresh)
+  if (notificationState === 'toast-shown' || notificationState === 'complete' || await wasNotificationSavedToday(notificationId)) {
+    // If we showed toast but haven't marked as complete, update state
+    if (notificationState === 'toast-shown') {
+      notificationStorage.set(storageKey, 'complete');
+    }
     return;
   }
 
@@ -831,7 +931,9 @@ const sendNotification = async (message, title, severity = 'info', uniqueKey = n
 
     // Save to Firestore
     await addDoc(collection(db, 'notifications'), notificationData);
-    markNotificationSaved(notificationId);
+    
+    // Mark as complete in storage
+    notificationStorage.set(storageKey, 'complete');
     
     // Send SMS if configured
     if (user.value?.phoneNumber && severity === 'critical') {
@@ -839,6 +941,10 @@ const sendNotification = async (message, title, severity = 'info', uniqueKey = n
     }
   } catch (error) {
     console.error('Failed to save notification:', error);
+    // If save failed, reset the state to allow retry
+    if (notificationStorage.get(storageKey)) {
+      notificationStorage.set(storageKey, 'toast-shown');
+    }
   }
 };
 
@@ -1811,16 +1917,32 @@ onMounted(async () => {
   document.addEventListener('click', closeDropdown);
   window.addEventListener('resize', handleResize);
 
-  const todayKey = new Date().toDateString();
-  notificationHistory.value[todayKey] = [];
+  // const todayKey = new Date().toDateString();
+  // notificationHistory.value[todayKey] = [];
+  // const now = new Date();
+  // const midnight = new Date(now);
+  // midnight.setHours(24, 0, 0, 0);
+  // const msUntilMidnight = midnight - now;
+
+  // setTimeout(() => {
+  //   notificationTracker.value.dailyCache = {};
+  //   notificationTracker.value.lastCleanup = null;
+  // }, msUntilMidnight);
+
+  notificationStorage.cleanExpired();
+  
+  // Set up daily cleanup
   const now = new Date();
   const midnight = new Date(now);
   midnight.setHours(24, 0, 0, 0);
   const msUntilMidnight = midnight - now;
 
   setTimeout(() => {
-    notificationTracker.value.dailyCache = {};
-    notificationTracker.value.lastCleanup = null;
+    notificationStorage.cleanExpired();
+    // Set up the next midnight cleanup
+    setInterval(() => {
+      notificationStorage.cleanExpired();
+    }, 24 * 60 * 60 * 1000); // 24 hours
   }, msUntilMidnight);
 
   // Get IP Address

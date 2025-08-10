@@ -697,7 +697,7 @@
                           </button>
                           <!-- Green See Details Button -->
                           <button 
-                            @click.stop="openDetailsModal(notification)"
+                            @click.stop="handleSeeDetails(notification)"
                             class="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-md transition-colors"
                           >
                             <Eye class="h-4 w-4 md:h-3 md:w-3 mr-1" />
@@ -1297,6 +1297,20 @@ const openDetailsModal = (notification) => {
   selectedNotification.value = notification
   showDetailsModal.value = true
 }
+
+const handleSeeDetails = async (notification) => {
+  try {
+    // Mark as read if not already read
+    if (!notification.read && !showArchived.value) {
+      await markAsRead(notification.id);
+    }
+    // Open the details modal
+    openDetailsModal(notification);
+  } catch (error) {
+    console.error('Error handling see details:', error);
+    window.showToast('Failed to open notification details', 'failed');
+  }
+};
 
 const closeDetails = () => {
   showDetailsModal.value = false
@@ -1907,6 +1921,7 @@ const markAsRead = async (docId) => {
   try {
     const notifIndex = notifications.value.findIndex(n => n.id === docId);
     if (notifIndex !== -1) {
+      // Update local state first for immediate UI feedback
       notifications.value[notifIndex].read = true;
 
       // Firestore update
@@ -1914,7 +1929,13 @@ const markAsRead = async (docId) => {
       await updateDoc(notifRef, { read: true });
     }
   } catch (err) {
-    console.error("❌ Failed to mark as read:", err);
+    console.error("Failed to mark as read:", err);
+    // Revert local state if Firestore update fails
+    const notifIndex = notifications.value.findIndex(n => n.id === docId);
+    if (notifIndex !== -1) {
+      notifications.value[notifIndex].read = false;
+    }
+    throw err;
   }
 };
 
