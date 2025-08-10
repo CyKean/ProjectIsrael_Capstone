@@ -212,137 +212,385 @@
               </div>
               
               <!-- Sensor and Agricultural Data Notifications - COMPLETELY STABLE -->
-              <div v-else-if="isSensorNotification(selectedNotification)" class="space-y-5 static">
+              <div v-else-if="selectedNotification.context?.type === 'water-level'" class="space-y-5 static">
                 <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
-                  Current agricultural sensor readings and environmental conditions.
+                  Water level status update for {{ selectedNotification.context.date || formatFullDate(selectedNotification.time) }}.
                 </div>
                 
-                <!-- Water Level Display (if available) - CENTERED PERCENTAGE -->
-                <div v-if="selectedNotification.context?.waterLevel !== undefined" class="bg-cyan-100 rounded-xl border-2 border-cyan-300 shadow-sm static">
+                <div class="bg-cyan-100 rounded-xl border-2 border-cyan-300 shadow-sm static">
                   <div class="p-4 static">
                     <div class="flex items-center space-x-2 mb-3 static">
                       <Gauge class="h-5 w-5 text-cyan-600 flex-shrink-0 static" />
                       <span class="text-base font-semibold text-cyan-700 static">Water Level Status</span>
                     </div>
-                    <!-- Centered Large Percentage -->
                     <div class="text-center mb-3 static">
-                      <span class="text-4xl md:text-5xl font-bold text-cyan-800 static">{{ selectedNotification.context.waterLevel }}%</span>
+                      <span class="text-4xl md:text-5xl font-bold text-cyan-800 static">
+                        {{ selectedNotification.context.level }}%
+                      </span>
                     </div>
-                    <p class="text-xs md:text-sm text-cyan-700 leading-relaxed text-center static">{{ getWaterLevelDescription(selectedNotification.context.waterLevel) }}</p>
-                  </div>
-                </div>
-
-                <!-- Sensor Data Grid - COMPLETELY STABLE -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 static">
-                  <!-- Soil Moisture -->
-                  <div v-if="getSensorValue(selectedNotification, 'soilMoisture') !== null" class="bg-amber-50 rounded-xl border-2 border-amber-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Droplet class="h-4 w-4 text-amber-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-amber-700 static">Soil Moisture</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-amber-800 mb-1 static">{{ getSensorValue(selectedNotification, 'soilMoisture') }}%</p>
-                      <p class="text-xs text-amber-600 leading-tight static">{{ getEnhancedMoistureDescription(getSensorValue(selectedNotification, 'soilMoisture')) }}</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Temperature -->
-                  <div v-if="getSensorValue(selectedNotification, 'temperature') !== null" class="bg-red-50 rounded-xl border-2 border-red-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Thermometer class="h-4 w-4 text-red-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-red-700 static">Temperature</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-red-800 mb-1 static">{{ getSensorValue(selectedNotification, 'temperature') }}°C</p>
-                      <p class="text-xs text-red-600 leading-tight static">{{ getEnhancedTemperatureDescription(getSensorValue(selectedNotification, 'temperature')) }}</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Humidity -->
-                  <div v-if="getSensorValue(selectedNotification, 'humidity') !== null" class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Droplet class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Humidity</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-blue-800 mb-1 static">{{ getSensorValue(selectedNotification, 'humidity') }}%</p>
-                      <p class="text-xs text-blue-600 leading-tight static">{{ getHumidityDescription(getSensorValue(selectedNotification, 'humidity')) }}</p>
-                    </div>
-                  </div>
-
-                  <!-- Soil pH -->
-                  <div v-if="getSensorValue(selectedNotification, 'soilPh') !== null" class="bg-purple-50 rounded-xl border-2 border-purple-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Gauge class="h-4 w-4 text-purple-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-purple-700 static">Soil pH</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-purple-800 mb-1 static">{{ getSensorValue(selectedNotification, 'soilPh') }}</p>
-                      <p class="text-xs text-purple-600 leading-tight static">{{ getPhDescription(getSensorValue(selectedNotification, 'soilPh')) }}</p>
-                    </div>
-                  </div>
-
-                  <!-- Nitrogen -->
-                  <div v-if="getSensorValue(selectedNotification, 'nitrogen') !== null" class="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Leaf class="h-4 w-4 text-green-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-green-700 static">Nitrogen (N)</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-green-800 mb-1 static">{{ getSensorValue(selectedNotification, 'nitrogen') }} ppm</p>
-                      <p class="text-xs text-green-600 leading-tight static">{{ getNitrogenDescription(getSensorValue(selectedNotification, 'nitrogen')) }}</p>
-                    </div>
-                  </div>
-
-                  <!-- Phosphorus -->
-                  <div v-if="getSensorValue(selectedNotification, 'phosphorus') !== null" class="bg-orange-50 rounded-xl border-2 border-orange-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Sprout class="h-4 w-4 text-orange-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-orange-700 static">Phosphorus (P)</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-orange-800 mb-1 static">{{ getSensorValue(selectedNotification, 'phosphorus') }} ppm</p>
-                      <p class="text-xs text-orange-600 leading-tight static">{{ getPhosphorusDescription(getSensorValue(selectedNotification, 'phosphorus')) }}</p>
-                    </div>
-                  </div>
-
-                  <!-- Potassium -->
-                  <div v-if="getSensorValue(selectedNotification, 'potassium') !== null" class="bg-yellow-50 rounded-xl border-2 border-yellow-200 shadow-sm static">
-                    <div class="p-4 static">
-                      <div class="flex items-center space-x-2 mb-2 static">
-                        <Activity class="h-4 w-4 text-yellow-600 flex-shrink-0 static" />
-                        <span class="text-xs md:text-sm font-medium text-yellow-700 static">Potassium (K)</span>
-                      </div>
-                      <p class="text-sm md:text-xl font-bold text-yellow-800 mb-1 static">{{ getSensorValue(selectedNotification, 'potassium') }} ppm</p>
-                      <p class="text-xs text-yellow-600 leading-tight static">{{ getPotassiumDescription(getSensorValue(selectedNotification, 'potassium')) }}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Agricultural Recommendations - COMPLETELY STABLE LAYOUT -->
-                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
-                  <div class="p-4 static">
-                    <div class="mb-3 static">
-                      <div class="flex items-center space-x-2 static">
-                        <Sprout class="h-5 w-5 text-emerald-600 flex-shrink-0 static" />
-                        <span class="text-base font-semibold text-emerald-700 static">Agricultural Recommendations</span>
-                      </div>
-                    </div>
-                    <div class="space-y-3 static">
-                      <div class="static">
-                        <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
-                          {{ getComprehensiveAgriculturalRecommendation(selectedNotification) }}
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <p class="text-xs text-cyan-700 font-medium">Status</p>
+                        <p class="text-sm font-semibold" :class="{
+                          'text-red-600': selectedNotification.context.status === 'Critical',
+                          'text-orange-600': selectedNotification.context.status === 'Warning',
+                          'text-green-600': selectedNotification.context.status === 'Normal'
+                        }">
+                          {{ selectedNotification.context.status }}
                         </p>
                       </div>
-                      <div class="bg-white/60 rounded-lg p-3 static">
-                        <p class="text-xs text-emerald-700 font-medium static">Action Priority: {{ getActionPriority(selectedNotification) }}</p>
+                      <div>
+                        <p class="text-xs text-cyan-700 font-medium">Priority</p>
+                        <p class="text-sm font-semibold">
+                          {{ selectedNotification.context.priority }}
+                        </p>
                       </div>
+                    </div>
+                    <div class="mt-4">
+                      <p class="text-xs md:text-sm text-cyan-700 leading-relaxed static">
+                        {{ selectedNotification.context.recommendation }}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <!-- Other Notifications -->
+              <!-- Climate Alert (Type 2) -->
+              <div v-else-if="selectedNotification.context?.type === 'climate'" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  Environmental conditions for {{ selectedNotification.context.date || formatFullDate(selectedNotification.time) }}.
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 static">
+                  <!-- Temperature -->
+                  <div class="bg-red-50 rounded-xl border-2 border-red-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Thermometer class="h-4 w-4 text-red-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-red-700 static">Temperature</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-red-800 mb-1 static">
+                        {{ selectedNotification.context.temperature }}
+                      </p>
+                      <p class="text-xs text-red-600 leading-tight static">
+                        {{ getTemperatureDescription(parseFloat(selectedNotification.context.temperature.replace('°C',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Humidity -->
+                  <div class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Humidity</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-blue-800 mb-1 static">
+                        {{ selectedNotification.context.humidity }}
+                      </p>
+                      <p class="text-xs text-blue-600 leading-tight static">
+                        {{ getHumidityDescription(parseFloat(selectedNotification.context.humidity.replace('%',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Soil Moisture -->
+                  <div v-if="selectedNotification.context.soilMoisture" class="bg-amber-50 rounded-xl border-2 border-amber-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-amber-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-amber-700 static">Soil Moisture</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-amber-800 mb-1 static">
+                        {{ selectedNotification.context.soilMoisture }}
+                      </p>
+                      <p class="text-xs text-amber-600 leading-tight static">
+                        {{ getMoistureDescription(parseFloat(selectedNotification.context.soilMoisture.replace('%',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
+                      {{ selectedNotification.context.recommendation }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Soil Moisture Alert (Type 3 & 5) -->
+              <div v-else-if="selectedNotification.context?.type === 'soil-moisture'" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  Soil conditions for {{ selectedNotification.context.date || formatFullDate(selectedNotification.time) }}.
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 static">
+                  <!-- Soil Moisture -->
+                  <div class="bg-amber-50 rounded-xl border-2 border-amber-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-amber-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-amber-700 static">Soil Moisture</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-amber-800 mb-1 static">
+                        {{ selectedNotification.context.moisture }}
+                      </p>
+                      <p class="text-xs text-amber-600 leading-tight static">
+                        {{ getMoistureDescription(parseFloat(selectedNotification.context.moisture.replace('%',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Temperature -->
+                  <div v-if="selectedNotification.context.temperature" class="bg-red-50 rounded-xl border-2 border-red-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Thermometer class="h-4 w-4 text-red-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-red-700 static">Temperature</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-red-800 mb-1 static">
+                        {{ selectedNotification.context.temperature }}
+                      </p>
+                      <p class="text-xs text-red-600 leading-tight static">
+                        {{ getTemperatureDescription(parseFloat(selectedNotification.context.temperature.replace('°C',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Water Level -->
+                  <div v-if="selectedNotification.context.waterLevel" class="bg-cyan-50 rounded-xl border-2 border-cyan-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Gauge class="h-4 w-4 text-cyan-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-cyan-700 static">Water Level</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-cyan-800 mb-1 static">
+                        {{ selectedNotification.context.waterLevel }}
+                      </p>
+                      <p class="text-xs text-cyan-600 leading-tight static">
+                        {{ getWaterLevelDescription(parseFloat(selectedNotification.context.waterLevel.replace('%',''))) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
+                      {{ selectedNotification.context.recommendation }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- NPK/Soil pH Alert (Type 4) -->
+              <div v-else-if="selectedNotification.context?.type === 'nutrients'" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  Soil nutrient analysis for {{ selectedNotification.context.date || formatFullDate(selectedNotification.time) }}.
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 static">
+                  <!-- Nitrogen -->
+                  <div v-if="selectedNotification.context.nitrogen" class="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Leaf class="h-4 w-4 text-green-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-green-700 static">Nitrogen (N)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-green-800 mb-1 static">
+                        {{ selectedNotification.context.nitrogen.value }} ppm
+                      </p>
+                      <p class="text-xs text-green-600 leading-tight static">
+                        Level: {{ selectedNotification.context.nitrogen.level }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Phosphorus -->
+                  <div v-if="selectedNotification.context.phosphorus" class="bg-orange-50 rounded-xl border-2 border-orange-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Sprout class="h-4 w-4 text-orange-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-orange-700 static">Phosphorus (P)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-orange-800 mb-1 static">
+                        {{ selectedNotification.context.phosphorus.value }} ppm
+                      </p>
+                      <p class="text-xs text-orange-600 leading-tight static">
+                        Level: {{ selectedNotification.context.phosphorus.level }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Potassium -->
+                  <div v-if="selectedNotification.context.potassium" class="bg-yellow-50 rounded-xl border-2 border-yellow-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Activity class="h-4 w-4 text-yellow-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-yellow-700 static">Potassium (K)</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-yellow-800 mb-1 static">
+                        {{ selectedNotification.context.potassium.value }} ppm
+                      </p>
+                      <p class="text-xs text-yellow-600 leading-tight static">
+                        Level: {{ selectedNotification.context.potassium.level }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Soil pH -->
+                  <div v-if="selectedNotification.context.soilPh" class="bg-purple-50 rounded-xl border-2 border-purple-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Gauge class="h-4 w-4 text-purple-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-purple-700 static">Soil pH</span>
+                      </div>
+                      <p class="text-sm md:text-xl font-bold text-purple-800 mb-1 static">
+                        {{ selectedNotification.context.soilPh.value }}
+                      </p>
+                      <p class="text-xs text-purple-600 leading-tight static">
+                        Condition: {{ selectedNotification.context.soilPh.condition }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
+                      {{ selectedNotification.context.recommendation }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Water Scheduling Alert (Type 6) -->
+              <div v-else-if="selectedNotification.context?.scheduleId" class="space-y-5 static">
+                <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
+                  {{ selectedNotification.message }}
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 static">
+                  <!-- Schedule Type -->
+                  <div class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <CalendarClock class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Schedule Type</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-blue-800 mb-1 static capitalize">
+                        {{ selectedNotification.context.scheduleType }}
+                        <span v-if="selectedNotification.context.scheduleType === 'weekly'">
+                          ({{ getDayName(selectedNotification.context.day) }})
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Duration -->
+                  <div class="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Clock class="h-4 w-4 text-green-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-green-700 static">Duration</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-green-800 mb-1 static">
+                        {{ selectedNotification.context.duration }} minute{{ selectedNotification.context.duration !== 1 ? 's' : '' }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Start/End Time -->
+                  <div class="bg-purple-50 rounded-xl border-2 border-purple-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <component :is="selectedNotification.title.includes('Started') ? Play : StopCircle" 
+                                  class="h-4 w-4 text-purple-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-purple-700 static">
+                          {{ selectedNotification.title.includes('Started') ? 'Start Time' : 'End Time' }}
+                        </span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-purple-800 mb-1 static">
+                        {{ formatTime(selectedNotification.time) }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Environmental Conditions -->
+                  <div class="bg-cyan-50 rounded-xl border-2 border-cyan-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Thermometer class="h-4 w-4 text-cyan-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-cyan-700 static">Temperature</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-cyan-800 mb-1 static">
+                        {{ selectedNotification.context.temperature }}°C
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-blue-50 rounded-xl border-2 border-blue-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-blue-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-blue-700 static">Humidity</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-blue-800 mb-1 static">
+                        {{ selectedNotification.context.humidity }}%
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-amber-50 rounded-xl border-2 border-amber-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Droplet class="h-4 w-4 text-amber-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-amber-700 static">Soil Moisture</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-amber-800 mb-1 static">
+                        {{ selectedNotification.context.soilMoisture }}%
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-indigo-50 rounded-xl border-2 border-indigo-200 shadow-sm static">
+                    <div class="p-4 static">
+                      <div class="flex items-center space-x-2 mb-2 static">
+                        <Gauge class="h-4 w-4 text-indigo-600 flex-shrink-0 static" />
+                        <span class="text-xs md:text-sm font-medium text-indigo-700 static">Water Level</span>
+                      </div>
+                      <p class="text-sm md:text-lg font-bold text-indigo-800 mb-1 static">
+                        {{ selectedNotification.context.waterLevel }}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Status Summary -->
+                <div class="bg-emerald-100 rounded-xl border-2 border-emerald-300 shadow-sm static">
+                  <div class="p-4 static">
+                    <div class="flex items-center space-x-2 mb-2 static">
+                      <Info class="h-4 w-4 text-emerald-600 flex-shrink-0 static" />
+                      <span class="text-xs md:text-sm font-semibold text-emerald-700 static">Status Summary</span>
+                    </div>
+                    <p class="text-xs md:text-sm text-emerald-800 font-medium leading-relaxed static">
+                      {{ selectedNotification.title.includes('Started') ? 
+                        'Watering schedule started successfully' : 
+                        'Watering schedule completed successfully' }}
+                    </p>
+                    <p v-if="selectedNotification.context.soilMoisture < 25" class="text-xs text-orange-600 mt-2 static">
+                      Note: Soil moisture was low ({{ selectedNotification.context.soilMoisture }}%) during this watering
+                    </p>
+                    <p v-if="selectedNotification.context.waterLevel < 30" class="text-xs text-orange-600 mt-1 static">
+                      Note: Water level was low ({{ selectedNotification.context.waterLevel }}%) during this watering
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- General Notifications -->
               <div v-else class="space-y-4 static">
                 <div class="text-xs md:text-sm text-gray-600 bg-white/70 rounded-lg p-3 border border-indigo-200 static">
                   {{ selectedNotification.context?.additionalInfo || getDynamicAdditionalInfo(selectedNotification) }}
@@ -1051,6 +1299,12 @@ const monthAgoNotifications = computed(() =>
     return daysAgo >= 30
   })
 )
+
+// Add to your component script
+const getDayName = (dayIndex) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dayIndex] || 'Unknown day';
+};
 
 // Create paginated groups by slicing each group
 const paginatedGroups = computed(() => {

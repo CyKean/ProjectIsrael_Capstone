@@ -14,14 +14,11 @@
       </router-view>
     </main>
 
-    <SessionTimeoutWarning />
-  
   </div>
 </template>
 
 <script setup>
 import Sidebar from './views/layout/Sidebar.vue'
-import SessionTimeoutWarning from './components/SessionTimeoutWarning.vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from './utils/user'
 import { watch } from 'vue'
@@ -43,4 +40,5 @@ watch(route, (newRoute, oldRoute) => {
     window.location.reload()
   }
 }, { immediate: true })
+
 </script>

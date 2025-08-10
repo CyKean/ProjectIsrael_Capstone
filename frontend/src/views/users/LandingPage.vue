@@ -1,6 +1,7 @@
 <template>
   <div class="min-h-screen bg-white relative overflow-hidden font-poppins home-section">
     <Navbar @auth="handleAuth" />
+    <ToastManager />
 
     <div class="relative z-10">
       <transition name="page-transition" mode="out-in" @before-leave="beforeLeave" @enter="enter" @after-enter="afterEnter">
@@ -219,17 +220,28 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, LockIcon } from 'lucide-vue-next'
-// import Footer from '../layout/Footer.vue'
+import { useUserStore } from '../../utils/user'
+import { ArrowRight } from 'lucide-vue-next'
 import Navbar from '../layout/Navbar.vue'
-// import About from './About.vue'
-// import OrganicSection from './OrganicSection.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 const isMobile = ref(window.innerWidth < 640)
 const transitionKey = ref(0)
 const contentStyle = ref({})
 const showAuthModal = ref(false)
+
+const checkSession = () => {
+  if (userStore.isSessionValid && userStore.isAuthenticated) {
+    // Use your custom toast
+    window.showToast('Welcome back! You were automatically logged in', 'success')
+    
+    // Add slight delay for toast to appear before redirect
+    setTimeout(() => {
+      router.push('app/dashboard')
+    }, 1500)
+  }
+}
 
 const beforeLeave = (el) => {
   const { left } = el.getBoundingClientRect()
@@ -273,6 +285,9 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     isMobile.value = window.innerWidth < 640
   })
+  
+  // Check session when component mounts
+  checkSession()
 })
 
 onUnmounted(() => {
