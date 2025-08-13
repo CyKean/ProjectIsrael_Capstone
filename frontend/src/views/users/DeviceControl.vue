@@ -375,26 +375,28 @@
               
               <!-- Date Range -->
               <div class="space-y-2">
-                <label class="text-[10px] md:text-xs text-gray-500">Date Range</label>
-                <div class="flex flex-col space-y-2">
-                  <div class="flex items-center">
-                    <span class="text-[10px] md:text-xs text-gray-500 w-14">From:</span>
-                    <input 
-                      type="date" 
-                      v-model="historyFilters.startDate" 
-                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div class="flex items-center">
-                    <span class="text-[10px] md:text-xs text-gray-500 w-14">To:</span>
-                    <input 
-                      type="date" 
-                      v-model="historyFilters.endDate" 
-                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-              </div>
+    <label class="text-[10px] md:text-xs text-gray-500">Date Range</label>
+    <div class="flex flex-col space-y-2">
+      <div class="flex items-center">
+        <span class="text-[10px] md:text-xs text-gray-500 w-14">From:</span>
+        <input 
+          type="date" 
+          v-model="historyFilters.startDate" 
+          class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          :max="currentDateFormatted"
+        />
+      </div>
+      <div class="flex items-center">
+        <span class="text-[10px] md:text-xs text-gray-500 w-14">To:</span>
+        <input 
+          type="date" 
+          :value="currentDateFormatted"
+          class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-gray-100"
+          readonly
+        />
+      </div>
+    </div>
+  </div>
               
               <!-- Schedule Type -->
               <div class="space-y-2">
@@ -515,7 +517,7 @@
           </div>
           
           <!-- RIGHT SIDE (3/4) - Table Display -->
-          <div class="w-full h-[550px] md:w-3/4 flex-1 flex flex-col overflow-hidden">
+          <div class="w-full h-[550px] md:h-[590px] md:w-3/4 flex-1 flex flex-col overflow-hidden">
             <!-- Fixed Table Header - Will not scroll -->
             <div class="bg-gray-50 border-b border-gray-200">
               <table class="min-w-full">
@@ -1397,7 +1399,7 @@ const currentTime = ref(Date.now())
 const pastSchedules = ref([])
 const historyFilters = ref({
   startDate: '',
-  endDate: '',
+  endDate: new Date().toISOString().split('T')[0], 
   scheduleType: 'all',
   duration: 'all'
 })
@@ -1666,8 +1668,8 @@ const formatShortDate = (dateStr) => {
 }
 
 const clearDateFilter = () => {
+  // Only clear start date since end date is fixed
   historyFilters.value.startDate = ''
-  historyFilters.value.endDate = ''
   applyHistoryFilters()
 }
 
@@ -1780,21 +1782,24 @@ const filteredPastSchedules = computed(() => {
     })
   }
 
+  // Filter by start date if specified
   if (historyFilters.value.startDate) {
-    const startDate = new Date(historyFilters.value.startDate).getTime()
+    const startDate = new Date(historyFilters.value.startDate)
+    startDate.setHours(0, 0, 0, 0)
     filtered = filtered.filter(schedule => {
-      return schedule.completedAt >= startDate
+      const scheduleDate = new Date(schedule.completedAt)
+      return scheduleDate >= startDate
     })
   }
 
-  if (historyFilters.value.endDate) {
-    const endDate = new Date(historyFilters.value.endDate)
-    endDate.setHours(23, 59, 59, 999)
-    const endTime = endDate.getTime()
-    filtered = filtered.filter(schedule => {
-      return schedule.completedAt <= endTime
-    })
-  }
+  // Always filter up to today at 23:59:59
+   const endDate = new Date()
+  endDate.setHours(23, 59, 59, 999)
+  
+  filtered = filtered.filter(schedule => {
+    const scheduleDate = new Date(schedule.completedAt)
+    return scheduleDate <= endDate
+  })
 
   if (historyFilters.value.scheduleType !== 'all') {
     filtered = filtered.filter(schedule => schedule.mode === historyFilters.value.scheduleType)
@@ -1844,15 +1849,25 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const currentDateFormatted = computed(() => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+})
+
 const viewScheduleHistory = () => {
   currentView.value = 'history'
   
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const today = new Date()
   
-  historyFilters.value.startDate = getLocalDateString(thirtyDaysAgo)
-  historyFilters.value.endDate = getLocalDateString(today)
+  historyFilters.value = {
+    ...historyFilters.value,
+    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+    endDate: currentDateFormatted.value // Use computed current date
+  }
 
   currentPage.value = 1
   fetchHistory()
@@ -3255,13 +3270,16 @@ onMounted(() => {
   fetchMotorStatus()
   fetchWateringSchedules()
   
-  // Initialize filters
   const today = new Date()
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(today.getDate() - 30)
   
-  historyFilters.value.startDate = thirtyDaysAgo.toISOString().split('T')[0]
-  historyFilters.value.endDate = today.toISOString().split('T')[0]
+  historyFilters.value = {
+    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+    endDate: currentDateFormatted.value, // Use computed current date
+    scheduleType: 'all',
+    duration: 'all'
+  }
   
   resetScheduleForm()
   fetchHistory()
