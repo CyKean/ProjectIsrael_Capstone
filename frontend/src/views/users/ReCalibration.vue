@@ -26,93 +26,62 @@
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 w-full min-h-full md:min-h-auto">
             <!-- Left Container - WiFi Indicator (1/4 width) -->
             <!-- removed hover effects from main container - removed hover:shadow-lg and other hover classes -->
-            <div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
-              <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
-                <!-- Made WiFi symbol much larger and improved hover trigger area -->
-                <!-- Reduced WiFi icon size on mobile -->
-                <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
-                  <!-- Real WiFi Symbol with Dynamic Signal Strength -->
-                  <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
-                    <!-- WiFi Base Dot -->
-                    <circle 
-                      cx="40" 
-                      cy="50" 
-                      r="4" 
-                      :fill="getWifiArcColor(wifiDetails.signalStrength)"
-                      class="drop-shadow-sm"
-                    />
-                    
-                    <!-- Arc 1 - Always visible for any connection -->
-                    <path 
-                      d="M 30 42 Q 40 32 50 42" 
-                      stroke-width="4" 
-                      fill="none" 
-                      stroke-linecap="round"
-                      :stroke="wifiDetails.signalStrength >= 25 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-                      :opacity="wifiDetails.signalStrength >= 25 ? 1 : 0.3"
-                      class="transition-all duration-500 drop-shadow-sm"
-                    />
-                    
-                    <!-- Arc 2 - Visible at 50%+ signal -->
-                    <path 
-                      d="M 22 35 Q 40 15 58 35" 
-                      stroke-width="4" 
-                      fill="none" 
-                      stroke-linecap="round"
-                      :stroke="wifiDetails.signalStrength >= 50 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-                      :opacity="wifiDetails.signalStrength >= 50 ? 1 : 0.3"
-                      class="transition-all duration-500 drop-shadow-sm"
-                    />
-                    
-                    <!-- Arc 3 - Visible at 75%+ signal -->
-                    <path 
-                      d="M 14 28 Q 40 5 66 28" 
-                      stroke-width="4" 
-                      fill="none" 
-                      stroke-linecap="round"
-                      :stroke="wifiDetails.signalStrength >= 75 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-                      :opacity="wifiDetails.signalStrength >= 75 ? 1 : 0.3"
-                      class="transition-all duration-500 drop-shadow-sm"
-                    />
-                    
-                    <!-- Arc 4 - Visible at 90%+ signal (excellent) -->
-                    <path 
-                      d="M 6 21 Q 40 -5 74 21" 
-                      stroke-width="4" 
-                      fill="none" 
-                      stroke-linecap="round"
-                      :stroke="wifiDetails.signalStrength >= 90 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-                      :opacity="wifiDetails.signalStrength >= 90 ? 1 : 0.3"
-                      class="transition-all duration-500 drop-shadow-sm"
-                    />
-                  </svg>
-                </div>
+            <!-- Left Container - WiFi Indicator -->
+<div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
+  <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
+    <!-- WiFi Symbol -->
+    <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
+      <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
+        <!-- WiFi Base Dot -->
+        <circle 
+          cx="40" 
+          cy="50" 
+          r="4" 
+          :fill="getWifiArcColor(wifiDetails.signalStrength)"
+          class="drop-shadow-sm"
+        />
+        
+        <!-- Dynamic WiFi Arcs -->
+        <path 
+          v-for="(arc, index) in wifiArcs" 
+          :key="index"
+          :d="arc.path" 
+          stroke-width="4" 
+          fill="none" 
+          stroke-linecap="round"
+          :stroke="wifiDetails.signalStrength >= arc.threshold ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+          :opacity="wifiDetails.signalStrength >= arc.threshold ? 1 : 0.3"
+          class="transition-all duration-500 drop-shadow-sm"
+        />
+      </svg>
+    </div>
 
-                <!-- Dynamic Connection Status based on signal strength -->
-                <!-- Adjusted text sizes and spacing for mobile -->
-                <div class="text-center space-y-1 md:space-y-2">
-                  <h3 class="text-sm md:text-base font-semibold text-gray-800">WiFi Connection</h3>
-                  <div class="flex items-center justify-center space-x-2">
-                    <div 
-                      class="w-2 h-2 rounded-full transition-colors duration-300"
-                      :class="[
-                        wifiDetails.signalStrength >= 25 ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'
-                      ]"
-                    ></div>
-                    <span 
-                      class="text-xs md:text-sm font-medium transition-colors duration-300"
-                      :class="[
-                        wifiDetails.signalStrength >= 25 ? 'text-green-600' : 'text-red-600'
-                      ]"
-                    >
-                      {{ getConnectionStatus() }}
-                    </span>
-                  </div>
-                  <p class="text-xs md:text-sm text-gray-600">Signal: {{ getSignalStrengthText() }}</p>
-                </div>
-              </div>
-            </div>
-
+    <!-- Connection Details -->
+    <div class="text-center space-y-1 md:space-y-2">
+      <h3 class="text-sm md:text-base font-semibold text-gray-800">
+        {{ networkDetails.ssid || 'WiFi Connection' }}
+      </h3>
+      <div class="flex items-center justify-center space-x-2">
+        <div 
+          class="w-2 h-2 rounded-full transition-colors duration-300"
+          :class="networkDetails.isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'"
+        ></div>
+        <span 
+          class="text-xs md:text-sm font-medium transition-colors duration-300"
+          :class="networkDetails.isConnected ? 'text-green-600' : 'text-red-600'"
+        >
+          {{ getConnectionStatus() }}
+        </span>
+      </div>
+      <p class="text-xs md:text-sm text-gray-600">
+        Signal: {{ getSignalStrengthText() }} ({{ wifiDetails.signalStrength }}%)
+      </p>
+      <p v-if="networkDetails.ipAddress" class="text-xs text-gray-500">
+        Network IP: {{ networkDetails.ipAddress }}
+      </p>
+    </div>
+  </div>
+</div>
             <!-- Middle Container - Configuration Form (2/4 width) -->
             <!-- changed from col-span-3 to col-span-2 for middle container -->
             <div class="lg:col-span-2 bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
@@ -135,7 +104,7 @@
                       <input
                         v-model="esp32Config.ipAddress"
                         type="text"
-                        placeholder="192.168.1.100"
+                        :placeholder="savedIPPlaceholder"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                         :class="{ 'border-red-300 focus:ring-red-500': esp32Config.ipAddress && !isValidIP(esp32Config.ipAddress) }"
                       />
@@ -1043,6 +1012,19 @@ const saveIPAddress = async () => {
   }
 };
 
+const fetchSavedIP = async () => {
+  try {
+    const response = await axios.get(`${backendBaseUrl}/api/esp32/ip`);
+    if (response.data?.ip) {
+      esp32Config.ipAddress = response.data.ip;
+    }
+  } catch (error) {
+    console.error('Failed to fetch saved IP:', error);
+    // Fallback to default or show message
+    esp32Config.ipAddress = '192.168.1.14';
+  }
+};
+
 const testConnection = async () => {
   if (!isValidIP(esp32Config.ipAddress)) {
     showToastMessage('Please enter a valid IP address', 'error');
@@ -1051,18 +1033,60 @@ const testConnection = async () => {
 
   try {
     showLoadingModal.value = true;
-    const response = await axios.post(`${backendBaseUrl}/test-esp32-connection`, {
-      ipAddress: esp32Config.ipAddress
-    });
     
-    showToastMessage(response.data.message, 'success');
+    // Check backend connection
+    const backendPing = await axios.get(`${backendBaseUrl}/system/ping`);
+    if (!backendPing.data?.success) {
+      throw new Error('Backend service unavailable');
+    }
+    
+    // Use backend proxy to test ESP32 connection
+    const connectionTest = await axios.get(`${backendBaseUrl}/esp32/test-connection`, {
+      params: { ip_address: esp32Config.ipAddress },
+      timeout: 5000 // 5s timeout for backend+ESP32
+    });
+
+    showToastMessage('Connection successful to both backend and ESP32', 'success');
     connectionStatus.connected = true;
-    connectionStatus.lastSeen = 'Just now';
+    connectionStatus.lastSeen = new Date().toLocaleTimeString();
+    
+    // Update WiFi signal strength
+    if (connectionTest.data.signal_strength) {
+      wifiDetails.signalStrength = connectionTest.data.signal_strength;
+    }
+    
+    return {
+      backend: {
+        status: 'connected',
+        version: backendPing.data.version,
+        uptime: backendPing.data.uptime
+      },
+      esp32: {
+        status: 'connected',
+        ip: esp32Config.ipAddress,
+        signalStrength: connectionTest.data.signal_strength,
+        firmware: connectionTest.data.firmware || 'unknown',
+        responseTime: connectionTest.data.response_time_ms
+      }
+    };
   } catch (error) {
     console.error('Connection test failed:', error);
-    showToastMessage('Connection test failed', 'error');
+    
+    if (error.response) {
+      // Backend returned error
+      showToastMessage(`Error: ${error.response.data?.detail || 'Connection test failed'}`, 'error');
+    } else if (error.code === 'ECONNABORTED') {
+      showToastMessage('Connection timed out', 'error');
+    } else {
+      showToastMessage(error.message, 'error');
+    }
+    
     connectionStatus.connected = false;
-    connectionStatus.lastSeen = 'Never';
+    connectionStatus.lastSeen = 'Disconnected';
+    return {
+      backend: { status: 'error' },
+      esp32: { status: 'error' }
+    };
   } finally {
     showLoadingModal.value = false;
   }
@@ -1076,20 +1100,75 @@ const showDeviceInfo = async () => {
 
   try {
     showLoadingModal.value = true;
-    const response = await axios.get(`${backendBaseUrl}/esp32-device-info`, {
-      params: { ipAddress: esp32Config.ipAddress }
+    
+    // Get backend info
+    const backendInfo = await axios.get(`${backendBaseUrl}/system/info`);
+    
+    // Get ESP32 info through backend
+    const espInfo = await axios.get(`${backendBaseUrl}/esp32/device-info`, {
+      params: { ip_address: esp32Config.ipAddress },
+      timeout: 5000
     });
+
+    const info = {
+      backend: {
+        version: backendInfo.data.version,
+        status: 'running',
+        uptime: formatUptime(backendInfo.data.uptime),
+        lastESP32Contact: espInfo.data.last_contact || 'unknown'
+      },
+      esp32: {
+        model: espInfo.data.model || 'ESP32',
+        firmware: espInfo.data.firmware || 'unknown',
+        macAddress: espInfo.data.mac || 'unknown',
+        flashSize: espInfo.data.flash || 'unknown',
+        freeHeap: espInfo.data.free_heap || 'unknown',
+        uptime: formatUptime(espInfo.data.uptime),
+        sensors: espInfo.data.sensors || [],
+        sensorReadings: espInfo.data.sensor_readings || {}
+      }
+    };
     
     showToastMessage(
-      `Device Info: ${response.data.model}, Firmware ${response.data.firmware}, ${response.data.flash} Flash`,
+      `Device Info: ${info.esp32.model}, Firmware ${info.esp32.firmware}, ${info.esp32.flashSize} Flash`,
       'success'
     );
+    
+    console.log('Device Information:', info);
+    return info;
   } catch (error) {
     console.error('Failed to get device info:', error);
-    showToastMessage('Failed to retrieve device information', 'error');
+    
+    let errorMessage = 'Failed to retrieve device information';
+    if (error.response) {
+      errorMessage += `: ${error.response.data?.detail || error.response.statusText}`;
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Connection timed out (5s)';
+    } else {
+      errorMessage += `: ${error.message}`;
+    }
+    
+    showToastMessage(errorMessage, 'error');
+    return null;
   } finally {
     showLoadingModal.value = false;
   }
+};
+
+const formatUptime = (seconds) => {
+  if (!seconds) return 'unknown';
+  
+  const days = Math.floor(seconds / (3600 * 24));
+  const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  return [
+    days > 0 ? `${days}d` : '',
+    hours > 0 ? `${hours}h` : '',
+    mins > 0 ? `${mins}m` : '',
+    `${secs}s`
+  ].filter(Boolean).join(' ');
 };
 
 const openModal = (esp) => {
@@ -1251,42 +1330,77 @@ const navigateToRecalibration = (device) => {
   window.location.href = `http://${domain}`;
 }
 
-
-
-const getWifiArcColor = (strength) => {
-  if (strength >= 75) return '#10b981' // green-500
-  if (strength >= 50) return '#eab308' // yellow-500  
-  if (strength >= 25) return '#f97316' // orange-500
-  return '#ef4444' // red-500
-}
-
-const getSignalColor = (strength) => {
-  if (strength >= 75) return 'bg-green-500'
-  if (strength >= 50) return 'bg-yellow-500'
-  if (strength >= 25) return 'bg-orange-500'
-  return 'bg-red-500'
-}
-
-const getSignalStrengthText = () => {
-  const strength = wifiDetails.signalStrength
-  if (strength >= 90) return 'Excellent'
-  if (strength >= 75) return 'Very Good'
-  if (strength >= 50) return 'Good'
-  if (strength >= 25) return 'Fair'
-  return 'Poor'
-}
+// Add to your script setup
+const wifiArcs = computed(() => [
+  { path: 'M 30 42 Q 40 32 50 42', threshold: 25 },
+  { path: 'M 22 35 Q 40 15 58 35', threshold: 50 },
+  { path: 'M 14 28 Q 40 5 66 28', threshold: 75 },
+  { path: 'M 6 21 Q 40 -5 74 21', threshold: 90 }
+]);
 
 const getConnectionStatus = () => {
-  return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal'
-}
+  if (!networkDetails.ipAddress) return 'Disconnected';
+  return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal';
+};
+
+const getSignalStrengthText = () => {
+  const strength = wifiDetails.signalStrength;
+  if (strength >= 90) return 'Excellent';
+  if (strength >= 75) return 'Very Good';
+  if (strength >= 50) return 'Good';
+  if (strength >= 25) return 'Fair';
+  return 'Poor';
+};
+
+const getWifiArcColor = (strength) => {
+  if (strength >= 75) return '#10b981'; // green-500
+  if (strength >= 50) return '#eab308'; // yellow-500  
+  if (strength >= 25) return '#f97316'; // orange-500
+  return '#ef4444'; // red-500
+};
+
+// const getConnectionStatus = () => {
+//   return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal'
+// }
+
+const networkDetails = reactive({
+  ipAddress: '',
+  ssid: '',
+  signalStrength: 0,
+  isConnected: false
+});
+
+// Add this watch and Firestore listener
+let unsubscribeNetworkListener = null;
 
 onMounted(() => {
-  setInterval(() => {
-    // Simulate realistic signal strength fluctuation with wider range
-    const baseStrength = 87
-    const fluctuation = Math.floor(Math.random() * 16) - 8 // ±8% fluctuation
-    wifiDetails.signalStrength = Math.max(15, Math.min(100, baseStrength + fluctuation))
-  }, 2500) // Slightly faster updates for more dynamic feel
+  fetchSavedIP();
+
+  unsubscribeNetworkListener = onSnapshot(
+    doc(db, 'network', 'backend'),
+    (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        networkDetails.ipAddress = data.ip_address || '';
+        networkDetails.ssid = data.ssid || '';
+        
+        // Update WiFi details if available
+        if (data.signal_strength) {
+          wifiDetails.signalStrength = data.signal_strength;
+        }
+      }
+    },
+    (error) => {
+      console.error("Firestore network error:", error);
+    }
+  );
+
+  // setInterval(() => {
+  //   // Simulate realistic signal strength fluctuation with wider range
+  //   const baseStrength = 87
+  //   const fluctuation = Math.floor(Math.random() * 16) - 8 // ±8% fluctuation
+  //   wifiDetails.signalStrength = Math.max(15, Math.min(100, baseStrength + fluctuation))
+  // }, 2500) // Slightly faster updates for more dynamic feel
 })
 
 </script>

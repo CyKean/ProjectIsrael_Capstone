@@ -15,6 +15,10 @@ from app.ml.weather_ml.forecast.forecast import main as run_forecast
 # from app.ml.weather_ml.forecast.get_dataset import main as update_dataset
 from app.services.backend_ip import save_backend_ip
 from app.services.esp32_ip_manager import ip_manager
+from app.api.base import router as base_router
+from app.api.system import router as system_router
+from app.api.esp32 import router as esp32_router
+
 # ======== ENV & LOG SETUP =========
 load_dotenv()
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
@@ -53,6 +57,9 @@ app.include_router(esp1.router)
 app.include_router(esp2.router)
 app.include_router(esp3.router)
 app.include_router(esp32_ip.router)
+app.include_router(base_router)
+app.include_router(system_router)
+app.include_router(esp32_router)
 
 
 
