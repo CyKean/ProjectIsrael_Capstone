@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import ESP32IPRequest
 
-router = APIRouter(prefix="/esp32", tags=["esp32"])
+router = APIRouter(prefix="/api/esp32", tags=["esp32"])
 
 # In-memory storage
 esp32_devices = {}

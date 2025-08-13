@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter
 from ..models.schemas import SystemInfo
 
-router = APIRouter(prefix="/system", tags=["system"])
+router = APIRouter(prefix="/api/system", tags=["system"])
 
 START_TIME = time.time()
 

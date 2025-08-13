@@ -20,68 +20,64 @@
         </div>
 
         <!-- Main Content Area -->
-        <!-- changed to 3-column layout: 1/4, 2/4, 1/4 using grid-cols-4 -->
-        <!-- Added mobile-specific min-height and flex behavior for proper scrolling -->
         <div class="p-4 md:p-6 lg:p-8 flex-1 flex items-stretch min-h-0 md:min-h-auto">
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 w-full min-h-full md:min-h-auto">
-            <!-- Left Container - WiFi Indicator (1/4 width) -->
-            <!-- removed hover effects from main container - removed hover:shadow-lg and other hover classes -->
             <!-- Left Container - WiFi Indicator -->
-<div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
-  <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
-    <!-- WiFi Symbol -->
-    <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
-      <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
-        <!-- WiFi Base Dot -->
-        <circle 
-          cx="40" 
-          cy="50" 
-          r="4" 
-          :fill="getWifiArcColor(wifiDetails.signalStrength)"
-          class="drop-shadow-sm"
-        />
-        
-        <!-- Dynamic WiFi Arcs -->
-        <path 
-          v-for="(arc, index) in wifiArcs" 
-          :key="index"
-          :d="arc.path" 
-          stroke-width="4" 
-          fill="none" 
-          stroke-linecap="round"
-          :stroke="wifiDetails.signalStrength >= arc.threshold ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-          :opacity="wifiDetails.signalStrength >= arc.threshold ? 1 : 0.3"
-          class="transition-all duration-500 drop-shadow-sm"
-        />
-      </svg>
-    </div>
+            <div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
+              <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
+                <!-- WiFi Symbol -->
+                <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
+                  <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
+                    <!-- WiFi Base Dot -->
+                    <circle 
+                      cx="40" 
+                      cy="50" 
+                      r="4" 
+                      :fill="getWifiArcColor(wifiDetails.signalStrength)"
+                      class="drop-shadow-sm"
+                    />
+                    
+                    <!-- Dynamic WiFi Arcs -->
+                    <path 
+                      v-for="(arc, index) in wifiArcs" 
+                      :key="index"
+                      :d="arc.path" 
+                      stroke-width="4" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      :stroke="wifiDetails.signalStrength >= arc.threshold ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+                      :opacity="wifiDetails.signalStrength >= arc.threshold ? 1 : 0.3"
+                      class="transition-all duration-500 drop-shadow-sm"
+                    />
+                  </svg>
+                </div>
 
-    <!-- Connection Details -->
-    <div class="text-center space-y-1 md:space-y-2">
-      <h3 class="text-sm md:text-base font-semibold text-gray-800">
-        {{ networkDetails.ssid || 'WiFi Connection' }}
-      </h3>
-      <div class="flex items-center justify-center space-x-2">
-        <div 
-          class="w-2 h-2 rounded-full transition-colors duration-300"
-          :class="networkDetails.isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'"
-        ></div>
-        <span 
-          class="text-xs md:text-sm font-medium transition-colors duration-300"
-          :class="networkDetails.isConnected ? 'text-green-600' : 'text-red-600'"
-        >
-          {{ getConnectionStatus() }}
-        </span>
-      </div>
-      <p class="text-xs md:text-sm text-gray-600">
-        Signal: {{ getSignalStrengthText() }} ({{ wifiDetails.signalStrength }}%)
-      </p>
-      <p v-if="networkDetails.ipAddress" class="text-xs text-gray-500">
-        Network IP: {{ networkDetails.ipAddress }}
-      </p>
-    </div>
-  </div>
-</div>
+                <!-- Connection Details -->
+                <div class="text-center space-y-1 md:space-y-2">
+                  <h3 class="text-sm md:text-base font-semibold text-gray-800">
+                    {{ networkDetails.ssid || 'WiFi Connection' }}
+                  </h3>
+                  <div class="flex items-center justify-center space-x-2">
+                    <div 
+                      class="w-2 h-2 rounded-full transition-colors duration-300"
+                      :class="networkDetails.isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'"
+                    ></div>
+                    <span 
+                      class="text-xs md:text-sm font-medium transition-colors duration-300"
+                      :class="networkDetails.isConnected ? 'text-green-600' : 'text-red-600'"
+                    >
+                      {{ getConnectionStatus() }}
+                    </span>
+                  </div>
+                  <p class="text-xs md:text-sm text-gray-600">
+                    Signal: {{ getSignalStrengthText() }} ({{ wifiDetails.signalStrength }}%)
+                  </p>
+                  <p v-if="networkDetails.ipAddress" class="text-xs text-gray-500">
+                    Network IP: {{ networkDetails.ipAddress }}
+                  </p>
+                </div>
+              </div>
+            </div>
             <!-- Middle Container - Configuration Form (2/4 width) -->
             <!-- changed from col-span-3 to col-span-2 for middle container -->
             <div class="lg:col-span-2 bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
@@ -872,6 +868,7 @@ import {
   onSnapshot
 } from 'firebase/firestore'
 import axios from 'axios';
+import api from '../../api/index.js'
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
@@ -987,8 +984,8 @@ const saveIPAddress = async () => {
 
   try {
     showLoadingModal.value = true;
-    const response = await axios.post(
-      `${backendBaseUrl}/api/esp32/ip`,
+    const response = await api.post(
+      `/esp32/ip`,
       { ip: esp32Config.ipAddress },  // Ensure this matches your backend expectation
       {
         headers: {
@@ -1014,7 +1011,7 @@ const saveIPAddress = async () => {
 
 const fetchSavedIP = async () => {
   try {
-    const response = await axios.get(`${backendBaseUrl}/api/esp32/ip`);
+    const response = await api.get(`esp32/ip`);
     if (response.data?.ip) {
       esp32Config.ipAddress = response.data.ip;
     }
@@ -1035,13 +1032,13 @@ const testConnection = async () => {
     showLoadingModal.value = true;
     
     // Check backend connection
-    const backendPing = await axios.get(`${backendBaseUrl}/system/ping`);
+    const backendPing = await api.get(`/system/ping`);
     if (!backendPing.data?.success) {
       throw new Error('Backend service unavailable');
     }
     
     // Use backend proxy to test ESP32 connection
-    const connectionTest = await axios.get(`${backendBaseUrl}/esp32/test-connection`, {
+    const connectionTest = await api.get(`/esp32/test-connection`, {
       params: { ip_address: esp32Config.ipAddress },
       timeout: 5000 // 5s timeout for backend+ESP32
     });
@@ -1102,10 +1099,10 @@ const showDeviceInfo = async () => {
     showLoadingModal.value = true;
     
     // Get backend info
-    const backendInfo = await axios.get(`${backendBaseUrl}/system/info`);
+    const backendInfo = await api.get(`/system/info`);
     
     // Get ESP32 info through backend
-    const espInfo = await axios.get(`${backendBaseUrl}/esp32/device-info`, {
+    const espInfo = await api.get(`/esp32/device-info`, {
       params: { ip_address: esp32Config.ipAddress },
       timeout: 5000
     });

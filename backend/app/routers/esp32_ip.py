@@ -1,3 +1,4 @@
+import json  # Add this import at the top
 from fastapi import APIRouter, HTTPException, Request
 from app.services.esp32_ip_manager import ip_manager
 
