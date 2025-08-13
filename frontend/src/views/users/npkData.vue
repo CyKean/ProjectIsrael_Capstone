@@ -1,9 +1,7 @@
 <template>
-  <div class="h-screen flex bg-white font-poppins overflow-hidden">
-    <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
+    <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
       <!-- Enhanced main container with more appealing design -->
-      <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden">
-        <!-- Gradient header for visual appeal -->
+      <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">        <!-- Gradient header for visual appeal -->
         <div class="bg-gradient-to-r from-green-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
           <!-- Header with controls aligned side by side -->
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -18,121 +16,124 @@
             </div>
             
             <!-- Controls aligned horizontally with improved styling -->
-            <div class="flex items-center gap-2 flex-wrap md:flex-nowrap">
-              <!-- Wider search bar -->
-              <div class="relative w-72">
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <!-- Search bar - full width on mobile, fixed width on larger screens -->
+              <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search NPK measurements..."
-                  class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs md:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
+                  class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
                   v-model="searchQuery"
                   @input="performSearch"
                 />
               </div>
 
-              <!-- Filter Button with enhanced styling -->
-              <div class="relative">
-                <button 
-                  @click.stop="toggleDropdown('filter')"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-xs md:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
-                >
-                  <Filter class="h-3 w-3 md:h-4 md:w-4 text-gray-500" />
-                  Filter
-                  <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'filter'"
-                  class="absolute md:right-0 mt-2 w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-                    <div v-for="field in filterFields" :key="field.key" class="space-y-2">
-                      <label class="block text-xs md:text-sm font-medium text-gray-700">{{ field.label }}</label>
-                      <div class="flex items-center gap-2">
-                        <input
-                          v-model="filters[field.key].min"
-                          type="number"
-                          placeholder="Min"
-                          class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                        />
-                        <span class="text-gray-400">-</span>
-                        <input
-                          v-model="filters[field.key].max"
-                          type="number"
-                          placeholder="Max"
-                          class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                        />
+              <!-- Button group - wraps on mobile, nowrap on larger screens -->
+              <div class="flex flex-wrap sm:flex-nowrap gap-2">
+                <!-- Filter Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('filter')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span>Filter</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'filter'"
+                    class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                      <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
+                        <div class="flex items-center gap-2">
+                          <input
+                            v-model="filters[field.key].min"
+                            type="number"
+                            placeholder="Min"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          />
+                          <span class="text-gray-400">-</span>
+                          <input
+                            v-model="filters[field.key].max"
+                            type="number"
+                            placeholder="Max"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
                       </div>
+                      <button 
+                        @click="applyFilters"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                      >
+                        Apply Filters
+                      </button>
                     </div>
-                    <button 
-                      @click="applyFilters"
-                      class="w-full px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
-                    >
-                      Apply Filters
-                    </button>
                   </div>
                 </div>
-              </div>
 
-              <!-- Sort Button with enhanced styling -->
-              <div class="relative">
-                <button 
-                  @click.stop="toggleDropdown('sort')"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
-                >
-                  <ArrowUpDown class="h-4 w-4 text-gray-500" />
-                  Sort
-                  <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'sort'"
-                  class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="header in headers"
-                      :key="header.key"
-                      @click="setSortKey(header.key)"
-                      class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      {{ header.label }}
-                      <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-green-500" />
-                    </button>
+                <!-- Sort Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('sort')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span>Sort</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'sort'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="header in headers"
+                        :key="header.key"
+                        @click="setSortKey(header.key)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                      >
+                        {{ header.label }}
+                        <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-green-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Export Button with enhanced styling -->
-              <div class="relative">
-                <button 
-                  @click.stop="toggleDropdown('export')"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-500 text-white text-xs md:text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
-                >
-                  <Download class="h-3 w-3 md:h-4 md:w-4" />
-                  Export
-                  <ChevronDown class="h-4 w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'export'"
-                  class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="format in exportFormats"
-                      :key="format"
-                      @click="exportData(format)"
-                      class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                    >
-                      <span v-if="format === 'csv'" class="mr-2 text-green-500"><FileText class="h-4 w-4" /></span>
-                      <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
-                      Export as {{ format.toUpperCase() }}
-                    </button>
+                <!-- Export Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('export')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500 text-white text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
+                  >
+                    <Download class="h-3 sm:h-4 w-3 sm:w-4" />
+                    <span>Export</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'export'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="format in exportFormats"
+                        :key="format"
+                        @click="exportData(format)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      >
+                        <span v-if="format === 'csv'" class="mr-2 text-green-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        Export as {{ format.toUpperCase() }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -321,26 +322,26 @@
               <table class="md:min-w-full">
                 <thead class="overflow-auto">
                   <tr>
-                    <th class="w-[20%] md:w-[10%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    <th class="w-[20%] md:w-[10%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider border-b">
                       ID
                     </th>
-                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider border-b">
+                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-green-600">Nitrogen</div>
                       <div class="text-gray-400 text-[10px]">(mg/kg)</div>
                     </th>
-                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider border-b">
+                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-blue-600">Phosphorus</div>
                       <div class="text-gray-400 text-[10px]">(mg/kg)</div>
                     </th>
-                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider border-b">
+                    <th class="w-[50%] md:w-[20%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-purple-600">Potassium</div>
                       <div class="text-gray-400 text-[10px]">(mg/kg)</div>
                     </th>
-                    <th class="w-[15%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider border-b">
+                    <th class="w-[15%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Date</div>
                       <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
                     </th>
-                    <th class="w-[15%] py-3.5 px-4 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider border-b">
+                    <th class="w-[15%] py-3.5 px-4 text-left text-[10px] md:text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Time</div>
                       <div class="text-gray-400 text-[10px]">HH:MM:SS AM/PM</div>
                     </th>
@@ -498,13 +499,12 @@
     </div>
 
     <!-- Loading Page Component -->
-    <!-- <LoadingPage 
+    <LoadingPage 
       :isVisible="isLoading" 
       title="Loading NPK Data" 
       message="Please wait while we fetch the latest soil nutrient measurements"
-    /> -->
+    />
     <!-- <Settings /> -->
-  </div>
 </template>
   
 <script setup>
@@ -1481,17 +1481,118 @@ const exportData = async (format) => {
     saveAs(blob, 'npk_data.csv')
     window.showToast('NPK Data exported as CSV', 'success')
   } else if (format === 'pdf') {
-    // PDF Export
-    const doc = new jsPDF()
-    doc.text('NPK Data Table', 14, 16)
-    autoTable(doc, {
-      head: [exportHeaders],
-      body: exportRows,
-      startY: 22,
-      styles: { fontSize: 10 }
-    })
-    doc.save('npk_data.pdf')
-    window.showToast('NPK Data exported as PDF', 'success')
+     try {
+      // Create PDF document
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm'
+      });
+
+      // Add title
+      doc.setFontSize(16);
+      doc.text('Soil pH Data Report', 105, 15, { align: 'center' });
+      
+      // Add current date
+      doc.setFontSize(10);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
+
+      // Capture the chart container using html2canvas
+      const chartContainer = document.querySelector('.bg-white.rounded-lg.border.border-gray-100.shadow-sm.overflow-hidden.flex.flex-col.mb-4');
+      
+      if (chartContainer) {
+        // Add loading indicator
+        window.showToast('Preparing chart for export...', 'info');
+        
+        // Use html2canvas to capture the chart container
+        const canvas = await html2canvas(chartContainer, {
+          scale: 2, // Higher quality
+          logging: false,
+          useCORS: true,
+          allowTaint: true
+        });
+
+        // Convert canvas to image
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Calculate dimensions (maintain aspect ratio)
+        const imgWidth = 160; // mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add chart image to PDF
+        doc.addImage(
+          imgData,
+          'PNG',
+          (210 - imgWidth) / 2, // Center horizontally
+          30,                   // Start 30mm from top
+          imgWidth,
+          imgHeight
+        );
+
+        // Add chart section title
+        doc.setFontSize(12);
+        doc.text('Soil pH Trend Analysis', 105, 30 + imgHeight + 5, { align: 'center' });
+
+        // Add current stats
+        doc.setFontSize(10);
+        doc.text(
+          `Current: ${currentPhValue.value} | Min: ${phStats.value.min} | Avg: ${phStats.value.avg} | Max: ${phStats.value.max}`,
+          105,
+          30 + imgHeight + 10,
+          { align: 'center' }
+        );
+
+        // Set table start position
+        const tableStartY = 30 + imgHeight + 15;
+        
+        // Add data table
+        autoTable(doc, {
+          head: [exportHeaders],
+          body: exportRows,
+          startY: tableStartY,
+          margin: { horizontal: 10 },
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            overflow: 'linebreak'
+          },
+          headStyles: {
+            fillColor: [16, 163, 74], // emerald-600
+            textColor: 255,
+            fontStyle: 'bold'
+          },
+          alternateRowStyles: {
+            fillColor: [240, 253, 244] // emerald-50
+          },
+          didDrawPage: function(data) {
+            // Add footer
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text(
+              `Page ${data.pageCount}`,
+              data.settings.margin.left,
+              doc.internal.pageSize.height - 10
+            );
+          }
+        });
+
+        // Save the PDF
+        doc.save('soil_ph_complete_report.pdf');
+        window.showToast('Complete report exported successfully', 'success');
+      } else {
+        // Fallback if chart container not found
+        autoTable(doc, {
+          head: [exportHeaders],
+          body: exportRows,
+          startY: 30,
+          styles: { fontSize: 10 }
+        });
+        doc.save('soil_ph_data.pdf');
+        window.showToast('Exported table data (chart not found)', 'warning');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      window.showToast('Export failed: ' + error.message, 'error');
+    }
   } else if (format === 'docs') {
     // Word Export (DOCX)
     const tableRows = [

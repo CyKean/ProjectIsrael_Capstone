@@ -548,22 +548,69 @@
                 />
               </div>
               <div class="flex items-center gap-2">
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                  @click="toggleGridView"
-                  :class="{'bg-gray-100': isGridView}"
-                  aria-label="Toggle grid view"
-                >
-                  <LayoutGridIcon class="h-4 w-4" />
-                </button>
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                  @click="toggleFilterPanel"
-                  :class="{'bg-gray-100': showFilterPanel}"
-                  aria-label="Toggle filter panel"
-                >
-                  <FilterIcon class="h-4 w-4" />
-                </button>
+                <div class="flex items-center gap-2">
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    @click="toggleGridView"
+                    :class="{'bg-gray-100': isGridView}"
+                    aria-label="Toggle grid view"
+                  >
+                    <LayoutGridIcon class="h-4 w-4" />
+                  </button>
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    @click="toggleFilterPanel"
+                    :class="{'bg-gray-100': showFilterPanel}"
+                    aria-label="Toggle filter panel"
+                  >
+                    <FilterIcon class="h-4 w-4" />
+                  </button>
+                  <!-- Add Export Dropdown Button -->
+                  <div class="relative inline-block">
+                    <button 
+                      class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                      @click.stop="toggleExportDropdown"
+                    >
+                      <DownloadIcon class="h-4 w-4" />
+                      <span class="text-xs">Export</span>
+                    </button>
+                    
+                    <!-- Export Dropdown -->
+                    <transition
+                      enter-active-class="transition ease-out duration-100"
+                      enter-from-class="transform opacity-0 scale-95"
+                      enter-to-class="transform opacity-100 scale-100"
+                      leave-active-class="transition ease-in duration-75"
+                      leave-from-class="transform opacity-100 scale-100"
+                      leave-to-class="transform opacity-0 scale-95"
+                    >
+                      <div 
+                        v-if="showExportDropdown"
+                        class="absolute right-0 mt-2 w-40 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                        role="menu"
+                        aria-orientation="vertical"
+                        aria-labelledby="menu-button"
+                      >
+                        <div class="py-1" role="none">
+                          <button 
+                            @click.stop="exportCropData('csv')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            role="menuitem"
+                          >
+                            Export as CSV
+                          </button>
+                          <button 
+                            @click.stop="exportCropData('pdf')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            role="menuitem"
+                          >
+                            Export as PDF
+                          </button>
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -582,9 +629,9 @@
                 </button>
               </div>
               
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Success Rate Range -->
-                <div>
+                <div class="col-span-1 sm:col-span-2 lg:col-span-1">
                   <label class="block text-xs font-medium text-gray-600 mb-2">Success Rate</label>
                   <div class="flex items-center gap-2">
                     <input 
@@ -608,9 +655,9 @@
                 </div>
                   
                 <!-- Date Range -->
-                <div>
+                <div class="col-span-1 sm:col-span-1 lg:col-span-1">
                   <label class="block text-xs font-medium text-gray-600 mb-2">Date Range</label>
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-col md:flex-row items-center gap-2">
                     <input 
                       type="date" 
                       v-model="filterDateStart" 
@@ -626,7 +673,7 @@
                 </div>
                     
                 <!-- Status Filter -->
-                <div>
+                <div class="col-span-1 sm:col-span-1">
                   <label class="block text-xs font-medium text-gray-600 mb-2">Status</label>
                   <select 
                     v-model="filterStatus" 
@@ -641,17 +688,17 @@
                 </div>
               </div>
                   
-              <div class="flex justify-end mt-4 gap-2">
+              <div class="flex flex-col sm:flex-row justify-end mt-4 gap-2">
                 <button 
                   @click="resetFilters"
-                  class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full sm:w-auto"
                 >
                   Reset
                 </button>
                 <button 
                   @click="applyFilters"
-                  class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors"
-                  >
+                  class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors w-full sm:w-auto"
+                >
                   Apply Filters
                 </button>
               </div>
@@ -1343,7 +1390,11 @@ import {
 import Sidebar from '../layout/Sidebar.vue'
 // import Pagination from '../layout/Pagination.vue'
 import api from '../../api/index.js'
-import toastr from 'toastr'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
+import { saveAs } from 'file-saver'
+import 'jspdf-autotable';
 import {
     getFirestore,
     collection,
@@ -1540,6 +1591,120 @@ const greenhouse2Data = ref({
   humidity: '72.34'
 })
 
+const showExportDropdown = ref(false);
+
+// Add these methods
+const toggleExportDropdown = () => {
+  showExportDropdown.value = !showExportDropdown.value;
+};
+
+const closeExportDropdown = () => {
+  showExportDropdown.value = false;
+};
+
+const exportCropData = (format) => {
+  // Prepare headers
+  const headers = [
+    'Recommended Crop',
+    'Date',
+    'Time',
+    'Success Rate',
+    'Status',
+    'Soil Compatibility',
+    'Growth Rate',
+    'Yield Potential',
+    'Fertilizer Type',
+    'Fertilizer Name',
+    'Fertilizer Amount'
+  ];
+
+  // Prepare rows
+  const rows = filteredPredictions.value.map(prediction => [
+    prediction.crop,
+    prediction.date.split(',')[0],
+    prediction.date.split(',')[1]?.trim() || '',
+    `${prediction.successRate}%`,
+    prediction.status,
+    `${prediction.soilCompatibility}%`,
+    `${prediction.growthRate}%`,
+    `${prediction.yieldPotential}%`,
+    prediction.fertilizer?.type || 'N/A',
+    prediction.fertilizer?.name || 'N/A',
+    prediction.fertilizer 
+      ? `${prediction.fertilizer.adjusted_amount} ${prediction.fertilizer.unit}` 
+      : 'N/A'
+  ]);
+
+  if (format === 'csv') {
+    // CSV Export
+    let csvContent = 'Crop Recommendations\n';
+    csvContent += headers.join(',') + '\n';
+    rows.forEach(row => {
+      csvContent += row.map(val => `"${val}"`).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `crop_recommendations_${new Date().toISOString().split('T')[0]}.csv`);
+    window.showToast && window.showToast('Crop recommendations exported as CSV', 'success');
+  } else if (format === 'pdf') {
+    // PDF Export
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(16);
+    doc.text('Crop Recommendations', 14, 16);
+    
+    // Subtitle with date
+    doc.setFontSize(10);
+    doc.text(`Exported on: ${new Date().toLocaleString()}`, 14, 24);
+    
+    // Table
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 30,
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak'
+      },
+      headStyles: {
+        fillColor: [34, 197, 94], // green-500
+        textColor: 255,
+        fontSize: 9
+      },
+      alternateRowStyles: {
+        fillColor: [243, 244, 246] // gray-100
+      },
+      columnStyles: {
+        0: { cellWidth: 25 }, // Crop
+        1: { cellWidth: 20 }, // Date
+        2: { cellWidth: 15 }, // Time
+        3: { cellWidth: 15 }, // Success Rate
+        4: { cellWidth: 15 }, // Status
+        5: { cellWidth: 15 }, // Soil Comp.
+        6: { cellWidth: 15 }, // Growth Rate
+        7: { cellWidth: 15 }, // Yield Pot.
+        8: { cellWidth: 15 }, // Fert. Type
+        9: { cellWidth: 20 }, // Fert. Name
+        10: { cellWidth: 20 } // Fert. Amount
+      }
+    });
+    
+    doc.save(`crop_recommendations_${new Date().toISOString().split('T')[0]}.pdf`);
+    window.showToast && window.showToast('Crop recommendations exported as PDF', 'success');
+  }
+  
+  showExportDropdown.value = false;
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.relative')) {
+    showExportDropdown.value = false;
+  }
+};
+
 let esp32_1_unsubscribe = null;
 let esp32_2_unsubscribe = null;
 const streamActive = ref(false);
@@ -1611,6 +1776,7 @@ onMounted(async () => {
   fetchSavedRecommendations();
   fetchRecommendationStats();
 
+  document.addEventListener('click', handleClickOutside);
   // Cleanup on unmount
   onUnmounted(() => {
     if (eventSource) eventSource.close();
@@ -1618,6 +1784,10 @@ onMounted(async () => {
     if (esp32_1_unsubscribe) esp32_1_unsubscribe();
     if (esp32_2_unsubscribe) esp32_2_unsubscribe();
   });
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 const fetchLatestSensorDataFromFirebase = () => {

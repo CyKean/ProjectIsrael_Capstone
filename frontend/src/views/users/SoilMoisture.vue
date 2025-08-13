@@ -1,8 +1,7 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden">
-      <!-- Gradient header for visual appeal -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">        <!-- Gradient header for visual appeal -->      <!-- Gradient header for visual appeal -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -17,121 +16,124 @@
           </div>
           
           <!-- Controls aligned horizontally with improved styling -->
-          <div class="flex items-center gap-2 flex-wrap md:flex-nowrap">
-            <!-- Wider search bar -->
-            <div class="relative w-72">
+          <div class="flex flex-col sm:flex-row items-stretch gap-2">
+            <!-- Search bar - full width on mobile, fixed width on larger screens -->
+            <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search measurements..."
-                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs md:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
+                class="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
                 v-model="searchQuery"
                 @input="performSearch"
               />
             </div>
 
-            <!-- Filter Button with enhanced styling -->
-            <div class="relative">
-              <button 
-                @click.stop="toggleDropdown('filter')"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-xs md:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-              >
-                <Filter class="h-3 w-3 md:h-4 md:w-4 text-gray-500" />
-                Filter
-                <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
-              </button>
-              
-              <div 
-                v-show="activeDropdown === 'filter'"
-                class="absolute md:right-0 mt-2 w-[250px] md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                @click.stop
-              >
-                <div class="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-                  <div v-for="field in filterFields" :key="field.key" class="space-y-2">
-                    <label class="block text-xs md:text-sm font-medium text-gray-700">{{ field.label }}</label>
-                    <div class="flex items-center gap-2">
-                      <input
-                        v-model="filters[field.key].min"
-                        type="number"
-                        placeholder="Min"
-                        class="w-full px-3 py-1.5 text-xs md:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
-                      <span class="text-gray-400">-</span>
-                      <input
-                        v-model="filters[field.key].max"
-                        type="number"
-                        placeholder="Max"
-                        class="w-full px-3 py-1.5 text-xs md:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
+            <!-- Button group - horizontal on all screens but wraps if needed -->
+            <div class="flex flex-wrap sm:flex-nowrap gap-2">
+              <!-- Filter Button -->
+              <div class="relative flex-1 sm:flex-none min-w-[100px]">
+                <button 
+                  @click.stop="toggleDropdown('filter')"
+                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
+                >
+                  <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                  <span>Filter</span>
+                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
+                </button>
+                
+                <div 
+                  v-show="activeDropdown === 'filter'"
+                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-[250px] md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                  @click.stop
+                >
+                  <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div v-for="field in filterFields" :key="field.key" class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
+                      <div class="flex items-center gap-2">
+                        <input
+                          v-model="filters[field.key].min"
+                          type="number"
+                          placeholder="Min"
+                          class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                        />
+                        <span class="text-gray-400">-</span>
+                        <input
+                          v-model="filters[field.key].max"
+                          type="number"
+                          placeholder="Max"
+                          class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                        />
+                      </div>
                     </div>
+                    <button 
+                      @click="applyFilters"
+                      class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors"
+                    >
+                      Apply Filters
+                    </button>
                   </div>
-                  <button 
-                    @click="applyFilters"
-                    class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors"
-                  >
-                    Apply Filters
-                  </button>
                 </div>
               </div>
-            </div>
 
-            <!-- Sort Button with enhanced styling -->
-            <div class="relative">
-              <button 
-                @click.stop="toggleDropdown('sort')"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-              >
-                <ArrowUpDown class="h-4 w-4 text-gray-500" />
-                Sort
-                <ChevronDown class="h-4 w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
-              </button>
-              
-              <div 
-                v-show="activeDropdown === 'sort'"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                @click.stop
-              >
-                <div class="py-1">
-                  <button
-                    v-for="header in headers"
-                    :key="header.key"
-                    @click="setSortKey(header.key)"
-                    class="w-full px-4 py-2 text-left text-xs md:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                  >
-                    {{ header.label }}
-                    <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
-                  </button>
+              <!-- Sort Button -->
+              <div class="relative flex-1 sm:flex-none min-w-[100px]">
+                <button 
+                  @click.stop="toggleDropdown('sort')"
+                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
+                >
+                  <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                  <span>Sort</span>
+                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
+                </button>
+                
+                <div 
+                  v-show="activeDropdown === 'sort'"
+                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                  @click.stop
+                >
+                  <div class="py-1">
+                    <button
+                      v-for="header in headers"
+                      :key="header.key"
+                      @click="setSortKey(header.key)"
+                      class="w-full px-4 py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      {{ header.label }}
+                      <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Export Button with enhanced styling -->
-            <div class="relative">
-              <button 
-                @click.stop="toggleDropdown('export')"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-white text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
-              >
-                <Download class="h-3 w-3 md:h-4 md:w-4" />
-                Export
-                <ChevronDown class="h-4 w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
-              </button>
-              
-              <div 
-                v-show="activeDropdown === 'export'"
-                class="absolute md:right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                @click.stop
-              >
-                <div class="py-1">
-                  <button
-                    v-for="format in exportFormats"
-                    :key="format"
-                    @click="exportData(format)"
-                    class="w-full px-4 py-2 text-left text-xs md:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                  >
-                    <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-4 w-4" /></span>
-                    <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
-                    Export as {{ format.toUpperCase() }}
-                  </button>
+              <!-- Export Button -->
+              <div class="relative flex-1 sm:flex-none min-w-[100px]">
+                <button 
+                  @click.stop="toggleDropdown('export')"
+                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-500 text-white text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
+                >
+                  <Download class="h-3 sm:h-4 w-3 sm:w-4" />
+                  <span>Export</span>
+                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+                </button>
+                
+                <div 
+                  v-show="activeDropdown === 'export'"
+                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                  @click.stop
+                >
+                  <div class="py-1">
+                    <button
+                      v-for="format in exportFormats"
+                      :key="format"
+                      @click="exportData(format)"
+                      class="w-full px-4 py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                    >
+                      <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-4 w-4" /></span>
+                      <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
+                      Export as {{ format.toUpperCase() }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -253,68 +255,42 @@
           </div>
         </div>
         
-        <!-- Table Container - Larger width -->
+        <!-- Table Container - Larger width with FIXED ALIGNMENT -->
         <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
-          <!-- Fixed Header with enhanced styling -->
-          <div class="w-full border-b border-gray-200 sticky top-0 z-10 bg-gray-50">
-            <table class="hidden md:block min-w-full">
-              <thead>
+          <!-- Single Table Structure for Perfect Alignment -->
+          <div class="flex-1 overflow-auto">
+            <table class="w-full min-w-[600px] table-fixed">
+              <!-- Fixed Header -->
+              <thead class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                     <div class="text-blue-600">Soil Moisture</div>
                     <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
                   </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                  <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                     <div class="text-emerald-600">Soil Status</div>
                     <div class="text-gray-400 text-[10px]">CONDITION</div>
                   </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                     <div class="text-gray-600">Date</div>
                     <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
                   </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
+                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                     <div class="text-gray-600">Time</div>
                     <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
                   </th>
                 </tr>
               </thead>
-            </table>
-          </div>
-          
-          <!-- Scrollable Body with enhanced styling -->
-          <div class="flex-1 overflow-y-auto">
-            <table class="w-[600px] md:min-w-full">
-              <thead class="md:hidden">
-                <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    ID
-                  </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-blue-600">Soil Moisture</div>
-                    <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
-                  </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-emerald-600">Soil Status</div>
-                    <div class="text-gray-400 text-[10px]">CONDITION</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Date</div>
-                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Time</div>
-                    <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+              
+              <!-- Table Body -->
+              <tbody class="bg-white divide-y divide-gray-50">
                 <tr 
                   v-for="(row, index) in paginatedData" 
                   :key="index"
-                  class="border-b border-gray-50 last:border-0"
+                  class="hover:bg-gray-50/50 transition-colors"
                 >
                   <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
@@ -343,7 +319,8 @@
                     <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                   </td>
                 </tr>
-                <!-- Empty state when no data - Enhanced styling -->
+                
+                <!-- Empty state when no data -->
                 <tr v-if="paginatedData.length === 0 && !isLoading">
                   <td colspan="5" class="px-6 py-16 text-center">
                     <div class="flex flex-col items-center justify-center">
@@ -360,40 +337,44 @@
       </div>
 
       <!-- Fixed Pagination Section with enhanced styling -->
-      <div class="border-t border-gray-100 py-4 px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
+      <div class="border-t border-gray-100 py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
         <!-- Enhanced Pagination -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div class="text-xs md:text-sm text-gray-600 flex items-center gap-2">
-            <span class="hidden sm:inline">Showing</span>
-            <select 
-              v-model="itemsPerPage" 
-              class="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs md:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
-              @change="updatePagination"
-            >
-              <option value="20">20</option>
-              <option value="25">25</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-            </select>
-            <span class="hidden sm:inline">entries per page</span>
-            <span class="text-gray-400 mx-2 hidden sm:inline">|</span>
-            <span>
+        <div class="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+          <!-- Entries selector and info -->
+          <div class="text-xs sm:text-sm text-gray-600 flex flex-col md:flex-row items-center gap-2">
+            <div class="flex items-center gap-2">
+              <span class="hidden sm:inline">Showing</span>
+              <select 
+                v-model="itemsPerPage" 
+                class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
+                @change="updatePagination"
+              >
+                <option value="20">20</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+              </select>
+              <span class="hidden sm:inline">entries per page</span>
+            </div>
+            <span class="hidden xs:inline text-gray-400 mx-2">|</span>
+            <span class="text-center xs:text-left">
               {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
               <span class="text-gray-400">of</span>
               {{ sortedData.length }}
             </span>
           </div>
 
+          <!-- Page navigation -->
           <div class="flex items-center gap-1">
             <button 
               @click="prevPage"
               :disabled="currentPage === 1"
-              class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
+              class="inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
                 enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
             >
-              <ChevronLeft class="w-4 h-4 mr-1" />
-              Prev
+              <ChevronLeft class="w-3 sm:w-4 h-3 sm:h-4 mr-0 sm:mr-1" />
+              <span class="hidden xs:inline">Prev</span>
             </button>
 
             <div class="flex items-center">
@@ -402,7 +383,7 @@
                 :key="page"
                 @click="goToPage(page)"
                 :class="[
-                  'relative inline-flex items-center justify-center w-8 h-8 text-xs md:text-sm transition-colors mx-0.5 rounded-md',
+                  'relative inline-flex items-center justify-center w-6 sm:w-8 h-6 sm:h-8 text-xs sm:text-sm transition-colors mx-0.5 rounded-md',
                   page === currentPage
                     ? 'text-white bg-emerald-500 font-semibold'
                     : page === '...'
@@ -417,12 +398,12 @@
             <button 
               @click="nextPage"
               :disabled="currentPage >= totalPages"
-              class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
+              class="inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
                 enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
             >
-              Next
-              <ChevronRight class="w-4 h-4 ml-1" />
+              <span class="hidden xs:inline">Next</span>
+              <ChevronRight class="w-3 sm:w-4 h-3 sm:h-4 ml-0 sm:ml-1" />
             </button>
           </div>
         </div>
@@ -431,11 +412,11 @@
   </div>
 
   <!-- Loading Page Component -->
-  <!-- <LoadingPage 
+  <LoadingPage 
     :isVisible="isLoading" 
     title="Loading Soil Moisture Data" 
     message="Please wait while we fetch the latest soil moisture measurements"
-  /> -->
+  />
   <!-- <Settings /> -->
 </template>
   
@@ -1198,17 +1179,84 @@ const exportData = async (format) => {
     saveAs(blob, 'soil_moisture_data.csv')
     window.showToast('Soil Moisture exported as CSV', 'success')
   } else if (format === 'pdf') {
-    // PDF Export
-    const doc = new jsPDF()
-    doc.text('Soil Moisture Data Table', 14, 16)
-    autoTable(doc, {
-      head: [exportHeaders],
-      body: exportRows,
-      startY: 22,
-      styles: { fontSize: 10 }
+    // PDF Export with graph
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm'
     })
-    doc.save('soil_moisture_data.pdf')
-    window.showToast('Soil Moisture exported as PDF', 'success')
+    
+    // Add title
+    doc.setFontSize(16)
+    doc.text('Soil Moisture Data Report', 105, 15, { align: 'center' })
+    
+    // Add current date
+    doc.setFontSize(10)
+    const dateStr = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' })
+    
+    // Add summary stats
+    doc.setFontSize(12)
+    doc.text('Current Moisture Status:', 15, 30)
+    doc.text(`Value: ${currentMoistureValue.value}%`, 15, 36)
+    doc.text(`Status: ${calculateSoilStatus(currentMoistureValue.value)}`, 15, 42)
+    
+    // Add the chart image
+    if (chartCanvas.value) {
+      // Convert canvas to image data URL
+      const canvas = chartCanvas.value
+      const chartImage = canvas.toDataURL('image/png')
+      
+      // Add chart image to PDF (centered, with some margin)
+      const imgWidth = 180 // mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 50, imgWidth, imgHeight)
+      
+      // Add stats below the chart
+      doc.setFontSize(10)
+      doc.text('Moisture Statistics:', 15, 50 + imgHeight + 10)
+      doc.text(`Minimum: ${moistureStats.value.min}%`, 15, 50 + imgHeight + 16)
+      doc.text(`Average: ${moistureStats.value.avg}%`, 15, 50 + imgHeight + 22)
+      doc.text(`Maximum: ${moistureStats.value.max}%`, 15, 50 + imgHeight + 28)
+      
+      // Add the data table on a new page
+      doc.addPage()
+      doc.setFontSize(14)
+      doc.text('Soil Moisture Data Table', 105, 15, { align: 'center' })
+      autoTable(doc, {
+        head: [exportHeaders],
+        body: exportRows,
+        startY: 22,
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak'
+        },
+        headStyles: {
+          fillColor: [16, 185, 129], // emerald-500
+          textColor: 255 // white
+        },
+        alternateRowStyles: {
+          fillColor: [241, 245, 249] // slate-50
+        },
+        margin: { top: 20 }
+      })
+    } else {
+      // Fallback if chart isn't available
+      doc.text('Soil Moisture Chart Not Available', 105, 50, { align: 'center' })
+      autoTable(doc, {
+        head: [exportHeaders],
+        body: exportRows,
+        startY: 60,
+        styles: { fontSize: 10 }
+      })
+    }
+    
+    doc.save('soil_moisture_report.pdf')
+    window.showToast('Soil Moisture report exported as PDF', 'success')
   } else if (format === 'docs') {
     // Word Export (DOCX)
     const tableRows = [
@@ -1410,7 +1458,7 @@ button {
   transform: none !important;
 }
 
-/* Table styling */
+/* FIXED TABLE ALIGNMENT STYLES */
 table {
   table-layout: fixed;
   width: 100%;
@@ -1418,9 +1466,27 @@ table {
   border-spacing: 0;
 }
 
+/* Ensure consistent column widths */
+table.table-fixed {
+  table-layout: fixed;
+}
+
 /* Fix table header and body alignment */
 thead th, tbody td {
   box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* Ensure consistent padding and alignment */
+thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f9fafb;
+  z-index: 10;
+}
+
+tbody td {
+  background-color: white;
 }
 
 /* Responsive styles */

@@ -1,24 +1,18 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
-    <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden">
-      <!-- Keep original gradient header -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-full mx-auto w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden min-w-0">
       <div class="bg-gradient-to-r from-emerald-50 to-white p-3 md:p-5 border-b border-gray-100 rounded-t-lg">
-        <!-- Header with controls aligned side by side -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <!-- Title and breadcrumb with enhanced styling -->
           <div>
             <h1 class="text-sm md:text-lg font-semibold text-gray-800 mb-1">Soil Analysis Measurements</h1>
-            <div class="flex items-center text-sm text-gray-500 hidden md:block">
-              <span class="text-emerald-600 font-medium">ESP32-1: NPK + pH Sensors</span>
-              <div class="w-1 h-1 rounded-full bg-gray-300 mx-2"></div>
-              <span class="text-emerald-600 font-medium">ESP32-2: Environmental Sensors</span>
+            <div class="flex flex-col md:flex-row md:items-center text-xs sm:text-sm text-gray-500 flex-wrap">
+              <span class="text-emerald-600 font-medium whitespace-nowrap">ESP32-1: NPK + pH Sensors</span>
+              <div class="w-1 h-1 rounded-full bg-gray-300 mx-2 flex-shrink-0"></div>
+              <span class="text-emerald-600 font-medium whitespace-nowrap">ESP32-2: Environmental Sensors</span>
             </div>
           </div>
-          
-          <!-- Global controls -->
+            
           <div class="flex items-center gap-2">
-            <!-- Global search bar -->
             <div class="relative w-[8.5rem] md:w-64">
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -30,11 +24,10 @@
               />
             </div>
 
-            <!-- Export Button -->
             <div class="relative">
               <button 
                 @click.stop="toggleDropdown('export')"
-                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-[10px] md:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm dropdown-trigger"
               >
                 <Download class="h-4 w-4" />
                 Export All
@@ -43,7 +36,7 @@
               
               <div 
                 v-show="activeDropdown === 'export'"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] overflow-hidden dropdown-panel"
                 @click.stop
               >
                 <div class="py-1">
@@ -63,12 +56,9 @@
         </div>
       </div>
 
-      <!-- Dual table container with proper spacing -->
-      <div class="flex-1 overflow-hidden flex gap-4 p-2 md:p-4">
-        <!-- ESP32-1 Table (NPK + pH) -->
-        <div class="flex-1 bg-gray-50 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
-          <!-- ESP32-1 Header -->
-          <div class="bg-white border-b border-gray-200 p-3">
+      <div class="flex-1 flex gap-4 p-2 md:p-4 overflow-hidden">
+        <div ref="esp32_1_Container" class="flex-1 bg-gray-50 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
+          <div class="bg-white border-b border-gray-200 p-3 relative">
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-green-500"></div>
@@ -82,7 +72,6 @@
               </div>
             </div>
             
-            <!-- ESP32-1 Controls -->
             <div class="flex items-center gap-2">
               <div class="relative flex-1">
                 <Search class="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
@@ -95,136 +84,134 @@
                 />
               </div>
               
-              <button 
-                @click.stop="toggleDropdown('filter-esp32-1')"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-green-600 transition-colors"
-              >
-                <Filter class="h-3.5 w-3.5" />
-                Filter
-              </button>
-              
-              <button 
-                @click.stop="toggleDropdown('sort-esp32-1')"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-green-600 transition-colors"
-              >
-                <ArrowUpDown class="h-3.5 w-3.5" />
-                Sort
-              </button>
-            </div>
-
-            <!-- ESP32-1 Filter Dropdown -->
-            <div 
-              v-show="activeDropdown === 'filter-esp32-1'"
-              class="absolute mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-              @click.stop
-            >
-              <div class="p-3 space-y-3 max-h-[250px] overflow-y-auto">
-                <div v-for="field in esp32_1_FilterFields" :key="field.key" class="space-y-1.5">
-                  <label class="block text-xs font-medium text-gray-700">{{ field.label }}</label>
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model="esp32_1_Filters[field.key].min"
-                      type="number"
-                      placeholder="Min"
-                      class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                    />
-                    <span class="text-gray-400 text-xs">-</span>
-                    <input
-                      v-model="esp32_1_Filters[field.key].max"
-                      type="number"
-                      placeholder="Max"
-                      class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                    />
+              <div class="relative">
+                <button 
+                  ref="filterButton1"
+                  @click.stop="toggleDropdown('filter-esp32-1')"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-green-600 transition-colors dropdown-trigger"
+                >
+                  <Filter class="h-3.5 w-3.5" />
+                  Filter
+                </button>
+                
+                <div 
+                  v-show="activeDropdown === 'filter-esp32-1'"
+                  class="fixed bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] dropdown-panel"
+                  :style="getDropdownStyle('filter-esp32-1')"
+                  @click.stop
+                >
+                  <div class="p-3 space-y-3 w-full md:max-h-[300px] md:overflow-y-auto">
+                    <div v-for="field in esp32_1_FilterFields" :key="field.key" class="space-y-1.5">
+                      <label class="block text-xs font-medium text-gray-700">{{ field.label }}</label>
+                      <div class="flex items-center gap-2">
+                        <input
+                          v-model="esp32_1_Filters[field.key].min"
+                          type="number"
+                          placeholder="Min"
+                          class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                        />
+                        <span class="text-gray-400 text-xs">-</span>
+                        <input
+                          v-model="esp32_1_Filters[field.key].max"
+                          type="number"
+                          placeholder="Max"
+                          class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      @click="applyESP32_1_Filters"
+                      class="w-full px-3 py-1.5 bg-green-500 text-white rounded-md text-xs font-medium hover:bg-green-600 transition-colors"
+                    >
+                      Apply Filters
+                    </button>
                   </div>
                 </div>
-                <button 
-                  @click="applyESP32_1_Filters"
-                  class="w-full px-3 py-1.5 bg-green-500 text-white rounded-md text-xs font-medium hover:bg-green-600 transition-colors"
-                >
-                  Apply Filters
-                </button>
               </div>
-            </div>
-
-            <!-- ESP32-1 Sort Dropdown -->
-            <div 
-              v-show="activeDropdown === 'sort-esp32-1'"
-              class="absolute mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-              @click.stop
-            >
-              <div class="py-1">
-                <button
-                  v-for="header in esp32_1_Headers"
-                  :key="header.key"
-                  @click="setESP32_1_SortKey(header.key)"
-                  class="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+              
+              <div class="relative">
+                <button 
+                  ref="sortButton1"
+                  @click.stop="toggleDropdown('sort-esp32-1')"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-green-600 transition-colors dropdown-trigger"
                 >
-                  {{ header.label }}
-                  <ArrowUpDown v-if="esp32_1_SortKey === header.key" class="h-3 w-3 text-green-500" />
+                  <ArrowUpDown class="h-3.5 w-3.5" />
+                  Sort
                 </button>
+
+                <div 
+                  v-show="activeDropdown === 'sort-esp32-1'"
+                  class="fixed bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] dropdown-panel"
+                  :style="getDropdownStyle('sort-esp32-1')"
+                  @click.stop
+                >
+                  <div class="py-1 w-full">
+                    <button
+                      v-for="header in esp32_1_Headers"
+                      :key="header.key"
+                      @click="setESP32_1_SortKey(header.key)"
+                      class="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      {{ header.label }}
+                      <ArrowUpDown v-if="esp32_1_SortKey === header.key" class="h-3 w-3 text-green-500" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- ESP32-1 Table -->
           <div class="flex-1 overflow-hidden flex flex-col">
-            <!-- Fixed Header -->
-            <div class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10 overflow-y-auto">
-              <table class="min-w-full">
-                <thead>
+            <div class="flex-1 overflow-auto bg-white">
+              <table class="min-w-full table-fixed">
+                <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date & Time
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-green-600">Nitrogen</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-blue-600">Phosphorus</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-purple-600">Potassium</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-orange-600">pH</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(level)</div>
                     </th>
                   </tr>
                 </thead>
-              </table>
-            </div>
-            
-            <!-- Scrollable Body -->
-            <div class="flex-1 overflow-y-auto bg-white">
-              <table class="min-w-full">
+
                 <tbody class="divide-y divide-gray-100">
                   <tr 
                     v-for="(row, index) in paginatedESP32_1_Data" 
                     :key="index"
                     class="hover:bg-gray-50 transition-colors"
                   >
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[10px] md:text-xs font-medium text-gray-900">{{ row.date }}</div>
                       <div class="text-[7px] md:text-[10px] text-gray-500">{{ row.time }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[10px] md:text-xs font-semibold text-green-600">{{ row.nitrogen }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[10px] md:text-xs font-semibold text-blue-600">{{ row.phosphorus }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[10px] md:text-xs font-semibold text-purple-600">{{ row.potassium }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[10px] md:text-xs font-semibold text-orange-600">{{ row.ph }}</div>
                     </td>
                   </tr>
-                  
-                  <!-- Empty state -->
+
                   <tr v-if="paginatedESP32_1_Data.length === 0 && !isLoading">
                     <td colspan="5" class="px-4 py-8 text-center">
                       <div class="flex flex-col items-center justify-center">
@@ -238,7 +225,6 @@
               </table>
             </div>
 
-            <!-- ESP32-1 Pagination -->
             <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
               <div class="flex items-center justify-between">
                 <div class="text-[10px] md:text-xs text-gray-600">
@@ -267,10 +253,8 @@
           </div>
         </div>
 
-        <!-- ESP32-2 Table (Environmental Sensors) -->
-        <div class="flex-1 bg-gray-50 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
-          <!-- ESP32-2 Header -->
-          <div class="bg-white border-b border-gray-200 p-3">
+        <div ref="esp32_2_Container" class="flex-1 bg-gray-50 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
+          <div class="bg-white border-b border-gray-200 p-3 relative">
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -283,8 +267,7 @@
                 {{ esp32_2_Data.length }} readings
               </div>
             </div>
-            
-            <!-- ESP32-2 Controls -->
+
             <div class="flex items-center gap-2">
               <div class="relative flex-1">
                 <Search class="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
@@ -297,129 +280,127 @@
                 />
               </div>
               
-              <button 
-                @click.stop="toggleDropdown('filter-esp32-2')"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <Filter class="h-3.5 w-3.5" />
-                Filter
-              </button>
-              
-              <button 
-                @click.stop="toggleDropdown('sort-esp32-2')"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <ArrowUpDown class="h-3.5 w-3.5" />
-                Sort
-              </button>
-            </div>
-
-            <!-- ESP32-2 Filter Dropdown -->
-            <div 
-              v-show="activeDropdown === 'filter-esp32-2'"
-              class="absolute mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-              @click.stop
-            >
-              <div class="p-3 space-y-3 max-h-[250px] overflow-y-auto">
-                <div v-for="field in esp32_2_FilterFields" :key="field.key" class="space-y-1.5">
-                  <label class="block text-xs font-medium text-gray-700">{{ field.label }}</label>
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model="esp32_2_Filters[field.key].min"
-                      type="number"
-                      placeholder="Min"
-                      class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span class="text-gray-400 text-xs">-</span>
-                    <input
-                      v-model="esp32_2_Filters[field.key].max"
-                      type="number"
-                      placeholder="Max"
-                      class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
+              <div class="relative">
+                <button 
+                  ref="filterButton2"
+                  @click.stop="toggleDropdown('filter-esp32-2')"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-blue-600 transition-colors dropdown-trigger"
+                >
+                  <Filter class="h-3.5 w-3.5" />
+                  Filter
+                </button>
+                
+                <div 
+                  v-show="activeDropdown === 'filter-esp32-2'"
+                  class="fixed bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] dropdown-panel"
+                  :style="getDropdownStyle('filter-esp32-2')"
+                  @click.stop
+                >
+                  <div class="p-3 space-y-3 w-full md:max-h-[300px] md:overflow-y-auto">
+                    <div v-for="field in esp32_2_FilterFields" :key="field.key" class="space-y-1.5">
+                      <label class="block text-xs font-medium text-gray-700">{{ field.label }}</label>
+                      <div class="flex items-center gap-2">
+                        <input
+                          v-model="esp32_2_Filters[field.key].min"
+                          type="number"
+                          placeholder="Min"
+                          class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <span class="text-gray-400 text-xs">-</span>
+                        <input
+                          v-model="esp32_2_Filters[field.key].max"
+                          type="number"
+                          placeholder="Max"
+                          class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      @click="applyESP32_2_Filters"
+                      class="w-full px-3 py-1.5 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 transition-colors"
+                    >
+                      Apply Filters
+                    </button>
                   </div>
                 </div>
-                <button 
-                  @click="applyESP32_2_Filters"
-                  class="w-full px-3 py-1.5 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Apply Filters
-                </button>
               </div>
-            </div>
-
-            <!-- ESP32-2 Sort Dropdown -->
-            <div 
-              v-show="activeDropdown === 'sort-esp32-2'"
-              class="absolute mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-              @click.stop
-            >
-              <div class="py-1">
-                <button
-                  v-for="header in esp32_2_Headers"
-                  :key="header.key"
-                  @click="setESP32_2_SortKey(header.key)"
-                  class="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+              
+              <div class="relative">
+                <button 
+                  ref="sortButton2"
+                  @click.stop="toggleDropdown('sort-esp32-2')"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-600 hover:text-blue-600 transition-colors dropdown-trigger"
                 >
-                  {{ header.label }}
-                  <ArrowUpDown v-if="esp32_2_SortKey === header.key" class="h-3 w-3 text-blue-500" />
+                  <ArrowUpDown class="h-3.5 w-3.5" />
+                  Sort
                 </button>
+                
+                <div 
+                  v-show="activeDropdown === 'sort-esp32-2'"
+                  class="fixed bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] dropdown-panel"
+                  :style="getDropdownStyle('sort-esp32-2')"
+                  @click.stop
+                >
+                  <div class="py-1 w-full">
+                    <button
+                      v-for="header in esp32_2_Headers"
+                      :key="header.key"
+                      @click="setESP32_2_SortKey(header.key)"
+                      class="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      {{ header.label }}
+                      <ArrowUpDown v-if="esp32_2_SortKey === header.key" class="h-3 w-3 text-blue-500" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- ESP32-2 Table -->
-          <div class="flex-1 overflow-hidden flex flex-col overflow-x-auto">
-            <!-- Fixed Header -->
-            <div class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-              <table class="min-w-full">
-                <thead>
+          <div class="flex-1 overflow-hidden flex flex-col">
+            <div class="flex-1 overflow-auto bg-white">
+              <table class="min-w-full table-fixed">
+                <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date & Time
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-red-600">Temperature</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(°C)</div>
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-blue-600">Humidity</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(%)</div>
                     </th>
-                    <th class="py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div class="text-cyan-600">Soil Moisture</div>
                       <div class="text-gray-400 text-[6px] md:text-[9px]">(%)</div>
                     </th>
                   </tr>
                 </thead>
-              </table>
-            </div>
-            
-            <!-- Scrollable Body -->
-            <div class="flex-1 overflow-y-auto bg-white">
-              <table class="min-w-full">
+                
                 <tbody class="divide-y divide-gray-100">
                   <tr 
                     v-for="(row, index) in paginatedESP32_2_Data" 
                     :key="index"
                     class="hover:bg-gray-50 transition-colors"
                   >
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[9px] md:text-xs font-medium text-gray-900">{{ row.date }}</div>
                       <div class="text-[7px] md:text-[10px] text-gray-500">{{ row.time }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[9px] md:text-xs font-semibold text-red-600">{{ row.temperature }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[9px] md:text-xs font-semibold text-blue-600">{{ row.humidity }}</div>
                     </td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">
+                    <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
                       <div class="text-[9px] md:text-xs font-semibold text-cyan-600">{{ row.soilMoisture }}</div>
                     </td>
                   </tr>
                   
-                  <!-- Empty state -->
                   <tr v-if="paginatedESP32_2_Data.length === 0 && !isLoading">
                     <td colspan="4" class="px-4 py-8 text-center">
                       <div class="flex flex-col items-center justify-center">
@@ -433,7 +414,6 @@
               </table>
             </div>
 
-            <!-- ESP32-2 Pagination -->
             <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
               <div class="flex items-center justify-between">
                 <div class="text-[10px] md:text-xs text-gray-600">
@@ -465,18 +445,15 @@
     </div>
   </div>
 
-  <!-- Loading Page Component -->
   <LoadingPage 
     :isVisible="isLoading" 
     title="Loading Soil Analysis Data" 
     message="Fetching data from ESP32-1 and ESP32-2 sensors..."
   />
-
-  <!-- <Settings /> -->
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, FileText, FileSearch } from 'lucide-vue-next'
 import Sidebar from '../layout/Sidebar.vue'
 import LoadingPage from '../layout/LoadingPage.vue'
@@ -504,6 +481,16 @@ const esp32_2_Data = ref([]) // Environmental data (temp, humidity, soil moistur
 // Global search
 const globalSearchQuery = ref('')
 const activeDropdown = ref(null)
+
+// Template refs for buttons
+const filterButton1 = ref(null)
+const sortButton1 = ref(null)
+const filterButton2 = ref(null)
+const sortButton2 = ref(null)
+
+// Container refs to constrain dropdowns within their card/table
+const esp32_1_Container = ref(null)
+const esp32_2_Container = ref(null)
 
 // ESP32-1 state
 const esp32_1_SearchQuery = ref('')
@@ -563,17 +550,85 @@ const esp32_2_Headers = [
 
 const exportFormats = ['csv', 'pdf']
 
-// Fetch data from both ESP32 devices separately
+// Constrained dropdown positioning within each card/table container
+const getDropdownStyle = (dropdownId) => {
+  let buttonRef = null
+  let containerRef = null
+
+  if (dropdownId === 'filter-esp32-1') {
+    buttonRef = filterButton1.value
+    containerRef = esp32_1_Container.value
+  } else if (dropdownId === 'sort-esp32-1') {
+    buttonRef = sortButton1.value
+    containerRef = esp32_1_Container.value
+  } else if (dropdownId === 'filter-esp32-2') {
+    buttonRef = filterButton2.value
+    containerRef = esp32_2_Container.value
+  } else if (dropdownId === 'sort-esp32-2') {
+    buttonRef = sortButton2.value
+    containerRef = esp32_2_Container.value
+  }
+
+  if (!buttonRef) return {}
+
+  const btnRect = buttonRef.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const containerRect = containerRef?.getBoundingClientRect?.() || {
+    left: 0, top: 0, right: viewportWidth, bottom: viewportHeight, width: viewportWidth, height: viewportHeight
+  }
+
+  const isFilter = dropdownId.includes('filter')
+  const preferredWidth = isFilter ? 288 : 192 // px
+  const defaultHeight = isFilter ? 320 : 200  // px
+
+  // Compute width that fits inside the container (with padding)
+  const minWidth = 160
+  const availableWidth = Math.max(minWidth, containerRect.width - 16)
+  const actualWidth = Math.min(preferredWidth, availableWidth)
+
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+
+  // Horizontal positioning (clamped to container)
+  const padding = 8
+  const minLeft = containerRect.left + padding
+  const maxLeft = containerRect.right - padding - actualWidth
+  let left = Math.min(Math.max(btnRect.left, minLeft), Math.max(minLeft, maxLeft))
+
+  // Always below button; scroll if not enough space (mobile priority)
+  let top = btnRect.bottom + 8
+
+  if (isMobile) {
+    const bottomSpace = containerRect.bottom - padding - top
+    const maxHeight = Math.max(120, Math.min(defaultHeight, bottomSpace))
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${actualWidth}px`,
+      maxHeight: `${maxHeight}px`
+    }
+  }
+
+  // Desktop clamp inside container
+  const maxTop = containerRect.bottom - padding - defaultHeight
+  const minTop = containerRect.top + padding
+  top = Math.min(Math.max(top, minTop), Math.max(minTop, maxTop))
+  const maxHeight = Math.min(defaultHeight, containerRect.bottom - padding - top)
+
+  return {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${actualWidth}px`,
+    maxHeight: `${maxHeight}px`
+  }
+}
+
+// Fetch data
 const fetchSoilAnalysisData = async () => {
   try {
     isLoading.value = true
-    
-    // Fetch ESP32-1 data (NPK + pH)
     await fetchESP32_1_Data()
-    
-    // Fetch ESP32-2 data (Environmental)
     await fetchESP32_2_Data()
-    
     isLoading.value = false
   } catch (error) {
     console.error("❌ Error fetching soil analysis data:", error)
@@ -594,7 +649,6 @@ const fetchESP32_1_Data = async () => {
     const processedData = snapshot.docs
       .filter(doc => {
         const data = doc.data()
-        // Only include readings that have NPK or pH data
         return data.nitrogen !== undefined || data.phosphorus !== undefined || 
                data.potassium !== undefined || data.soilPh !== undefined
       })
@@ -635,7 +689,6 @@ const fetchESP32_2_Data = async () => {
     const processedData = snapshot.docs
       .filter(doc => {
         const data = doc.data()
-        // Only include readings that have environmental data
         return data.temperature !== undefined || data.humidity !== undefined || data.soilMoisture !== undefined
       })
       .map((doc, index) => {
@@ -661,7 +714,7 @@ const fetchESP32_2_Data = async () => {
   }
 }
 
-// Date and time formatting functions
+// Date/time formatting
 const formatDate = (date) => {
   if (!date) return '--'
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -671,46 +724,31 @@ const formatDate = (date) => {
   return `${month} ${day}, ${year}`
 }
 
-// MODIFIED: Convert military time to 12-hour format with AM/PM
 const formatTime = (date) => {
   if (!date) return '--'
   let hours = date.getHours()
   const minutes = date.getMinutes().toString().padStart(2, '0')
   const ampm = hours >= 12 ? 'PM' : 'AM'
-  
-  // Convert 24-hour to 12-hour format
   hours = hours % 12
-  hours = hours ? hours : 12 // 0 should be 12
+  hours = hours ? hours : 12
   const displayHours = hours.toString().padStart(2, '0')
-  
   return `${displayHours}:${minutes} ${ampm}`
 }
 
-// ESP32-1 computed properties
+// ESP32-1 computed
 const filteredESP32_1_Data = computed(() => {
   let result = [...esp32_1_Data.value]
 
-  // Apply global search
   if (globalSearchQuery.value) {
-    const query = globalSearchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
-    })
+    const q = globalSearchQuery.value.toLowerCase()
+    result = result.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(q)))
   }
 
-  // Apply ESP32-1 specific search
   if (esp32_1_SearchQuery.value) {
-    const query = esp32_1_SearchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
-    })
+    const q = esp32_1_SearchQuery.value.toLowerCase()
+    result = result.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(q)))
   }
 
-  // Apply range filters
   Object.keys(esp32_1_ActiveFilters.value).forEach(key => {
     const { min, max } = esp32_1_ActiveFilters.value[key]
     if (min !== '' && max !== '') {
@@ -731,16 +769,11 @@ const sortedESP32_1_Data = computed(() => {
   return [...filteredESP32_1_Data.value].sort((a, b) => {
     let aValue = a[esp32_1_SortKey.value]
     let bValue = b[esp32_1_SortKey.value]
-    
     if (aValue === '--') aValue = esp32_1_SortDirection.value === 'asc' ? -Infinity : Infinity
     if (bValue === '--') bValue = esp32_1_SortDirection.value === 'asc' ? -Infinity : Infinity
-    
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return esp32_1_SortDirection.value === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
+      return esp32_1_SortDirection.value === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
     }
-    
     return esp32_1_SortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
   })
 })
@@ -751,35 +784,22 @@ const paginatedESP32_1_Data = computed(() => {
   return sortedESP32_1_Data.value.slice(startIndex, endIndex)
 })
 
-const esp32_1_TotalPages = computed(() => {
-  return Math.ceil(sortedESP32_1_Data.value.length / esp32_1_ItemsPerPage.value)
-})
+const esp32_1_TotalPages = computed(() => Math.ceil(sortedESP32_1_Data.value.length / esp32_1_ItemsPerPage.value))
 
-// ESP32-2 computed properties
+// ESP32-2 computed
 const filteredESP32_2_Data = computed(() => {
   let result = [...esp32_2_Data.value]
 
-  // Apply global search
   if (globalSearchQuery.value) {
-    const query = globalSearchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
-    })
+    const q = globalSearchQuery.value.toLowerCase()
+    result = result.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(q)))
   }
 
-  // Apply ESP32-2 specific search
   if (esp32_2_SearchQuery.value) {
-    const query = esp32_2_SearchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
-    })
+    const q = esp32_2_SearchQuery.value.toLowerCase()
+    result = result.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(q)))
   }
 
-  // Apply range filters
   Object.keys(esp32_2_ActiveFilters.value).forEach(key => {
     const { min, max } = esp32_2_ActiveFilters.value[key]
     if (min !== '' && max !== '') {
@@ -796,20 +816,14 @@ const filteredESP32_2_Data = computed(() => {
 
 const sortedESP32_2_Data = computed(() => {
   if (!esp32_2_SortKey.value) return filteredESP32_2_Data.value
-
   return [...filteredESP32_2_Data.value].sort((a, b) => {
     let aValue = a[esp32_2_SortKey.value]
     let bValue = b[esp32_2_SortKey.value]
-    
     if (aValue === '--') aValue = esp32_2_SortDirection.value === 'asc' ? -Infinity : Infinity
     if (bValue === '--') bValue = esp32_2_SortDirection.value === 'asc' ? -Infinity : Infinity
-    
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return esp32_2_SortDirection.value === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
+      return esp32_2_SortDirection.value === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
     }
-    
     return esp32_2_SortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
   })
 })
@@ -820,50 +834,42 @@ const paginatedESP32_2_Data = computed(() => {
   return sortedESP32_2_Data.value.slice(startIndex, endIndex)
 })
 
-const esp32_2_TotalPages = computed(() => {
-  return Math.ceil(sortedESP32_2_Data.value.length / esp32_2_ItemsPerPage.value)
-})
+const esp32_2_TotalPages = computed(() => Math.ceil(sortedESP32_2_Data.value.length / esp32_2_ItemsPerPage.value))
 
 // Methods
-const toggleDropdown = (dropdownName) => {
+const toggleDropdown = async (dropdownName) => {
   if (activeDropdown.value === dropdownName) {
     activeDropdown.value = null
-  } else {
-    activeDropdown.value = dropdownName
+    return
   }
+  activeDropdown.value = dropdownName
+  await nextTick()
 }
 
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.relative')) {
+  // Close when clicking outside triggers and dropdown panels
+  if (!event.target.closest('.dropdown-panel') && !event.target.closest('.dropdown-trigger')) {
     activeDropdown.value = null
   }
 }
 
-// Global search
 const performGlobalSearch = () => {
   esp32_1_CurrentPage.value = 1
   esp32_2_CurrentPage.value = 1
 }
 
 // ESP32-1 methods
-const performESP32_1_Search = () => {
-  esp32_1_CurrentPage.value = 1
-}
+const performESP32_1_Search = () => { esp32_1_CurrentPage.value = 1 }
 
 const applyESP32_1_Filters = () => {
   const newFilters = {}
   Object.keys(esp32_1_Filters.value).forEach(key => {
     const min = parseFloat(esp32_1_Filters.value[key].min)
     const max = parseFloat(esp32_1_Filters.value[key].max)
-    
     if (!isNaN(min) || !isNaN(max)) {
-      newFilters[key] = {
-        min: isNaN(min) ? '' : min,
-        max: isNaN(max) ? '' : max
-      }
+      newFilters[key] = { min: isNaN(min) ? '' : min, max: isNaN(max) ? '' : max }
     }
   })
-
   esp32_1_ActiveFilters.value = newFilters
   esp32_1_CurrentPage.value = 1
   activeDropdown.value = null
@@ -879,37 +885,21 @@ const setESP32_1_SortKey = (key) => {
   activeDropdown.value = null
 }
 
-const nextESP32_1_Page = () => {
-  if (esp32_1_CurrentPage.value < esp32_1_TotalPages.value) {
-    esp32_1_CurrentPage.value++
-  }
-}
-
-const prevESP32_1_Page = () => {
-  if (esp32_1_CurrentPage.value > 1) {
-    esp32_1_CurrentPage.value--
-  }
-}
+const nextESP32_1_Page = () => { if (esp32_1_CurrentPage.value < esp32_1_TotalPages.value) esp32_1_CurrentPage.value++ }
+const prevESP32_1_Page = () => { if (esp32_1_CurrentPage.value > 1) esp32_1_CurrentPage.value-- }
 
 // ESP32-2 methods
-const performESP32_2_Search = () => {
-  esp32_2_CurrentPage.value = 1
-}
+const performESP32_2_Search = () => { esp32_2_CurrentPage.value = 1 }
 
 const applyESP32_2_Filters = () => {
   const newFilters = {}
   Object.keys(esp32_2_Filters.value).forEach(key => {
     const min = parseFloat(esp32_2_Filters.value[key].min)
     const max = parseFloat(esp32_2_Filters.value[key].max)
-    
     if (!isNaN(min) || !isNaN(max)) {
-      newFilters[key] = {
-        min: isNaN(min) ? '' : min,
-        max: isNaN(max) ? '' : max
-      }
+      newFilters[key] = { min: isNaN(min) ? '' : min, max: isNaN(max) ? '' : max }
     }
   })
-
   esp32_2_ActiveFilters.value = newFilters
   esp32_2_CurrentPage.value = 1
   activeDropdown.value = null
@@ -925,21 +915,11 @@ const setESP32_2_SortKey = (key) => {
   activeDropdown.value = null
 }
 
-const nextESP32_2_Page = () => {
-  if (esp32_2_CurrentPage.value < esp32_2_TotalPages.value) {
-    esp32_2_CurrentPage.value++
-  }
-}
-
-const prevESP32_2_Page = () => {
-  if (esp32_2_CurrentPage.value > 1) {
-    esp32_2_CurrentPage.value--
-  }
-}
+const nextESP32_2_Page = () => { if (esp32_2_CurrentPage.value < esp32_2_TotalPages.value) esp32_2_CurrentPage.value++ }
+const prevESP32_2_Page = () => { if (esp32_2_CurrentPage.value > 1) esp32_2_CurrentPage.value-- }
 
 // Export functions
 const exportAllData = async (format) => {
-  // Prepare headers and rows for both tables
   const esp32_1_Headers = ['Date', 'Time', 'Device', 'Nitrogen', 'Phosphorus', 'Potassium', 'pH']
   const esp32_2_Headers = ['Date', 'Time', 'Device', 'Temperature', 'Humidity', 'Soil Moisture']
 
@@ -953,193 +933,95 @@ const exportAllData = async (format) => {
   if (format === 'csv') {
     let csvContent = 'ESP32-1 Data (NPK + pH)\n'
     csvContent += esp32_1_Headers.join(',') + '\n'
-    esp32_1_Rows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
+    esp32_1_Rows.forEach(row => { csvContent += row.map(val => `"${val}"`).join(',') + '\n' })
     csvContent += '\nESP32-2 Data (Environmental)\n'
     csvContent += esp32_2_Headers.join(',') + '\n'
-    esp32_2_Rows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
+    esp32_2_Rows.forEach(row => { csvContent += row.map(val => `"${val}"`).join(',') + '\n' })
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     saveAs(blob, 'soil_analysis_combined_data.csv')
-    window.showToast('Soil Analysis exported as CSV', 'success')
+    window.showToast && window.showToast('Soil Analysis exported as CSV', 'success')
   } else if (format === 'pdf') {
     const doc = new jsPDF()
     doc.text('ESP32-1 Data (NPK + pH)', 14, 16)
-    autoTable(doc, {
-      head: [esp32_1_Headers],
-      body: esp32_1_Rows,
-      startY: 22,
-      styles: { fontSize: 9 }
-    })
+    autoTable(doc, { head: [esp32_1_Headers], body: esp32_1_Rows, startY: 22, styles: { fontSize: 9 } })
     let finalY = doc.lastAutoTable.finalY || 22
     doc.text('ESP32-2 Data (Environmental)', 14, finalY + 10)
-    autoTable(doc, {
-      head: [esp32_2_Headers],
-      body: esp32_2_Rows,
-      startY: finalY + 16,
-      styles: { fontSize: 9 }
-    })
+    autoTable(doc, { head: [esp32_2_Headers], body: esp32_2_Rows, startY: finalY + 16, styles: { fontSize: 9 } })
     doc.save('soil_analysis_combined_data.pdf')
-    window.showToast('Soil Analysis exported as PDF', 'success')
-  } else if (format === 'docs') {
-    // Word export
-    const tableRows1 = [
-      new TableRow({
-        children: esp32_1_Headers.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...esp32_1_Rows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const tableRows2 = [
-      new TableRow({
-        children: esp32_2_Headers.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...esp32_2_Rows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'ESP32-1 Data (NPK + pH)', heading: 'Heading1' }),
-          new Table({ rows: tableRows1 }),
-          new Paragraph({ text: 'ESP32-2 Data (Environmental)', heading: 'Heading1' }),
-          new Table({ rows: tableRows2 })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'soil_analysis_combined_data.docx')
+    window.showToast && window.showToast('Soil Analysis exported as PDF', 'success')
   }
   activeDropdown.value = null
 }
 
-const exportAsCSV = () => {
-  // Combine both datasets for export
-  const esp32_1_Headers = ['Date', 'Time', 'Device', 'Nitrogen', 'Phosphorus', 'Potassium', 'pH']
-  const esp32_2_Headers = ['Date', 'Time', 'Device', 'Temperature', 'Humidity', 'Soil Moisture']
-  
-  let csvContent = 'ESP32-1 Data (NPK + pH)\n'
-  csvContent += esp32_1_Headers.join(',') + '\n'
-  
-  sortedESP32_1_Data.value.forEach(row => {
-    csvContent += `${row.date},${row.time},${row.deviceId},${row.nitrogen},${row.phosphorus},${row.potassium},${row.ph}\n`
-  })
-  
-  csvContent += '\n\nESP32-2 Data (Environmental)\n'
-  csvContent += esp32_2_Headers.join(',') + '\n'
-  
-  sortedESP32_2_Data.value.forEach(row => {
-    csvContent += `${row.date},${row.time},${row.deviceId},${row.temperature},${row.humidity},${row.soilMoisture}\n`
-  })
+// Watchers
+watch([globalSearchQuery, esp32_1_SearchQuery, esp32_1_ActiveFilters], () => { esp32_1_CurrentPage.value = 1 })
+watch([globalSearchQuery, esp32_2_SearchQuery, esp32_2_ActiveFilters], () => { esp32_2_CurrentPage.value = 1 })
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'soil_analysis_combined_data.csv')
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+// Close dropdowns on resize or page-level scrolls, but allow scrolling inside the panel
+const handleResize = () => { if (activeDropdown.value) activeDropdown.value = null }
+const handleAnyScroll = (e) => {
+  if (e?.target && e.target.closest && e.target.closest('.dropdown-panel')) {
+    // Allow internal panel scroll without closing
+    return
+  }
+  if (activeDropdown.value) activeDropdown.value = null
 }
 
-const exportAsPDF = () => {
-  alert('PDF export would be implemented with a library like jsPDF')
-}
-
-const exportAsDocs = () => {
-  alert('DOCS export would be implemented with a library for document generation')
-}
-
-// Watch for changes that should reset pagination
-watch([globalSearchQuery, esp32_1_SearchQuery, esp32_1_ActiveFilters], () => {
-  esp32_1_CurrentPage.value = 1
-})
-
-watch([globalSearchQuery, esp32_2_SearchQuery, esp32_2_ActiveFilters], () => {
-  esp32_2_CurrentPage.value = 1
-})
-
-// Lifecycle hooks
+// Lifecycle
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+  document.addEventListener('scroll', handleAnyScroll, true)
   fetchSoilAnalysisData()
- 
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
+  document.removeEventListener('scroll', handleAnyScroll, true)
 })
 </script>
 
 <style scoped>
 /* Custom scrollbar for tables */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
+.overflow-auto::-webkit-scrollbar-track { background: #f8fafc; }
+.overflow-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.overflow-auto::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f8fafc;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 2px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+/* Ensure table layout is fixed and columns align properly */
+.table-fixed { table-layout: fixed; }
 
 /* Smooth transitions */
-.transition-colors {
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-}
+.transition-colors { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
 
 /* Table hover effects */
-tbody tr:hover {
-  background-color: #f9fafb;
-}
+tbody tr:hover { background-color: #f9fafb; }
 
-/* Responsive design */
+/* Responsive layout (unchanged) */
 @media (max-width: 1024px) {
-  .flex-1 {
-    width: 100%;
-  }
-  
-  .flex.gap-4 {
-    flex-direction: column;
-    gap: 1rem;
-  }
+  .flex-1 { width: 100%; }
+  .flex.gap-4 { flex-direction: column; gap: 1rem; }
 }
 
-.text-9px {
-  font-size: 9px;
-  line-height: 1.2;
+.text-9px { font-size: 9px; line-height: 1.2; }
+.text-10px { font-size: 10px; line-height: 1.3; }
+
+/* Dropdown base: allow scrolling and momentum on mobile.
+   The JS-inlined maxHeight will still cap the height precisely per container. */
+.dropdown-panel {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
-.text-10px {
-  font-size: 10px;
-  line-height: 1.3;
+/* Mobile-specific improvements for better touch scrolling */
+@media (max-width: 768px) {
+  .dropdown-panel {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 </style>
