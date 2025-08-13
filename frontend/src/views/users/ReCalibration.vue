@@ -1230,8 +1230,28 @@ watch([esp1Config, esp2Config, esp3Config], ([newEsp1, newEsp2, newEsp3], [oldEs
 }, { deep: true })
 
 const navigateToRecalibration = (device) => {
-  window.location.href = `/${device}`;
+  let domain;
+  
+  switch(device) {
+    case 'esp32-1':
+      domain = 'npkdevice.local';
+      break;
+    case 'esp32-2':
+      domain = 'esp32env.local';
+      break;
+    case 'esp32-3':
+      domain = 'waterlevel.local';
+      break;
+    default:
+      // Fallback in case of unexpected device value
+      domain = device;
+  }
+  
+  // Redirect to the appropriate local domain
+  window.location.href = `http://${domain}`;
 }
+
+
 
 const getWifiArcColor = (strength) => {
   if (strength >= 75) return '#10b981' // green-500
