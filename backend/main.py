@@ -9,12 +9,12 @@ from apscheduler.triggers.cron import CronTrigger
 
 # Custom module imports
 from app.services.firebase_service import firebase_admin
-from app.routers import crop_router, auth_router, sensor_data, notif, motor_status, water_scheduling_router, esp1, esp2, esp3, sms
+from app.routers import crop_router, auth_router, sensor_data, notif, motor_status, water_scheduling_router, esp1, esp2, esp3, sms, esp32_ip
 # sms, otp
 from app.ml.weather_ml.forecast.forecast import main as run_forecast
 # from app.ml.weather_ml.forecast.get_dataset import main as update_dataset
 from app.services.backend_ip import save_backend_ip
-
+from app.services.esp32_ip_manager import ip_manager
 # ======== ENV & LOG SETUP =========
 load_dotenv()
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
@@ -28,6 +28,7 @@ app = FastAPI(title="Crop Recommendation API")
 
 # ======== CORS CONFIG =========
 origins = [
+    "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
@@ -51,6 +52,7 @@ app.include_router(sms.router, prefix="/api/sms", tags=["sms"])
 app.include_router(esp1.router)
 app.include_router(esp2.router)
 app.include_router(esp3.router)
+app.include_router(esp32_ip.router)
 
 
 

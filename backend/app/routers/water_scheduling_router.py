@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder  # ✅ Add this line
 from firebase_admin import firestore
 from pydantic import BaseModel
 from typing import Optional, List, Union
 from datetime import datetime, timedelta
+from dependencies import get_esp32_ip
 import time
 import pytz
 import json
@@ -185,7 +186,7 @@ def get_schedules_for_esp32():
         })
     
 @router.post("/api/watering-schedule")
-async def handle_schedule_operation(request: Request):
+async def handle_schedule_operation(request: Request,esp_ip: str = Depends(get_esp32_ip)):
     try:
         body = await request.json()
 
@@ -226,7 +227,7 @@ async def handle_schedule_operation(request: Request):
             db.collection("watering_schedules").document(schedule.id).delete()
 
             # ✅ Notify ESP32 to delete the same ID from its memory
-            esp_url = "http://192.168.1.14/watering-schedule"  # <-- adjust if needed
+            esp_url = "http://{esp_ip}/watering-schedule"  # <-- adjust if needed
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     response = await client.post(esp_url, json={
@@ -275,7 +276,7 @@ async def handle_schedule_operation(request: Request):
         }
 
         # Send to ESP32
-        esp_url = "http://192.168.1.14/watering-schedule"
+        esp_url = "http://{esp_ip}/watering-schedule"
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.post(

@@ -679,6 +679,7 @@ import {
 import LogoutModal from '../layout/LogoutModal.vue'
 import { getDoc, doc, updateDoc, getFirestore, addDoc } from 'firebase/firestore'
 import { collection, query, where, onSnapshot, getDocs, serverTimestamp } from "firebase/firestore"
+import api from '../../api/index.js'
 
 const db = getFirestore()
 const router = useRouter()
@@ -1404,21 +1405,43 @@ const handleResetPassword = async () => {
       return;
     }
 
-    const userDocRef = snapshot.docs[0].ref;
-    await updateDoc(userDocRef, updateData);
+    const userDoc = snapshot.docs[0];
+    await updateDoc(doc(db, 'users', userDoc.id), updateData);
 
-    const updatedUser = { ...user.value, ...updateData };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    sessionStorage.setItem('user', JSON.stringify(updatedUser));
-    user.value = updatedUser;
+    // Get fresh user data from Firestore
+    const updatedUserDoc = await getDoc(doc(db, 'users', userDoc.id));
+    const updatedUserData = updatedUserDoc.data();
 
-    showToastMessage('Your credentials have been reset successfully.');
+    // Create complete user object for store
+    const updatedUser = {
+      ...userStore.user,
+      ...updatedUserData,
+      id: userDoc.id
+    };
+
+    // Update store and storage
+    userStore.setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify({
+      user: updatedUser,
+      userId: userDoc.id
+    }));
+    
+    // Clear any session storage if used
+    sessionStorage.removeItem('user');
+
+    // Force refresh of auth state
+    await userStore.loadUser();
+
+    showToastMessage('Your credentials have been reset successfully!');
+    
+    // Reset form state
     toggleResetPasswordSection();
     currentResetStep.value = 1;
     newResetPassword.value = '';
     confirmResetPassword.value = '';
     newResetPin.value = '';
     confirmResetPin.value = '';
+    verificationDigits.value = ['', '', '', '', '', ''];
 
   } catch (error) {
     console.error("Error resetting password:", error);

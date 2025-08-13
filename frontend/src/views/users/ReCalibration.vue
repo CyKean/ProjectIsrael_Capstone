@@ -2,222 +2,263 @@
   <!-- Container Wrapper with optimized spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto transition-all duration-300 ease-in-out hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)]">
+    <!-- removed hover effect and fixed width to align with navbar -->
+    <!-- Added mobile-specific overflow and height classes for scrollability -->
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-full max-w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-hidden md:overflow-visible">
       <!-- Content Wrapper -->
-      <div class="p-0">
+      <!-- Added mobile overflow scrolling while preserving desktop flex behavior -->
+      <div class="p-0 h-full flex flex-col overflow-y-auto md:overflow-visible">
         <!-- Header Section with Light Green Background -->
-        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 rounded-t-[20px] p-4 md:px-6 md:py-6">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 rounded-t-[20px] p-4 md:px-6 md:py-4 flex-shrink-0">
           <div class="flex items-center flex-col md:flex-row justify-between">
             <div>
-              <h1 class="text-md md:text-2xl font-semibold text-gray-800 mb-2">Device Recalibration</h1>
-              <p class="text-xs md:text-sm text-gray-600">Configure and calibrate your ESP32 sensor devices</p>
-            </div>
-            <div class="flex items-center space-x-3">
-              <div class="relative">
-                <input 
-                  v-model="searchQuery"
-                  type="text" 
-                  placeholder="Search configurations..." 
-                  class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64 text-xs md:text-sm bg-white"
-                >
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </div>
-              <button @click="exportConfigurations" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-xs md:text-sm font-medium">
-                <Download class="w-3 h-3 md:w-4 md:h-4" />
-                <span>Export All</span>
-              </button>
+              <h1 class="text-md md:text-xl font-semibold text-gray-800 mb-1">WiFi/Device Configuration</h1>
+              <!-- made subtitle text smaller to match Device Control page font size -->
+              <p class="text-xs text-gray-600">Configure and calibrate your ESP32 sensor devices</p>
             </div>
           </div>
         </div>
 
         <!-- Main Content Area -->
-        <div class="p-2 md:p-6">
-          <!-- 3-Column ESP32 Layout with FIXED HEIGHT -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <!-- ESP32-1 Container - FIXED HEIGHT -->
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-auto md:overflow-hidden hover:shadow-md transition-shadow h-80">
-              <!-- ESP32-1 Header -->
-              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-                <div class="flex items-start flex-row space-x-4 md:space-x-3">
-                  <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Cpu class="w-6 h-6 text-green-600" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-1 SENSORS</h2>
-                    <p class="text-xs md:text-sm text-gray-600">NPK + Soil pH Monitoring</p>
-                  </div>
+        <!-- changed to 3-column layout: 1/4, 2/4, 1/4 using grid-cols-4 -->
+        <!-- Added mobile-specific min-height and flex behavior for proper scrolling -->
+        <div class="p-4 md:p-6 lg:p-8 flex-1 flex items-stretch min-h-0 md:min-h-auto">
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 w-full min-h-full md:min-h-auto">
+            <!-- Left Container - WiFi Indicator (1/4 width) -->
+            <!-- removed hover effects from main container - removed hover:shadow-lg and other hover classes -->
+            <div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
+              <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
+                <!-- Made WiFi symbol much larger and improved hover trigger area -->
+                <!-- Reduced WiFi icon size on mobile -->
+                <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
+                  <!-- Real WiFi Symbol with Dynamic Signal Strength -->
+                  <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
+                    <!-- WiFi Base Dot -->
+                    <circle 
+                      cx="40" 
+                      cy="50" 
+                      r="4" 
+                      :fill="getWifiArcColor(wifiDetails.signalStrength)"
+                      class="drop-shadow-sm"
+                    />
+                    
+                    <!-- Arc 1 - Always visible for any connection -->
+                    <path 
+                      d="M 30 42 Q 40 32 50 42" 
+                      stroke-width="4" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      :stroke="wifiDetails.signalStrength >= 25 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+                      :opacity="wifiDetails.signalStrength >= 25 ? 1 : 0.3"
+                      class="transition-all duration-500 drop-shadow-sm"
+                    />
+                    
+                    <!-- Arc 2 - Visible at 50%+ signal -->
+                    <path 
+                      d="M 22 35 Q 40 15 58 35" 
+                      stroke-width="4" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      :stroke="wifiDetails.signalStrength >= 50 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+                      :opacity="wifiDetails.signalStrength >= 50 ? 1 : 0.3"
+                      class="transition-all duration-500 drop-shadow-sm"
+                    />
+                    
+                    <!-- Arc 3 - Visible at 75%+ signal -->
+                    <path 
+                      d="M 14 28 Q 40 5 66 28" 
+                      stroke-width="4" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      :stroke="wifiDetails.signalStrength >= 75 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+                      :opacity="wifiDetails.signalStrength >= 75 ? 1 : 0.3"
+                      class="transition-all duration-500 drop-shadow-sm"
+                    />
+                    
+                    <!-- Arc 4 - Visible at 90%+ signal (excellent) -->
+                    <path 
+                      d="M 6 21 Q 40 -5 74 21" 
+                      stroke-width="4" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      :stroke="wifiDetails.signalStrength >= 90 ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
+                      :opacity="wifiDetails.signalStrength >= 90 ? 1 : 0.3"
+                      class="transition-all duration-500 drop-shadow-sm"
+                    />
+                  </svg>
                 </div>
-              </div>
-              
-              <!-- ESP32-1 Content -->
-              <div class="p-4 flex-1 flex flex-col justify-between overflow-auto">
-                <!-- Description -->
-                <div class="mb-4">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <div class="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle class="w-3 h-3 text-green-600" />
-                    </div>
-                    <span class="text-sm font-medium text-gray-800">Device Status</span>
+
+                <!-- Dynamic Connection Status based on signal strength -->
+                <!-- Adjusted text sizes and spacing for mobile -->
+                <div class="text-center space-y-1 md:space-y-2">
+                  <h3 class="text-sm md:text-base font-semibold text-gray-800">WiFi Connection</h3>
+                  <div class="flex items-center justify-center space-x-2">
+                    <div 
+                      class="w-2 h-2 rounded-full transition-colors duration-300"
+                      :class="[
+                        wifiDetails.signalStrength >= 25 ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'
+                      ]"
+                    ></div>
+                    <span 
+                      class="text-xs md:text-sm font-medium transition-colors duration-300"
+                      :class="[
+                        wifiDetails.signalStrength >= 25 ? 'text-green-600' : 'text-red-600'
+                      ]"
+                    >
+                      {{ getConnectionStatus() }}
+                    </span>
                   </div>
-                  <p class="text-xs text-green-600 mb-3">Online & Connected</p>
-                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
-                    Monitor soil nutrients (NPK) and pH levels for optimal plant growth. 
-                    Configure calibration values and WiFi settings for accurate readings.
-                  </p>
+                  <p class="text-xs md:text-sm text-gray-600">Signal: {{ getSignalStrengthText() }}</p>
                 </div>
-                
-                <!-- Recalibrate Button -->
-                <button 
-                  @click="openModal('esp1')" 
-                  class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Settings class="w-4 h-4" />
-                  <span>Recalibrate</span>
-                </button>
               </div>
             </div>
 
-            <!-- ESP32-2 Container - FIXED HEIGHT -->
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
-              <!-- ESP32-2 Header -->
-              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div class="flex items-start flex-row space-x-4 md:space-x-3">
-                  <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Cloud class="w-6 h-6 text-blue-600" />
+            <!-- Middle Container - Configuration Form (2/4 width) -->
+            <!-- changed from col-span-3 to col-span-2 for middle container -->
+            <div class="lg:col-span-2 bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
+              <div class="flex flex-col h-full min-h-[200px] space-y-4">
+                <!-- Header -->
+                <div class="text-center">
+                  <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Settings class="w-6 h-6 text-white" />
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-2 SENSORS</h2>
-                    <p class="text-xs md:text-sm text-gray-600">Environmental Monitoring</p>
-                  </div>
+                  <h2 class="text-xl font-semibold text-gray-800 mb-2">ESP32 Configuration</h2>
+                  <p class="text-sm text-gray-600">Enter device details and manage calibration</p>
                 </div>
-              </div>
-              
-              <!-- ESP32-2 Content -->
-              <div class="p-4 flex-1 flex flex-col justify-between overflow-auto">
-                <!-- Description -->
-                <div class="mb-4">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <div class="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 class="w-3 h-3 text-blue-600" />
+
+                <!-- Form Content -->
+                <div class="flex-1 flex flex-col justify-center space-y-4">
+                  <!-- IP Address Input -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ESP32 IP Address</label>
+                    <div class="relative">
+                      <input
+                        v-model="esp32Config.ipAddress"
+                        type="text"
+                        placeholder="192.168.1.100"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        :class="{ 'border-red-300 focus:ring-red-500': esp32Config.ipAddress && !isValidIP(esp32Config.ipAddress) }"
+                      />
+                      <div v-if="isValidIP(esp32Config.ipAddress)" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                      </div>
                     </div>
-                    <span class="text-sm font-medium text-gray-800">Device Status</span>
+                    <p class="text-xs text-gray-500 mt-1">Enter the local IP address of your ESP32 device</p>
                   </div>
-                  <p class="text-xs text-blue-600 mb-3">Online & Connected</p>
-                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
-                    Track temperature, humidity, and soil moisture levels. 
-                    Set watering thresholds and calibrate environmental sensors for precise monitoring.
-                  </p>
+
+                  <!-- Action Buttons -->
+                  <div class="space-y-3">
+                    <!-- Changed button colors from blue to green gradient -->
+                    <!-- Primary Save IP Button -->
+                    <button 
+                      @click="saveIPAddress"
+                      :disabled="!isValidIP(esp32Config.ipAddress) || isSaving"
+                      class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 disabled:cursor-not-allowed relative overflow-hidden"
+                    >
+                      <!-- Changed loading animation dots from blue to green -->
+                      <!-- Loading Animation -->
+                      <div v-if="isSaving" class="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center">
+                        <div class="flex space-x-1">
+                          <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                          <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                          <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                        </div>
+                      </div>
+                      
+                      <!-- Button Content -->
+                      <div v-if="!isSaving" class="flex items-center space-x-2">
+                        <Save class="w-4 h-4" />
+                        <span>Save IP Address</span>
+                      </div>
+                      
+                      <!-- Loading Text -->
+                      <span v-if="isSaving" class="text-white font-medium">Saving...</span>
+                    </button>
+
+                    <!-- Secondary Actions -->
+                    <div class="grid grid-cols-2 gap-2">
+                      <button 
+                        @click="testConnection"
+                        class="bg-white hover:bg-gray-50 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                      >
+                        <Zap class="w-4 h-4" />
+                        <span>Test Connection</span>
+                      </button>
+                      
+                      <button 
+                        @click="showDeviceInfo"
+                        class="bg-white hover:bg-gray-50 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                      >
+                        <Info class="w-4 h-4" />
+                        <span>Device Info</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                
-                <!-- Recalibrate Button -->
-                <button 
-                  @click="openModal('esp2')" 
-                  class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Settings class="w-4 h-4" />
-                  <span>Recalibrate</span>
-                </button>
+
+                <!-- Connection Status -->
+                <div class="flex items-center justify-between text-sm pt-3 border-t border-gray-200">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-green-600 font-medium">Device Connected</span>
+                  </div>
+                  <span class="text-gray-500">Just now</span>
+                </div>
               </div>
             </div>
 
-            <!-- ESP32-3 Container - FIXED HEIGHT -->
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow h-80">
-              <!-- ESP32-3 Header -->
-              <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-teal-50">
-                <div class="flex items-start flex-row md:space-x-3 space-x-4">
-                  <div class="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Droplets class="w-6 h-6 text-cyan-600" />
+            <!-- Added new right container for ESP32 recalibration buttons (1/4 width) -->
+            <!-- Right Container - ESP32 Recalibration Options -->
+            <div class="lg:col-span-1 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
+              <div class="flex flex-col h-full min-h-[200px] space-y-4">
+                <!-- Header -->
+                <div class="text-center">
+                  <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <RefreshCw class="w-5 h-5 text-white" />
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <h2 class="text-md md:text-lg font-semibold text-gray-800 mb-1">ESP32-3 SENSORS</h2>
-                    <p class="text-xs md:text-sm text-gray-600">Water Level Monitoring</p>
-                  </div>
+                  <h3 class="text-lg font-semibold text-gray-800 mb-2">Device Recalibration</h3>
+                  <p class="text-xs text-gray-600">Quick access to ESP32 devices</p>
                 </div>
-              </div>
-              
-              <!-- ESP32-3 Content -->
-              <div class="p-4 flex-1 flex flex-col justify-between">
-                <!-- Description -->
-                <div class="mb-4">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <div class="w-6 h-6 bg-cyan-100 rounded-lg flex items-center justify-center">
-                      <Container class="w-3 h-3 text-cyan-600" />
-                    </div>
-                    <span class="text-sm font-medium text-gray-800">Device Status</span>
-                  </div>
-                  <p class="text-xs text-cyan-600 mb-3">Online & Connected</p>
-                  <p class="text-xs md:text-sm text-gray-600 leading-relaxed">
-                    Monitor water tank levels with ultrasonic sensors. 
-                    Configure tank dimensions and alert thresholds for automated water management.
-                  </p>
-                </div>
-                
-                <!-- Recalibrate Button -->
-                <button 
-                  @click="openModal('esp3')" 
-                  class="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Settings class="w-4 h-4" />
-                  <span>Recalibrate</span>
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <!-- Enhanced Global Actions -->
-          <div class="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200 shadow-sm">
-            <div class="flex items-center flex-col md:flex-row justify-between mb-4">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Database class="w-5 h-5 text-white" />
+                <!-- ESP32 Recalibration Buttons -->
+                <div class="flex-1 flex flex-col justify-center space-y-3">
+                  <button 
+                    @click="navigateToRecalibration('esp32-1')"
+                    class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                  >
+                    <Cpu class="w-4 h-4" />
+                    <span>ESP32-1 Recalibrate</span>
+                  </button>
+
+                  <!-- Changed ESP32-2 button from blue to green gradient -->
+                  <button 
+                    @click="navigateToRecalibration('esp32-2')"
+                    class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                  >
+                    <Cpu class="w-4 h-4" />
+                    <span>ESP32-2 Recalibrate</span>
+                  </button>
+
+                  <!-- Changed ESP32-3 button from teal to green gradient -->
+                  <button 
+                    @click="navigateToRecalibration('esp32-3')"
+                    class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                  >
+                    <Cpu class="w-4 h-4" />
+                    <span>ESP32-3 Recalibrate</span>
+                  </button>
                 </div>
-                <div>
-                  <h3 class="text-md md:text-lg font-semibold text-gray-800">Global Actions</h3>
-                  <p class="text-xs md:text-sm text-gray-600">Manage all ESP32 configurations at once</p>
+
+                <!-- Quick Status -->
+                <div class="text-center pt-3 border-t border-emerald-200">
+                  <p class="text-xs text-gray-600">All devices online</p>
+                  <div class="flex justify-center space-x-1 mt-1">
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                  </div>
                 </div>
               </div>
-              <div class="flex items-center space-x-2 text-sm text-gray-500">
-                <Zap class="w-4 h-4" />
-                <span>Quick Actions</span>
-              </div>
-            </div>
-            
-            <div class="grid grid-cols-3 md:grid-cols-3 gap-4">
-              <button @click="saveAllConfigurations" class="group bg-white hover:bg-green-50 border border-gray-200 hover:border-green-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center transition-colors">
-                    <Save class="w-5 h-5 text-green-600" />
-                  </div>
-                  <div class="text-left hidden md:block">
-                    <h4 class="font-medium text-gray-800 group-hover:text-green-700">Save All</h4>
-                    <p class="text-xs text-gray-500">Save all configurations</p>
-                  </div>
-                </div>
-              </button>
-              
-              <button @click="resetAllConfigurations" class="group bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-red-100 group-hover:bg-red-200 rounded-lg flex items-center justify-center transition-colors">
-                    <RotateCcw class="w-5 h-5 text-red-600" />
-                  </div>
-                  <div class="text-left hidden md:block">
-                    <h4 class="font-medium text-gray-800 group-hover:text-red-700">Reset All</h4>
-                    <p class="text-xs text-gray-500">Reset to defaults</p>
-                  </div>
-                </div>
-              </button>
-              
-              <button @click="importConfigurations" class="group bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg p-4 transition-all duration-200 hover:shadow-md">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors">
-                    <Upload class="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div class="text-left hidden md:block">
-                    <h4 class="font-medium text-gray-800 group-hover:text-blue-700">Import Config</h4>
-                    <p class="text-xs text-gray-500">Import configuration file</p>
-                  </div>
-                </div>
-              </button>
             </div>
           </div>
         </div>
@@ -255,9 +296,10 @@
           <div class="space-y-6">
             <!-- WiFi and Server Settings -->
             <div class="space-y-4">
+              <!-- Changed WiFi icon background from blue to green -->
               <div class="flex items-center space-x-2 mb-3">
-                <div class="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <Wifi class="w-3 h-3 text-blue-600" />
+                <div class="w-6 h-6 bg-green-50 rounded-lg flex items-center justify-center">
+                  <Wifi class="w-3 h-3 text-green-600" />
                 </div>
                 <h3 class="font-medium text-gray-800">WiFi and Server Settings</h3>
               </div>
@@ -322,12 +364,13 @@
 
                 <!-- Phosphorus Offset -->
                 <div class="relative">
-                  <label class="block text-sm font-medium text-blue-600 mb-2">Phosphorus (mg/kg)</label>
+                  <!-- Changed phosphorus label color from blue to green -->
+                  <label class="block text-sm font-medium text-green-600 mb-2">Phosphorus (mg/kg)</label>
                   <input 
                     v-model.number="esp1Config.phosphorusOffset" 
                     type="number" 
                     step="0.1" 
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" 
+                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                     placeholder="0.0"
                     @focus="showTooltip.phosphorus = true"
                     @blur="showTooltip.phosphorus = false"
@@ -335,7 +378,8 @@
                   <!-- Simplified Tooltip -->
                   <div v-if="showTooltip.phosphorus" class="absolute z-50 top-full left-0 mt-2 w-56 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl pointer-events-none">
                     <div class="flex items-start space-x-2">
-                      <Info class="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <!-- Changed tooltip icon color from blue to green -->
+                      <Info class="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
                       <div class="leading-relaxed">
                         <div class="font-medium mb-1">Calibration Offset</div>
                         <div>Enter + or - value to adjust reading if sensor is slightly off</div>
@@ -347,12 +391,13 @@
 
                 <!-- Potassium Offset -->
                 <div class="relative">
-                  <label class="block text-sm font-medium text-purple-600 mb-2">Potassium (mg/kg)</label>
+                  <!-- Changed potassium label color from purple to green -->
+                  <label class="block text-sm font-medium text-green-600 mb-2">Potassium (mg/kg)</label>
                   <input 
                     v-model.number="esp1Config.potassiumOffset" 
                     type="number" 
                     step="0.1" 
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-sm" 
+                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                     placeholder="0.0"
                     @focus="showTooltip.potassium = true"
                     @blur="showTooltip.potassium = false"
@@ -360,7 +405,8 @@
                   <!-- Simplified Tooltip -->
                   <div v-if="showTooltip.potassium" class="absolute z-50 top-full left-0 mt-2 w-56 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl pointer-events-none">
                     <div class="flex items-start space-x-2">
-                      <Info class="w-3 h-3 text-purple-400 flex-shrink-0 mt-0.5" />
+                      <!-- Changed tooltip icon color from purple to green -->
+                      <Info class="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
                       <div class="leading-relaxed">
                         <div class="font-medium mb-1">Calibration Offset</div>
                         <div>Enter + or - value to adjust reading if sensor is slightly off</div>
@@ -409,27 +455,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Modal Footer - Fixed -->
-        <div class="flex-shrink-0 p-6 border-t border-gray-100 bg-gray-50/50">
-          <div class="flex flex-wrap gap-3 justify-end">
-            <button @click="closeModal" class="px-4 py-2 border border-red-400 hover:border-red-500 hover:bg-red-100 text-red-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <X class="w-4 h-4 text-red-500" />
-              <span>CANCEL</span>
-            </button>
-            <button @click="resetConfiguration('esp1')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <RefreshCcw class="w-4 h-4" />
-              <span>RESET</span>
-            </button>
-            <button 
-              @click="applyConfiguration('esp1')" 
-              :disabled = "isSaving"
-              class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <Check class="w-4 h-4" />
-              <span>{{ isSaving ? 'SAVING...' : 'APPLY' }}</span>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- ESP32-2 Modal -->
@@ -437,8 +462,9 @@
         <!-- Modal Header - Fixed -->
         <div class="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
           <div class="flex items-center flex-row space-x-4 md:space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
-              <Cloud class="w-5 h-5 text-blue-600" />
+            <!-- Changed ESP32-2 modal header icon background from blue to green -->
+            <div class="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+              <Cloud class="w-5 h-5 text-green-600" />
             </div>
             <div>
               <h2 class="text-md md:text-lg font-semibold text-gray-800">ESP32-2 Configuration</h2>
@@ -455,9 +481,10 @@
           <div class="space-y-6">
             <!-- WiFi Configuration -->
             <div class="space-y-4">
+              <!-- Changed WiFi icon background from blue to green -->
               <div class="flex items-center space-x-2 mb-3">
-                <div class="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <Wifi class="w-3 h-3 text-blue-600" />
+                <div class="w-6 h-6 bg-green-50 rounded-lg flex items-center justify-center">
+                  <Wifi class="w-3 h-3 text-green-600" />
                 </div>
                 <h3 class="font-medium text-gray-800">WiFi Settings</h3>
               </div>
@@ -465,12 +492,14 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-600 mb-2">Network SSID</label>
-                  <input v-model="esp2Config.wifiSSID" type="text" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" placeholder="WiFi network name">
+                  <!-- Changed focus ring from blue to green -->
+                  <input v-model="esp2Config.wifiSSID" type="text" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="WiFi network name">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-600 mb-2">Password</label>
                   <div class="relative">
-                    <input v-model="esp2Config.wifiPassword" :type="showPassword.esp2 ? 'text' : 'password'" class="w-full px-3 py-2 pr-10 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" placeholder="WiFi password">
+                    <!-- Changed focus ring from blue to green -->
+                    <input v-model="esp2Config.wifiPassword" :type="showPassword.esp2 ? 'text' : 'password'" class="w-full px-3 py-2 pr-10 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="WiFi password">
                     <button @click="togglePassword('esp2')" type="button" class="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-gray-400 hover:text-gray-600 transition-colors">
                       <EyeOff v-if="!showPassword.esp2" class="w-4 h-4" />
                       <Eye v-else class="w-4 h-4" />
@@ -481,7 +510,8 @@
               
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-2">API Endpoint</label>
-                <input v-model="esp2Config.apiURL" type="url" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" placeholder="https://api.example.com">
+                <!-- Changed focus ring from blue to green -->
+                <input v-model="esp2Config.apiURL" type="url" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="https://api.example.com">
               </div>
             </div>
 
@@ -521,12 +551,13 @@
                 </div>
                 
                 <div class="relative">
-                  <label class="block text-sm font-medium text-blue-600 mb-2">Humidity Offset (%)</label>
+                  <!-- Changed humidity label color from blue to green -->
+                  <label class="block text-sm font-medium text-green-600 mb-2">Humidity Offset (%)</label>
                   <input 
                     v-model="esp2Config.humidityOffset" 
                     type="number" 
                     step="0.1" 
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" 
+                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                     placeholder="0.0"
                     @focus="showTooltip.humidityOffset = true"
                     @blur="showTooltip.humidityOffset = false"
@@ -534,7 +565,8 @@
                   <!-- Humidity Offset Tooltip -->
                   <div v-if="showTooltip.humidityOffset" class="absolute z-50 top-full left-0 mt-2 w-56 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl pointer-events-none">
                     <div class="flex items-start space-x-2">
-                      <Info class="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <!-- Changed tooltip icon color from blue to green -->
+                      <Info class="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
                       <div class="leading-relaxed">
                         <div class="font-medium mb-1">DHT21 Humidity</div>
                         <div>Apply if humidity reading is incorrect</div>
@@ -571,12 +603,13 @@
               
               <!-- Soil Moisture Sensor Calibration -->
               <div class="space-y-3">
-                <div class="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <!-- Changed info box background from blue to green -->
+                <div class="text-sm text-gray-600 bg-green-50 p-3 rounded-lg border border-green-200">
                   <div class="flex items-start space-x-2">
-                    <Info class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Info class="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <div class="font-medium text-blue-800 mb-1">Soil Sensor Calibration</div>
-                      <div class="text-blue-700">Calibrate soil sensor: measure sensor reading in air and in water to set dry/wet reference.</div>
+                      <div class="font-medium text-green-800 mb-1">Soil Sensor Calibration</div>
+                      <div class="text-green-700">Calibrate soil sensor: measure sensor reading in air and in water to set dry/wet reference.</div>
                     </div>
                   </div>
                 </div>
@@ -592,38 +625,18 @@
                     >
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-cyan-600 mb-2">Water Value (Wet Soil)</label>
+                    <!-- Changed water value label color from cyan to green -->
+                    <label class="block text-sm font-medium text-green-600 mb-2">Water Value (Wet Soil)</label>
                     <input 
                       v-model="esp2Config.waterValue" 
                       type="number" 
-                      class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm" 
+                      class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                       placeholder="0"
                     >
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Modal Footer - Fixed -->
-        <div class="flex-shrink-0 p-6 border-t border-gray-100 bg-gray-50/50">
-          <div class="flex flex-row flex-wrap gap-3 justify-end">
-            <button @click="closeModal" class="px-4 py-2 border border-red-400 hover:border-red-500 hover:bg-red-100 text-red-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <X class="w-4 h-4 text-red-500" />
-              <span>CANCEL</span>
-            </button>
-            <button @click="resetConfiguration('esp2')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <RefreshCcw class="w-4 h-4" />
-              <span>RESET</span>
-            </button>
-            <button 
-              @click="applyConfiguration('esp2')" 
-              :disabled = "isSaving"
-              class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <Check class="w-4 h-4" />
-              <span>{{ isSaving ? 'SAVING...' : 'APPLY' }}</span>
-            </button>
           </div>
         </div>
 
@@ -634,8 +647,9 @@
         <!-- Modal Header - Fixed -->
         <div class="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
           <div class="flex items-center flex-row space-x-4 md:pace-x-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-xl flex items-center justify-center">
-              <Droplets class="w-5 h-5 text-cyan-600" />
+            <!-- Changed ESP32-3 modal header icon background from cyan to green -->
+            <div class="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+              <Droplets class="w-5 h-5 text-green-600" />
             </div>
             <div>
               <h2 class="text-md md:text-lg font-semibold text-gray-800">ESP32-3 Configuration</h2>
@@ -652,9 +666,10 @@
           <div class="space-y-6">
             <!-- WiFi Configuration -->
             <div class="space-y-4">
+              <!-- Changed WiFi icon background from blue to green -->
               <div class="flex items-center space-x-2 mb-3">
-                <div class="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <Wifi class="w-3 h-3 text-blue-600" />
+                <div class="w-6 h-6 bg-green-50 rounded-lg flex items-center justify-center">
+                  <Wifi class="w-3 h-3 text-green-600" />
                 </div>
                 <h3 class="font-medium text-gray-800">WiFi Settings</h3>
               </div>
@@ -662,12 +677,14 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-600 mb-2">Network SSID</label>
-                  <input v-model="esp3Config.wifiSSID" type="text" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm" placeholder="WiFi network name">
+                  <!-- Changed focus ring from cyan to green -->
+                  <input v-model="esp3Config.wifiSSID" type="text" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="WiFi network name">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-600 mb-2">Password</label>
                   <div class="relative">
-                    <input v-model="esp3Config.wifiPassword" :type="showPassword.esp3 ? 'text' : 'password'" class="w-full px-3 py-2 pr-10 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm" placeholder="WiFi password">
+                    <!-- Changed focus ring from cyan to green -->
+                    <input v-model="esp3Config.wifiPassword" :type="showPassword.esp3 ? 'text' : 'password'" class="w-full px-3 py-2 pr-10 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="WiFi password">
                     <button @click="togglePassword('esp3')" type="button" class="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-gray-400 hover:text-gray-600 transition-colors">
                       <EyeOff v-if="!showPassword.esp3" class="w-4 h-4" />
                       <Eye v-else class="w-4 h-4" />
@@ -678,7 +695,8 @@
               
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-2">API Endpoint</label>
-                <input v-model="esp3Config.apiURL" type="url" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm" placeholder="https://api.example.com">
+                <!-- Changed focus ring from cyan to green -->
+                <input v-model="esp3Config.apiURL" type="url" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" placeholder="https://api.example.com">
               </div>
             </div>
 
@@ -694,11 +712,12 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Tank Height -->
                 <div class="relative">
-                  <label class="block text-sm font-medium text-cyan-600 mb-2">Tank Height (cm)</label>
+                  <!-- Changed tank height label color from cyan to green -->
+                  <label class="block text-sm font-medium text-green-600 mb-2">Tank Height (cm)</label>
                   <input 
                     v-model="esp3Config.tankHeight" 
                     type="number" 
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm" 
+                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                     placeholder="100"
                     @focus="showTooltip.tankHeight = true"
                     @blur="showTooltip.tankHeight = false"
@@ -706,7 +725,8 @@
                   <!-- Tank Height Tooltip -->
                   <div v-if="showTooltip.tankHeight" class="absolute z-50 top-full left-0 mt-2 w-64 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl pointer-events-none">
                     <div class="flex items-start space-x-2">
-                      <Info class="w-3 h-3 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <!-- Changed tooltip icon color from cyan to green -->
+                      <Info class="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
                       <div class="leading-relaxed">
                         <div class="font-medium mb-1">Tank Height</div>
                         <div>The full vertical height of the water tank (from bottom to top edge). Used to calculate percentage level.</div>
@@ -718,11 +738,12 @@
 
                 <!-- Alert Level -->
                 <div class="relative">
-                  <label class="block text-sm font-medium text-blue-600 mb-2">Alert Level (%)</label>
+                  <!-- Changed alert level label color from blue to green -->
+                  <label class="block text-sm font-medium text-green-600 mb-2">Alert Level (%)</label>
                   <input 
                     v-model="esp3Config.alertLevel" 
                     type="number" 
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm" 
+                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm" 
                     placeholder="20"
                     @focus="showTooltip.alertLevel = true"
                     @blur="showTooltip.alertLevel = false"
@@ -730,7 +751,8 @@
                   <!-- Alert Level Tooltip -->
                   <div v-if="showTooltip.alertLevel" class="absolute z-50 top-full left-0 mt-2 w-64 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl pointer-events-none">
                     <div class="flex items-start space-x-2">
-                      <Info class="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <!-- Changed tooltip icon color from blue to green -->
+                      <Info class="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
                       <div class="leading-relaxed">
                         <div class="font-medium mb-1">Alert Threshold</div>
                         <div>If water level drops below this percentage, the system triggers alerts (e.g., LED or buzzer).</div>
@@ -791,92 +813,41 @@
             </div>
           </div>
         </div>
-
-        <!-- Modal Footer - Fixed -->
-        <div class="flex-shrink-0 p-6 border-t border-gray-100 bg-gray-50/50">
-          <div class="flex flex-col md:flex-row gap-3 justify-end">
-            <button @click="closeModal" class="px-4 py-2 border border-red-400 hover:border-red-500 hover:bg-red-100 text-red-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <X class="w-4 h-4 text-red-500" />
-              <span>CANCEL</span>
-            </button>
-            <button @click="resetConfiguration('esp3')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <RefreshCcw class="w-4 h-4" />
-              <span>RESET</span>
-            </button>
-            <button 
-              @click="applyConfiguration('esp3')" 
-              :disabled="isSaving"
-              class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-              <Check class="w-4 h-4" />
-              <span>{{ isSaving ? 'SAVING...' : 'APPLY' }}</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Reset Confirmation Modal -->
-  <div v-if="showResetModal" class="fixed inset-0 z-[10000] overflow-y-auto">
-    <!-- Backdrop with blur effect -->
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="cancelReset"></div>
+  <!-- Changed loading modal colors from blue to green -->
+  <!-- Loading Modal -->
+  <div v-if="showLoadingModal" class="fixed inset-0 z-[10000] overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"></div>
     
-    <!-- Modal container with proper centering -->
+    <!-- Modal container -->
     <div class="flex min-h-full items-center justify-center p-4">
-      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        <!-- Modal Header -->
-        <div class="p-6 border-b border-gray-100">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <RotateCcw class="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold text-gray-800">Reset All Configurations</h2>
-              <p class="text-sm text-gray-500">This action cannot be undone</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Modal Content -->
-        <div class="p-6">
-          <div class="mb-4">
-            <p class="text-gray-700 leading-relaxed">
-              Are you sure you want to reset all ESP32 configurations to their default values? 
-            </p>
-            <p class="text-sm text-gray-500 mt-2">
-              This will clear all WiFi settings, calibration values, and sensor configurations for all three ESP32 devices.
-            </p>
-          </div>
-          
-          <!-- Warning Box -->
-          <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-            <div class="flex items-start space-x-2">
-              <Info class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-              <div class="text-sm text-red-700">
-                <div class="font-medium">Warning:</div>
-                <div>All current settings will be permanently lost and cannot be recovered.</div>
-              </div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+        <!-- Loading Animation -->
+        <div class="mb-6">
+          <div class="relative w-16 h-16 mx-auto">
+            <!-- Spinning circle -->
+            <div class="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-green-500 rounded-full border-t-transparent animate-spin"></div>
+            <!-- Inner pulsing dot -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             </div>
           </div>
         </div>
-
-        <!-- Modal Footer -->
-        <div class="p-6 border-t border-gray-100 bg-gray-50/50">
-          <div class="flex gap-3 justify-end">
-            <button 
-              @click="cancelReset" 
-              class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              @click="confirmReset" 
-              class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
-            >
-              <RotateCcw class="w-4 h-4" />
-              <span>Reset All</span>
-            </button>
-          </div>
+        
+        <!-- Loading Text -->
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Saving IP Address</h3>
+        <p class="text-gray-600 mb-4">Please wait while we save your configuration...</p>
+        
+        <!-- Progress dots -->
+        <div class="flex justify-center space-x-1">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
         </div>
       </div>
     </div>
@@ -907,10 +878,11 @@ import {
   XCircle, 
   Info,
   RefreshCcw,
-  Check 
+  Check,
+  RefreshCw
 } from 'lucide-vue-next'
 
-import { ref, onMounted, onBeforeUnmount, watch, reactive, onUnmounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, reactive, onUnmounted, computed } from 'vue'
 import {
   getFirestore,
   collection,
@@ -936,6 +908,33 @@ const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:800
 
 const db = getFirestore()
 const searchQuery = ref('')
+
+const wifiDetails = reactive({
+  ssid: 'ProjectIsrael_Network',
+  password: 'Israel2024!',
+  ipAddress: '192.168.1.105',
+  signalStrength: 87,
+  frequency: '2.4GHz'
+})
+
+const connectionStatus = reactive({
+  connected: true,
+  lastSeen: 'Just now'
+})
+
+const esp32Config = reactive({
+  ipAddress: ''
+})
+
+// const isValidIP = (ip) => {
+//   const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+//   return ipRegex.test(ip);
+// }
+
+const isValidIP = (ip) => {
+  const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  return ipRegex.test(ip);
+};
 
 const activeModal = ref(null) 
 
@@ -1007,7 +1006,91 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('info') 
 const tooltipTimeout = ref(null)
-const showResetModal = ref(false)
+const isSaving = ref(false)
+const showLoadingModal = ref(false);
+
+
+const saveIPAddress = async () => {
+  if (!isValidIP(esp32Config.ipAddress)) {
+    showToastMessage('Please enter a valid IP address', 'error');
+    return;
+  }
+
+  try {
+    showLoadingModal.value = true;
+    const response = await axios.post(
+      `${backendBaseUrl}/api/esp32/ip`,
+      { ip: esp32Config.ipAddress },  // Ensure this matches your backend expectation
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    showToastMessage(response.data.message, 'success');
+    localStorage.setItem('esp32IpAddress', esp32Config.ipAddress);
+  } catch (error) {
+    console.error('Error details:', error.response?.data);
+    showToastMessage(
+      error.response?.data?.detail || 
+      error.response?.data?.message || 
+      'Failed to save IP address', 
+      'error'
+    );
+  } finally {
+    showLoadingModal.value = false;
+  }
+};
+
+const testConnection = async () => {
+  if (!isValidIP(esp32Config.ipAddress)) {
+    showToastMessage('Please enter a valid IP address', 'error');
+    return;
+  }
+
+  try {
+    showLoadingModal.value = true;
+    const response = await axios.post(`${backendBaseUrl}/test-esp32-connection`, {
+      ipAddress: esp32Config.ipAddress
+    });
+    
+    showToastMessage(response.data.message, 'success');
+    connectionStatus.connected = true;
+    connectionStatus.lastSeen = 'Just now';
+  } catch (error) {
+    console.error('Connection test failed:', error);
+    showToastMessage('Connection test failed', 'error');
+    connectionStatus.connected = false;
+    connectionStatus.lastSeen = 'Never';
+  } finally {
+    showLoadingModal.value = false;
+  }
+};
+
+const showDeviceInfo = async () => {
+  if (!isValidIP(esp32Config.ipAddress)) {
+    showToastMessage('Please enter a valid IP address', 'error');
+    return;
+  }
+
+  try {
+    showLoadingModal.value = true;
+    const response = await axios.get(`${backendBaseUrl}/esp32-device-info`, {
+      params: { ipAddress: esp32Config.ipAddress }
+    });
+    
+    showToastMessage(
+      `Device Info: ${response.data.model}, Firmware ${response.data.firmware}, ${response.data.flash} Flash`,
+      'success'
+    );
+  } catch (error) {
+    console.error('Failed to get device info:', error);
+    showToastMessage('Failed to retrieve device information', 'error');
+  } finally {
+    showLoadingModal.value = false;
+  }
+};
 
 const openModal = (esp) => {
   activeModal.value = esp;
@@ -1024,224 +1107,29 @@ function togglePassword(device) {
   showPassword[device] = !showPassword[device]
 }
 
-const saveAllConfigurations = async () => {
-  showToastMessage('Saving all configurations...', 'info');
-  
-  try {
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    showToastMessage('All configurations saved successfully!', 'success');
-  } catch (error) {
-    showToastMessage('Failed to save all configurations', 'error');
-  }
-}
-
-function resetConfiguration(device) {
-  if (device === 'esp1') {
-    Object.assign(esp1Config, {
-      wifiSSID: '',
-      wifiPassword: '',
-      serverURL: '',
-      nitrogenOffset: 0,
-      phosphorusOffset: 0,
-      potassiumOffset: 0,
-      phOffset: 0
-    })
-  } else if (device === 'esp2') {
-    Object.assign(esp2Config, {
-      wifiSSID: '',
-      wifiPassword: '',
-      apiURL: '',
-      tempOffset: 0,
-      humidityOffset: 0,
-      wateringThreshold: 30,
-      airValue: 1024,
-      waterValue: 0
-    })
-  } else if (device === 'esp3') {
-    Object.assign(esp3Config, {
-      wifiSSID: '',
-      wifiPassword: '',
-      apiURL: '',
-      tankHeight: 0,
-      alertLevel: 20,
-      fullDistance: 0,
-      emptyDistance: 0
-    })
-  }
-  
-  showPassword[device] = false
-  resetTooltips()
-}
-
 function resetTooltips() {
   Object.keys(showTooltip).forEach(key => {
     showTooltip[key] = false
   })
 }
 
-const resetAllConfigurations = () => {
-  showResetModal.value = true;
+const showToastMessage = (message, severity = 'info', persistKey = null) => {
+  window.showToast(message, severity)
 }
 
-const confirmReset = () => {
-  esp1Config.value = {
-    wifiSSID: '',
-    wifiPassword: '',
-    serverURL: '',
-    nitrogenOffset: 0.0,
-    phosphorusOffset: 0.0,
-    potassiumOffset: 0.0,
-    phOffset: 0.0
-  };
-  
-  esp2Config.value = {
-    wifiSSID: '',
-    wifiPassword: '',
-    apiURL: '',
-    tempOffset: 0.0,
-    humidityOffset: 0.0,
-    wateringThreshold: 30,
-    airValue: 1024,
-    waterValue: 0
-  };
-  
-  esp3Config.value = {
-    wifiSSID: '',
-    wifiPassword: '',
-    apiURL: '',
-    tankHeight: 100,
-    fullDistance: 5,
-    emptyDistance: 95,
-    alertLevel: 20
-  };
-  
-  showResetModal.value = false;
-  showToastMessage('All configurations reset to defaults', 'success');
-}
+onMounted(() => {
+  fetchAllConfigurations()
+})
 
-const cancelReset = () => {
-  showResetModal.value = false;
-}
+onBeforeUnmount(() => {
+  document.body.style.overflow = 'auto';
+})
 
-const isSaving = ref(false)
-function getCleanConfig(device) {
-  switch(device) {
-    case 'esp1':
-      return {
-        wifiSSID: esp1Config.wifiSSID,
-        wifiPassword: esp1Config.wifiPassword,
-        serverURL: esp1Config.serverURL,
-        nitrogenOffset: esp1Config.nitrogenOffset,
-        phosphorusOffset: esp1Config.phosphorusOffset,
-        potassiumOffset: esp1Config.potassiumOffset,
-        phOffset: esp1Config.phOffset
-      }
-    case 'esp2':
-      return {
-        wifiSSID: esp2Config.wifiSSID,
-        wifiPassword: esp2Config.wifiPassword,
-        apiURL: esp2Config.apiURL,
-        tempOffset: esp2Config.tempOffset,
-        humidityOffset: esp2Config.humidityOffset,
-        wateringThreshold: esp2Config.wateringThreshold,
-        airValue: esp2Config.airValue,
-        waterValue: esp2Config.waterValue
-      }
-    case 'esp3':
-      return {
-        wifiSSID: esp3Config.wifiSSID,
-        wifiPassword: esp3Config.wifiPassword,
-        apiURL: esp3Config.apiURL,
-        tankHeight: esp3Config.tankHeight,
-        alertLevel: esp3Config.alertLevel,
-        fullDistance: esp3Config.fullDistance,
-        emptyDistance: esp3Config.emptyDistance
-      }
-    default:
-      return {}
-  }
-}
-
-async function applyConfiguration(device) {
-  try {
-    isSaving.value = true
-    
-    const configData = getCleanConfig(device)
-    
-    const docRef = doc(db, 'configurations', `${device}Config`)
-    await setDoc(docRef, {
-      ...configData,
-      lastUpdated: serverTimestamp(),
-      deviceType: device
-    }, { merge: true })
-    
-    console.log(`${device} configuration saved to Firebase successfully!`)
-    
-    const response = await axios.post(
-      `${backendBaseUrl}/api/${device}/configuration`,
-      configData
-    )
-    
-    if (response.data.status === 'success') {
-      showToastMessage(`Configuration applied to ${device.toUpperCase()}!`, 'success')
-    } else {
-      throw new Error(response.data.message || 'Backend error')
-    }
-    
-    closeModal()
-  } catch (error) {
-    console.error('Error saving configuration:', error)
-    showToastMessage(`Failed to apply configuration: ${error.message}`, 'error')
-  } finally {
-    isSaving.value = false
-  }
-}
-
-const exportConfigurations = () => {
-  const configurations = {
-    esp1: esp1Config.value,
-    esp2: esp2Config.value,
-    esp3: esp3Config.value,
-    exportDate: new Date().toISOString()
-  };
-  
-  const dataStr = JSON.stringify(configurations, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'esp32-configurations.json';
-  link.click();
-  
-  URL.revokeObjectURL(url);
-  showToastMessage('Configuration exported successfully!', 'success');
-}
-
-const importConfigurations = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const configs = JSON.parse(e.target.result);
-          if (configs.esp1) esp1Config.value = { ...esp1Config.value, ...configs.esp1 };
-          if (configs.esp2) esp2Config.value = { ...esp2Config.value, ...configs.esp2 };
-          if (configs.esp3) esp3Config.value = { ...esp3Config.value, ...configs.esp3 };
-          showToastMessage('Configuration imported successfully!', 'success');
-        } catch (error) {
-          showToastMessage('Failed to import configuration file', 'error');
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-  input.click();
-}
+onUnmounted(() => {
+  Object.values(unsubscribeFns).forEach(unsubscribe => {
+    if (unsubscribe) unsubscribe()
+  })
+})
 
 function fetchAllConfigurations() {
   setupConfigListener('esp1')
@@ -1285,7 +1173,6 @@ function formatConfigData(device, data) {
         serverURL: data.serverURL || '',
         nitrogenOffset: data.nitrogenOffset || 0,
         phosphorusOffset: data.phosphorusOffset || 0,
-        potassiumOffset: data.potassiumOffset || 0,
         phOffset: data.phOffset || 0
       }
     case 'esp2':
@@ -1334,52 +1221,6 @@ watch(activeModal, (newDevice) => {
   }
 })
 
-const showToastMessage = (message, severity = 'info', persistKey = null) => {
-  window.showToast(message, severity)
-}
-
-const hideToast = () => {
-  showToast.value = false;
-}
-
-const handleTooltipShow = (field) => {
-  if (tooltipTimeout.value) {
-    clearTimeout(tooltipTimeout.value);
-  }
-  showTooltip.value[field] = true;
-}
-
-const handleTooltipHide = (field) => {
-  tooltipTimeout.value = setTimeout(() => {
-    showTooltip.value[field] = false;
-  }, 50);
-}
-
-onMounted(() => {
-  const savedConfigs = localStorage.getItem('esp32Configurations');
-  if (savedConfigs) {
-    try {
-      const configs = JSON.parse(savedConfigs);
-      if (configs.esp1) esp1Config.value = { ...esp1Config.value, ...configs.esp1 };
-      if (configs.esp2) esp2Config.value = { ...esp2Config.value, ...configs.esp2 };
-      if (configs.esp3) esp3Config.value = { ...esp3Config.value, ...configs.esp3 };
-    } catch (error) {
-      console.error('Failed to load saved configurations:', error);
-    }
-  }
-  fetchAllConfigurations()
-})
-
-onBeforeUnmount(() => {
-  document.body.style.overflow = 'auto';
-})
-
-onUnmounted(() => {
-  Object.values(unsubscribeFns).forEach(unsubscribe => {
-    if (unsubscribe) unsubscribe()
-  })
-})
-
 watch([esp1Config, esp2Config, esp3Config], ([newEsp1, newEsp2, newEsp3], [oldEsp1, oldEsp2, oldEsp3]) => {
   const configs = JSON.parse(localStorage.getItem('esp32Configurations') || '{}');
   configs.esp1 = newEsp1;
@@ -1388,127 +1229,46 @@ watch([esp1Config, esp2Config, esp3Config], ([newEsp1, newEsp2, newEsp3], [oldEs
   localStorage.setItem('esp32Configurations', JSON.stringify(configs));
 }, { deep: true })
 
-const testSensor = async (esp) => {
-  showToastMessage(`Testing live sensor readings for ESP32 ${esp.slice(-1)}...`, 'info');
-
-  try {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Simulate sensor readings
-    const mockReadings = {
-      nitrogen: (Math.random() * 100 + 50).toFixed(1),
-      phosphorus: (Math.random() * 50 + 20).toFixed(1),
-      potassium: (Math.random() * 80 + 30).toFixed(1),
-      ph: (Math.random() * 2 + 6).toFixed(1)
-    };
-    
-    showToastMessage(
-      `Live readings - N: ${mockReadings.nitrogen}mg/kg, P: ${mockReadings.phosphorus}mg/kg, K: ${mockReadings.potassium}mg/kg, pH: ${mockReadings.ph}`, 
-      'success'
-    );
-  } catch (error) {
-    showToastMessage(`Failed to read sensor data for ESP32 ${esp.slice(-1)}`, 'error');
-  }
+const navigateToRecalibration = (device) => {
+  window.location.href = `/${device}`;
 }
 
-const applyOffsets = async (esp) => {
-  showToastMessage(`Applying correction offsets temporarily for ESP32 ${esp.slice(-1)}...`, 'info');
-  
-  try {
-    const config = esp === 'esp1' ? esp1Config.value : esp === 'esp2' ? esp2Config.value : esp3Config.value;
-    
-    // Validate offset values
-    if (isNaN(config.nitrogenOffset) || isNaN(config.phosphorusOffset) || 
-        isNaN(config.potassiumOffset) || isNaN(config.phOffset)) {
-      throw new Error('Please enter valid numeric offset values');
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    showToastMessage(
-      `Offsets applied: N(${config.nitrogenOffset > 0 ? '+' : ''}${config.nitrogenOffset}), P(${config.phosphorusOffset > 0 ? '+' : ''}${config.phosphorusOffset}), K(${config.potassiumOffset > 0 ? '+' : ''}${config.potassiumOffset}), pH(${config.phOffset > 0 ? '+' : ''}${config.phOffset})`, 
-      'success'
-    );
-  } catch (error) {
-    showToastMessage(error.message || `Failed to apply offsets for ESP32 ${esp.slice(-1)}`, 'error');
-  }
+const getWifiArcColor = (strength) => {
+  if (strength >= 75) return '#10b981' // green-500
+  if (strength >= 50) return '#eab308' // yellow-500  
+  if (strength >= 25) return '#f97316' // orange-500
+  return '#ef4444' // red-500
 }
 
-const saveAndReboot = async (esp) => {
-  showToastMessage(`Saving configuration and rebooting ESP32 ${esp.slice(-1)}...`, 'info');
-  
-  try {
-    const config = esp === 'esp1' ? esp1Config.value : esp === 'esp2' ? esp2Config.value : esp3Config.value;
-    
-    // Validate required fields
-    if (!config.wifiSSID || !config.wifiPassword || !config.serverURL) {
-      throw new Error('Please fill in all WiFi and server settings');
-    }
-    
-    // Validate offset values
-    if (isNaN(config.nitrogenOffset) || isNaN(config.phosphorusOffset) || 
-        isNaN(config.potassiumOffset) || isNaN(config.phOffset)) {
-      throw new Error('Please enter valid numeric offset values');
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    showToastMessage(`Configuration saved to Preferences and ESP32 ${esp.slice(-1)} rebooted successfully!`, 'success');
-    closeModal(); // Close modal after successful save
-  } catch (error) {
-    showToastMessage(error.message || `Failed to save and reboot ESP32 ${esp.slice(-1)}`, 'error');
-  }
+const getSignalColor = (strength) => {
+  if (strength >= 75) return 'bg-green-500'
+  if (strength >= 50) return 'bg-yellow-500'
+  if (strength >= 25) return 'bg-orange-500'
+  return 'bg-red-500'
 }
 
-const testConnection = async (esp) => {
-  showToastMessage(`Testing connection for ESP32 ${esp.slice(-1)}...`, 'info');
-  
-  try {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    showToastMessage(`ESP32 ${esp.slice(-1)} connection successful!`, 'success');
-  } catch (error) {
-    showToastMessage(`Connection failed for ESP32 ${esp.slice(-1)}`, 'error');
-  }
+const getSignalStrengthText = () => {
+  const strength = wifiDetails.signalStrength
+  if (strength >= 90) return 'Excellent'
+  if (strength >= 75) return 'Very Good'
+  if (strength >= 50) return 'Good'
+  if (strength >= 25) return 'Fair'
+  return 'Poor'
 }
 
-const calibrateSensors = async (esp) => {
-  showToastMessage(`Calibrating sensors for ESP32 ${esp.slice(-1)}...`, 'info');
-  
-  try {
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    showToastMessage(`Sensor calibration completed for ESP32 ${esp.slice(-1)}!`, 'success');
-  } catch (error) {
-    showToastMessage(`Calibration failed for ESP32 ${esp.slice(-1)}`, 'error');
-  }
+const getConnectionStatus = () => {
+  return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal'
 }
 
-const calibrateWaterLevel = async (esp) => {
-  showToastMessage('Calibrating water level sensor...', 'info');
-  
-  try {
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    showToastMessage('Water level calibration completed!', 'success');
-  } catch (error) {
-    showToastMessage('Water level calibration failed', 'error');
-  }
-}
+onMounted(() => {
+  setInterval(() => {
+    // Simulate realistic signal strength fluctuation with wider range
+    const baseStrength = 87
+    const fluctuation = Math.floor(Math.random() * 16) - 8 // ±8% fluctuation
+    wifiDetails.signalStrength = Math.max(15, Math.min(100, baseStrength + fluctuation))
+  }, 2500) // Slightly faster updates for more dynamic feel
+})
 
-const saveConfiguration = async (esp) => {
-  showToastMessage(`Saving configuration for ESP32 ${esp.slice(-1)}...`, 'info');
-  
-  try {
-    const config = esp === 'esp1' ? esp1Config.value : esp === 'esp2' ? esp2Config.value : esp3Config.value;
-    if (!config.wifiSSID || !config.wifiPassword || !config.apiURL) {
-      throw new Error('Please fill in all required fields');
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    showToastMessage(`Configuration saved for ESP32 ${esp.slice(-1)}!`, 'success');
-    closeModal(); // Close modal after successful save
-  } catch (error) {
-    showToastMessage(error.message || `Failed to save configuration for ESP32 ${esp.slice(-1)}`, 'error');
-  }
-}
 </script>
 
 <style scoped>
@@ -1555,6 +1315,19 @@ button:focus {
   outline-offset: 2px;
 }
 
+/* Added mobile scrolling optimizations for iOS Safari and smooth scrolling */
+@media (max-width: 768px) {
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* iOS Safari specific optimizations */
+  .flex-1 {
+    min-height: 0;
+  }
+}
+
 /* Tooltip Animation */
 .tooltip-enter-active,
 .tooltip-leave-active {
@@ -1574,6 +1347,10 @@ button:focus {
 }
 
 @media (max-width: 1024px) {
+  .grid-cols-1.lg\\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  
   .grid-cols-1.lg\\:grid-cols-3 {
     grid-template-columns: 1fr;
   }
@@ -1624,17 +1401,5 @@ button:focus {
     width: 100%;
     justify-content: center;
   }
-}
-
-.bg-white:hover {
-  transform: translateY(-1px);
-}
-
-button:hover {
-  transform: translateY(-1px);
-}
-
-input:focus {
-  transform: scale(1.01);
 }
 </style>

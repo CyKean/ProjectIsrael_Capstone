@@ -381,7 +381,7 @@
               <button
                 @click="goToRecalibration"
                 class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
-                :class="{ 'bg-white/10': $route.path === '/app/recalibration' }"
+                :class="{ 'bg-white/10': $route.path === '/(link of the calibration link)' }"
               >
                 <div class="flex items-center justify-center size-7 rounded-full mr-1.5" :class="$route.path === '/recalibration' ? 'bg-green-500/20' : ''">
                   <Cog class="h-3.5 w-3.5 text-white" />
