@@ -870,7 +870,7 @@ import {
 import axios from 'axios';
 import api from '../../api/index.js'
 
-const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'https://project-israel-backend.onrender.com';
 
 const db = getFirestore()
 const searchQuery = ref('')

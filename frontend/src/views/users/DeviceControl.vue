@@ -2090,7 +2090,8 @@ const confirmToggleWaterPump = async () => {
     showToggleConfirmationDialog.value = false
 
     try {
-      const response = await axios.post('http://localhost:8000/api/motor_status/', {
+      // const response = await axios.post('http://localhost:8000/api/motor_status/', {
+      const response = await axios.post('https://project-israel-backend.onrender.com/api/motor_status/', {
         status: waterPumpActive.value,
         device_id: 'main_motor',
         user: 'system',

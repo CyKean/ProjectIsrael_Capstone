@@ -2,7 +2,7 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-30px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
       <!-- Content Wrapper --> 
       <div class="p-2 md:p-4 sm:p-6">
         <!-- Clean Minimalist Metrics Section - With Loading State -->
@@ -12,24 +12,25 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2 md:gap-3">
                 <ChartBarIcon class="h-3 w-3 md:h-5 md:w-5 text-purple-500" />
-                <span class="text-[10px] md:text-sm font-medium text-gray-700">Total</span>
+                <span class="text-[10px] md:text-sm font-medium text-purple-700 bg-purple-500/10 px-2 py-0.5 rounded-full">Total</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center md:text-left font-bold text-gray-900 mb-2">{{ totalRecommendations }}</div>
-              <div 
-                :class="[
-                  'text-xs font-medium',
-                    isIncrease ? 'text-green-600' : 'text-red-600'
-                  ]"
-              >
-                <!-- <span class="flex items-center">
+              <div class="flex items-center justify-center text-xs font-medium mt-1">
+                <template v-if="percentageChange > 0">
                   <component
                     :is="isIncrease ? ArrowUpIcon : ArrowDownIcon"
-                    class="w-3 h-3 mr-1"
+                    :class="['w-3 h-3 mr-1', isIncrease ? 'text-green-600' : 'text-red-600']"
                   />
+                  <span :class="[isIncrease ? 'text-green-600' : 'text-red-600']">
                     {{ isIncrease ? '+' : '-' }}{{ percentageChange }}% {{ isIncrease ? 'increase' : 'decrease' }}
-                </span> -->
+                  </span>
+                </template>
+                <template v-else>
+                  <MinusIcon class="w-3 h-3 mr-1 text-gray-500" />
+                  <span class="text-gray-500">No significant change</span>
+                </template>
               </div>
             </div>
             <div v-else class="animate-pulse">
@@ -43,24 +44,25 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-1 md:gap-2 md:pt-4">
                 <SproutIcon class="h-3 w-3 md:h-5 md:w-5 text-green-500" />
-                <span class="text-[10px] md:text-sm font-medium text-gray-700">Planted</span>
+                <span class="text-[10px] md:text-sm font-medium text-green-700 bg-green-500/10 px-2 py-0.5 rounded-full">Planted</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ plantedCount }}</div>
-              <div 
-                :class="[
-                  'text-xs font-medium',
-                  plantedIsIncrease ? 'text-green-600' : 'text-red-600'
-                  ]"
-              >
-                <!-- <span class="flex items-center">
+              <div class="flex items-center justify-center text-xs font-medium mt-1">
+                <template v-if="plantedPercentageChange > 0">
                   <component
                     :is="plantedIsIncrease ? ArrowUpIcon : ArrowDownIcon"
-                    class="w-3 h-3 mr-1"
+                    :class="['w-3 h-3 mr-1', plantedIsIncrease ? 'text-green-600' : 'text-red-600']"
                   />
+                  <span :class="[plantedIsIncrease ? 'text-green-600' : 'text-red-600']">
                     {{ plantedIsIncrease ? '+' : '-' }}{{ plantedPercentageChange }}% {{ plantedIsIncrease ? 'increase' : 'decrease' }}
-                </span> -->
+                  </span>
+                </template>
+                <template v-else>
+                  <MinusIcon class="w-3 h-3 mr-1 text-gray-500" />
+                  <span class="text-gray-500">No significant change</span>
+                </template>
               </div>
             </div>
             <div v-else class="animate-pulse">
@@ -74,24 +76,25 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
                 <ActivityIcon class="h-3 w-3 md:h-5 md:w-5 text-blue-500" />
-                <span class="text-[10px] md:text-sm font-medium text-gray-700">Rate</span>
+                <span class="text-[10px] md:text-sm font-medium text-blue-700 bg-blue-500/10 px-2 py-0.5 rounded-full">Rate</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ harvestSuccessRate }}%</div>
-              <div 
-                :class="[
-                'text-xs font-medium',
-                isIncrease ? 'text-green-600' : 'text-red-600'
-                ]"
-              >
-                <!-- <span class="flex items-center">
+              <div class="flex items-center justify-center text-xs font-medium mt-1">
+                <template v-if="harvestRatePercentageChange > 0">
                   <component
-                    :is="isIncrease ? ArrowUpIcon : ArrowDownIcon"
-                    class="w-3 h-3 mr-1"
+                    :is="harvestRateIsIncrease ? ArrowUpIcon : ArrowDownIcon"
+                    :class="['w-3 h-3 mr-1', harvestRateIsIncrease ? 'text-green-600' : 'text-red-600']"
                   />
-                    {{ isIncrease ? '+' : '-' }}{{ percentageChange }}% {{ isIncrease ? 'increase' : 'decrease' }}
-                </span> -->
+                  <span :class="[harvestRateIsIncrease ? 'text-green-600' : 'text-red-600']">
+                    {{ harvestRateIsIncrease ? '+' : '-' }}{{ harvestRatePercentageChange }}% {{ harvestRateIsIncrease ? 'increase' : 'decrease' }}
+                  </span>
+                </template>
+                <template v-else>
+                  <MinusIcon class="w-3 h-3 mr-1 text-gray-500" />
+                  <span class="text-gray-500">No significant change</span>
+                </template>
               </div>
             </div>
             <div v-else class="animate-pulse">
@@ -105,24 +108,25 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-1">
                 <ClipboardListIcon class="h-3 w-3 md:h-5 md:w-5 text-red-500" />
-                <span class="text-[10px] md:text-sm font-medium text-gray-700">Active</span>
+                <span class="text-[10px] md:text-sm font-medium text-red-700 bg-red-500/10 px-2 py-0.5 rounded-full">Active</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ ongoingCount }}</div>
-              <div 
-                :class="[
-                'text-xs font-medium',
-                ongoingIsIncrease ? 'text-green-600' : 'text-red-600'
-                ]"
-              >
-              <!-- <span class="flex items-center">
+              <div class="flex items-center justify-center text-xs font-medium mt-1">
+                <template v-if="ongoingPercentageChange > 0">
                   <component
                     :is="ongoingIsIncrease ? ArrowUpIcon : ArrowDownIcon"
-                    class="w-3 h-3 mr-1"
+                    :class="['w-3 h-3 mr-1', ongoingIsIncrease ? 'text-green-600' : 'text-red-600']"
                   />
+                  <span :class="[ongoingIsIncrease ? 'text-green-600' : 'text-red-600']">
                     {{ ongoingIsIncrease ? '+' : '-' }}{{ ongoingPercentageChange }}% {{ ongoingIsIncrease ? 'increase' : 'decrease' }}
-                </span> -->
+                  </span>
+                </template>
+                <template v-else>
+                  <MinusIcon class="w-3 h-3 mr-1 text-gray-500" />
+                  <span class="text-gray-500">No significant change</span>
+                </template>
               </div>
             </div>
             <div v-else class="animate-pulse">
@@ -171,11 +175,11 @@
                           <div>
                             <label class="block text-[10px] md:text-sm font-medium text-gray-500">Nitrogen (N)</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="nitrogen"
-                                class="text-xl font-bold text-gray-900 bg-transparent w-10 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ nitrogen }}
+                              </span>
                               <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
                             </div>
                           </div>
@@ -215,11 +219,11 @@
                           <div>
                             <label class="block text-[8.7px] md:text-sm font-medium text-gray-500">Phosphorus (P)</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="phosphorus"
-                                class="text-xl font-bold text-gray-900 bg-transparent w-10 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ phosphorus }}
+                              </span>
                               <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
                             </div>
                           </div>
@@ -259,11 +263,11 @@
                           <div>
                             <label class="block text-[9px] md:text-sm font-medium text-gray-500">Potassium (K)</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="potassium"
-                                class="text-xl font-bold text-gray-900 bg-transparent w-10 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ potassium }}
+                              </span>
                                 <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
                             </div>
                           </div>
@@ -303,11 +307,11 @@
                           <div>
                             <label class="block text-[10px] md:text-sm font-medium text-gray-500">Soil pH</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="soilpH"
-                                class="text-xl font-bold text-gray-900 bg-transparent w-10 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ soilpH }}
+                              </span>
                               <span class="text-[7px] md:text-xs text-gray-500">pH</span>
                             </div>
                           </div>
@@ -356,11 +360,11 @@
                           <div>
                             <label class="block text-[7px] md:text-sm font-medium text-gray-500">Soil Moisture</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="soilMoisture"
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-9 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ soilMoisture }}
+                              </span>
                               <span class="text-[9px] md:text-xs text-gray-500">%</span>
                             </div>
                           </div>
@@ -400,11 +404,11 @@
                           <div>
                             <label class="block text-[7px] md:text-sm font-medium text-gray-500">Temperature</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="temperature"
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-9 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ temperature }}
+                              </span>
                               <span class="text-[9px] md:text-xs text-gray-500">°C</span>
                             </div>
                           </div>
@@ -444,11 +448,11 @@
                           <div>
                             <label class="block text-[7px] md:text-sm font-medium text-gray-500">Humidity</label>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <input 
-                                type="number"
-                                v-model="humidity"
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-10 md:w-20 focus:outline-none"
-                              />
+                              <span 
+                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                              >
+                                {{ humidity }}
+                              </span>
                               <span class="text-[8px] md:text-xs text-gray-500">%</span>
                             </div>
                           </div>
@@ -479,7 +483,7 @@
               </div>
 
               <!-- Action Button -->
-              <div class="flex justify-center mt-2 md:mt-8">
+              <div class="flex justify-center mt-6 md:mt-8">
                 <button 
                   type="submit"
                   @click="submitForm"
@@ -548,68 +552,66 @@
                 />
               </div>
               <div class="flex items-center gap-2">
-                <div class="flex items-center gap-2">
+                <button 
+                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                  @click="toggleGridView"
+                  :class="{'bg-gray-100': isGridView}"
+                  aria-label="Toggle grid view"
+                >
+                  <LayoutGridIcon class="h-4 w-4" />
+                </button>
+                <button 
+                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                  @click="toggleFilterPanel"
+                  :class="{'bg-gray-100': showFilterPanel}"
+                  aria-label="Toggle filter panel"
+                >
+                  <FilterIcon class="h-4 w-4" />
+                </button>
+                 <!-- Add Export Dropdown Button -->
+                <div class="relative inline-block">
                   <button 
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                    @click="toggleGridView"
-                    :class="{'bg-gray-100': isGridView}"
-                    aria-label="Toggle grid view"
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                    @click.stop="toggleExportDropdown"
                   >
-                    <LayoutGridIcon class="h-4 w-4" />
+                    <DownloadIcon class="h-4 w-4" />
+                    <span class="text-xs">Export</span>
                   </button>
-                  <button 
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                    @click="toggleFilterPanel"
-                    :class="{'bg-gray-100': showFilterPanel}"
-                    aria-label="Toggle filter panel"
+                  
+                  <!-- Export Dropdown -->
+                  <transition
+                    enter-active-class="transition ease-out duration-100"
+                    enter-from-class="transform opacity-0 scale-95"
+                    enter-to-class="transform opacity-100 scale-100"
+                    leave-active-class="transition ease-in duration-75"
+                    leave-from-class="transform opacity-100 scale-100"
+                    leave-to-class="transform opacity-0 scale-95"
                   >
-                    <FilterIcon class="h-4 w-4" />
-                  </button>
-                  <!-- Add Export Dropdown Button -->
-                  <div class="relative inline-block">
-                    <button 
-                      class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                      @click.stop="toggleExportDropdown"
+                    <div 
+                      v-if="showExportDropdown"
+                      class="absolute right-0 mt-2 w-40 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                      role="menu"
+                      aria-orientation="vertical"
+                      aria-labelledby="menu-button"
                     >
-                      <DownloadIcon class="h-4 w-4" />
-                      <span class="text-xs">Export</span>
-                    </button>
-                    
-                    <!-- Export Dropdown -->
-                    <transition
-                      enter-active-class="transition ease-out duration-100"
-                      enter-from-class="transform opacity-0 scale-95"
-                      enter-to-class="transform opacity-100 scale-100"
-                      leave-active-class="transition ease-in duration-75"
-                      leave-from-class="transform opacity-100 scale-100"
-                      leave-to-class="transform opacity-0 scale-95"
-                    >
-                      <div 
-                        v-if="showExportDropdown"
-                        class="absolute right-0 mt-2 w-40 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
-                        role="menu"
-                        aria-orientation="vertical"
-                        aria-labelledby="menu-button"
-                      >
-                        <div class="py-1" role="none">
-                          <button 
-                            @click.stop="exportCropData('csv')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            role="menuitem"
-                          >
-                            Export as CSV
-                          </button>
-                          <button 
-                            @click.stop="exportCropData('pdf')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            role="menuitem"
-                          >
-                            Export as PDF
-                          </button>
-                        </div>
+                      <div class="py-1" role="none">
+                        <button 
+                          @click.stop="exportCropData('csv')"
+                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          role="menuitem"
+                        >
+                          Export as CSV
+                        </button>
+                        <button 
+                          @click.stop="exportCropData('pdf')"
+                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          role="menuitem"
+                        >
+                          Export as PDF
+                        </button>
                       </div>
-                    </transition>
-                  </div>
+                    </div>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -629,9 +631,9 @@
                 </button>
               </div>
               
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Success Rate Range -->
-                <div class="col-span-1 sm:col-span-2 lg:col-span-1">
+                <div>
                   <label class="block text-xs font-medium text-gray-600 mb-2">Success Rate</label>
                   <div class="flex items-center gap-2">
                     <input 
@@ -655,9 +657,9 @@
                 </div>
                   
                 <!-- Date Range -->
-                <div class="col-span-1 sm:col-span-1 lg:col-span-1">
+                <div>
                   <label class="block text-xs font-medium text-gray-600 mb-2">Date Range</label>
-                  <div class="flex flex-col md:flex-row items-center gap-2">
+                  <div class="flex items-center gap-2">
                     <input 
                       type="date" 
                       v-model="filterDateStart" 
@@ -673,7 +675,7 @@
                 </div>
                     
                 <!-- Status Filter -->
-                <div class="col-span-1 sm:col-span-1">
+                <div>
                   <label class="block text-xs font-medium text-gray-600 mb-2">Status</label>
                   <select 
                     v-model="filterStatus" 
@@ -688,17 +690,17 @@
                 </div>
               </div>
                   
-              <div class="flex flex-col sm:flex-row justify-end mt-4 gap-2">
+              <div class="flex justify-end mt-4 gap-2">
                 <button 
                   @click="resetFilters"
-                  class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full sm:w-auto"
+                  class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   Reset
                 </button>
                 <button 
                   @click="applyFilters"
-                  class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors w-full sm:w-auto"
-                >
+                  class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors"
+                  >
                   Apply Filters
                 </button>
               </div>
@@ -1385,7 +1387,8 @@ import {
   EyeIcon,
   BeakerIcon as FlaskIcon,
   SaveIcon,
-  TableIcon
+  TableIcon,
+  MinusIcon // Added MinusIcon for no change indicator
 } from 'lucide-vue-next'
 import Sidebar from '../layout/Sidebar.vue'
 // import Pagination from '../layout/Pagination.vue'
@@ -1465,23 +1468,24 @@ const alternativeCrops = ref([])
 const recommendedFertilizers = ref([])
 const editedStatus = ref(null)
 
-const totalRecommendations = ref(0)
-const previousRecommendationCount = ref(0)
-const percentageChange = ref(0)
-const isIncrease = ref(true)
+// const totalRecommendations = ref(0)
+// const previousRecommendationCount = ref(0)
+// const percentageChange = ref(0)
+// const isIncrease = ref(true)
 
-const plantedCount = ref(0)
-const plantedPercentageChange = ref(0)
-const plantedIsIncrease = ref(true)
+// const plantedCount = ref(0)
+// const plantedPercentageChange = ref(0)
+// const plantedIsIncrease = ref(true)
 
-const harvestSuccessRate = ref(0)
-const harvestedCount = ref(0)
-const previousSuccessRate = ref(0)
+// const harvestSuccessRate = ref(0)
+// const harvestedCount = ref(0)
+// const previousSuccessRate = ref(0) // This was commented out, but we need it in previousCounts
+// const harvestRatePercentageChange = ref(0) // New ref for success rate change
+// const harvestRateIsIncrease = ref(true) // New ref for success rate increase/decrease
 
-const ongoingCount = ref(0) // Ongoing Count
-const ongoingPercentageChange = ref(0) // Ongoing Percentage Change
-const ongoingIsIncrease = ref(true) // Ongoing Increase or Decrease
-
+// const ongoingCount = ref(0) // Ongoing Count
+// const ongoingPercentageChange = ref(0) // Ongoing Percentage Change
+// const ongoingIsIncrease = ref(true) // Ongoing Increase or Decrease
 
 const isStatsLoading = ref(true); // For the top metric cards
 const isPredictionsLoading = ref(true); // For the predictions table/grid
@@ -1718,7 +1722,7 @@ onMounted(async () => {
   fetchLatestSensorDataFromFirebase();
 
   // Start listening for SSE stream
-  const eventSource = new EventSource('http://localhost:8000/api/stream');
+  let eventSource = new EventSource('http://localhost:8000/api/stream');
 
   eventSource.onmessage = (event) => {
     try {
@@ -1900,37 +1904,105 @@ const normalizeFirestoreTimestamp = (timestamp) => {
   return new Date();
 };
 
-// Updated fetchRecommendationStats method
-let statsUnsubscribe = null; // Store the unsubscribe function
-let unsubscribeStats = null
+const statsVersion = 'v8'
 
-// Track previous counts in component state
-const previousCounts = ref({
-  total: 0,
-  planted: 0,
-  ongoing: 0,
-  harvested: 0,
-  lastUpdated: null
+// Track stats with localStorage persistence
+const stats = ref({
+  current: {
+    total: 0,
+    planted: 0,
+    ongoing: 0,
+    harvested: 0,
+    successRate: 0
+  },
+  baseline: JSON.parse(localStorage.getItem(`cropStats_${statsVersion}`)) || {
+    total: 0,
+    planted: 0,
+    ongoing: 0,
+    harvested: 0,
+    successRate: 0,
+    timestamp: null
+  }
 })
 
-const calculatePercentageChange = (current, previous) => {
-  // If no previous data or counts are equal
-  if (previous === 0 || current === previous) {
-    return {
-      percentage: 0,
-      isIncrease: false
-    }
+// Calculate percentage change (always shows change if baseline exists)
+const calculateChange = (current, baseline) => {
+  if (baseline === 0 || !stats.value.baseline.timestamp) {
+    return { value: 0, isIncrease: false }
   }
-
-  const change = current - previous
-  const percentage = (change / previous) * 100
-  
+  const change = ((current - baseline) / baseline) * 100
   return {
-    percentage: Math.abs(parseFloat(percentage.toFixed(1))),
+    value: Math.abs(Math.round(change * 10) / 10), // 1 decimal place
     isIncrease: change > 0
   }
 }
 
+// Computed properties - FORCE display changes when baseline exists
+const totalRecommendations = computed(() => stats.value.current.total)
+const plantedCount = computed(() => stats.value.current.planted)
+const ongoingCount = computed(() => stats.value.current.ongoing)
+const harvestSuccessRate = computed(() => stats.value.current.successRate)
+
+const percentageChange = computed(() => {
+  const change = calculateChange(stats.value.current.total, stats.value.baseline.total)
+  return stats.value.baseline.timestamp ? change.value : 0
+})
+const isIncrease = computed(() => 
+  calculateChange(stats.value.current.total, stats.value.baseline.total).isIncrease
+)
+
+const plantedPercentageChange = computed(() => {
+  const change = calculateChange(stats.value.current.planted, stats.value.baseline.planted)
+  return stats.value.baseline.timestamp ? change.value : 0
+})
+const plantedIsIncrease = computed(() => 
+  calculateChange(stats.value.current.planted, stats.value.baseline.planted).isIncrease
+)
+
+const harvestRatePercentageChange = computed(() => {
+  const change = calculateChange(stats.value.current.successRate, stats.value.baseline.successRate)
+  return stats.value.baseline.timestamp ? change.value : 0
+})
+const harvestRateIsIncrease = computed(() => 
+  calculateChange(stats.value.current.successRate, stats.value.baseline.successRate).isIncrease
+)
+
+const ongoingPercentageChange = computed(() => {
+  const change = calculateChange(stats.value.current.ongoing, stats.value.baseline.ongoing)
+  return stats.value.baseline.timestamp ? change.value : 0
+})
+const ongoingIsIncrease = computed(() => 
+  calculateChange(stats.value.current.ongoing, stats.value.baseline.ongoing).isIncrease
+)
+
+// Update stats and baseline
+const updateStats = (newStats) => {
+  const now = new Date()
+  
+  // Always update current stats
+  stats.value.current = newStats
+  
+  // Set baseline on first run or when empty
+  if (!stats.value.baseline.timestamp) {
+    stats.value.baseline = {
+      ...newStats,
+      timestamp: now.getTime()
+    }
+    localStorage.setItem(`cropStats_${statsVersion}`, JSON.stringify(stats.value.baseline))
+  }
+  
+  // Update baseline daily
+  const hoursDiff = (now.getTime() - stats.value.baseline.timestamp) / (1000 * 60 * 60)
+  if (hoursDiff > 24) {
+    stats.value.baseline = {
+      ...stats.value.current,
+      timestamp: now.getTime()
+    }
+    localStorage.setItem(`cropStats_${statsVersion}`, JSON.stringify(stats.value.baseline))
+  }
+}
+
+// Firestore listener with debug logging
 const fetchRecommendationStats = () => {
   try {
     isStatsLoading.value = true
@@ -1938,52 +2010,37 @@ const fetchRecommendationStats = () => {
     const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'))
     
     return onSnapshot(q, (snapshot) => {
-      const allDocs = snapshot.docs.map(doc => doc.data())
-      const now = new Date()
-
-      // Only update if data has changed significantly (more than 1 second old)
-      if (!previousCounts.value.lastUpdated || 
-          (now - previousCounts.value.lastUpdated) > 1000) {
-
-        const currentTotal = allDocs.length
-        const currentPlanted = allDocs.filter(d => d.status === 'Planted').length
-        const currentOngoing = allDocs.filter(d => d.status === 'Ongoing').length
-        const currentHarvested = allDocs.filter(d => d.status === 'Harvested').length
-
-        // Calculate changes using previous counts
-        const totalChange = calculatePercentageChange(currentTotal, previousCounts.value.total)
-        const plantedChange = calculatePercentageChange(currentPlanted, previousCounts.value.planted)
-        const ongoingChange = calculatePercentageChange(currentOngoing, previousCounts.value.ongoing)
-
-        // Calculate success rate
-        const successRate = currentTotal > 0 
-          ? Math.round((currentHarvested / currentTotal) * 100)
-          : 0
-
-        // Update refs
-        totalRecommendations.value = currentTotal
-        percentageChange.value = totalChange.percentage
-        isIncrease.value = totalChange.isIncrease
-
-        plantedCount.value = currentPlanted
-        plantedPercentageChange.value = plantedChange.percentage
-        plantedIsIncrease.value = plantedChange.isIncrease
-
-        ongoingCount.value = currentOngoing
-        ongoingPercentageChange.value = ongoingChange.percentage
-        ongoingIsIncrease.value = ongoingChange.isIncrease
-
-        harvestSuccessRate.value = successRate
-
-        // Update previous counts with current data
-        previousCounts.value = {
-          total: currentTotal,
-          planted: currentPlanted,
-          ongoing: currentOngoing,
-          harvested: currentHarvested,
-          lastUpdated: now
+      const allDocs = snapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          ...data,
+          timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp?.seconds * 1000) || new Date()
         }
+      })
+      
+      const counts = {
+        total: allDocs.length,
+        planted: allDocs.filter(d => d.status === 'Planted').length,
+        ongoing: allDocs.filter(d => d.status === 'Ongoing').length,
+        harvested: allDocs.filter(d => d.status === 'Harvested').length
       }
+      
+      counts.successRate = counts.total > 0 
+        ? Math.round((counts.harvested / counts.total) * 100)
+        : 0
+
+      updateStats(counts)
+      
+      console.log('Stats updated:', {
+        current: stats.value.current,
+        baseline: stats.value.baseline,
+        changes: {
+          total: percentageChange.value,
+          planted: plantedPercentageChange.value,
+          ongoing: ongoingPercentageChange.value,
+          successRate: harvestRatePercentageChange.value
+        }
+      })
 
       isStatsLoading.value = false
     })
@@ -1994,71 +2051,69 @@ const fetchRecommendationStats = () => {
   }
 }
 
-// onMounted(() => {
-//   unsubscribeStats = fetchRecommendationStats()
-// })
-
-onUnmounted(() => {
-  if (unsubscribeStats) unsubscribeStats()
+onMounted(() => {
+  fetchRecommendationStats()
 })
 
+
 // Real-time listener version
-const setupRealtimeListener = () => {
-  const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'))
+// const setupRealtimeListener = () => {
+//   const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'))
   
-  return onSnapshot(q, (snapshot) => {
-    const allDocs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+//   return onSnapshot(q, (snapshot) => {
+//     const allDocs = snapshot.docs.map(doc => ({
+//       id: doc.id,
+//       ...doc.data()
+//     }))
 
-    // Current counts
-    const currentTotal = allDocs.length
-    const currentPlanted = allDocs.filter(d => d.status === 'Planted').length
-    const currentOngoing = allDocs.filter(d => d.status === 'Ongoing').length
-    const currentHarvested = allDocs.filter(d => d.status === 'Harvested').length
+//     // Current counts
+//     const currentTotal = allDocs.length
+//     const currentPlanted = allDocs.filter(d => d.status === 'Planted').length
+//     const currentOngoing = allDocs.filter(d => d.status === 'Ongoing').length
+//     const currentHarvested = allDocs.filter(d => d.status === 'Harvested').length
 
-    // Calculate changes
-    const totalChanges = calculatePercentageChange(currentTotal, previousCounts.value.total)
-    const plantedChanges = calculatePercentageChange(currentPlanted, previousCounts.value.planted)
-    const ongoingChanges = calculatePercentageChange(currentOngoing, previousCounts.value.ongoing)
+//     // Calculate changes
+//     const totalChanges = calculatePercentageChange(currentTotal, previousCounts.value.total)
+//     const plantedChanges = calculatePercentageChange(currentPlanted, previousCounts.value.planted)
+//     const ongoingChanges = calculatePercentageChange(currentOngoing, previousCounts.value.ongoing)
 
-    // Calculate success rate
-    const successRate = currentTotal > 0 
-      ? Math.round((currentHarvested / currentTotal) * 100)
-      : 0
+//     // Calculate current success rate
+//     const currentSuccessRate = currentTotal > 0 
+//       ? Math.round((currentHarvested / currentTotal) * 100)
+//       : 0
 
-    // Update refs
-    totalRecommendations.value = currentTotal
-    percentageChange.value = totalChanges.percentage
-    isIncrease.value = totalChanges.isIncrease
+//     // Calculate success rate change
+//     const harvestRateChanges = calculatePercentageChange(currentSuccessRate, previousCounts.value.previousSuccessRate)
 
-    plantedCount.value = currentPlanted
-    plantedPercentageChange.value = plantedChanges.percentage
-    plantedIsIncrease.value = plantedChanges.isIncrease
+//     // Update refs
+//     totalRecommendations.value = currentTotal
+//     percentageChange.value = totalChanges.percentage
+//     isIncrease.value = totalChanges.isIncrease
 
-    ongoingCount.value = currentOngoing
-    ongoingPercentageChange.value = ongoingChanges.percentage
-    ongoingIsIncrease.value = ongoingChanges.isIncrease
+//     plantedCount.value = currentPlanted
+//     plantedPercentageChange.value = plantedChanges.percentage
+//     plantedIsIncrease.value = plantedChanges.isIncrease
 
-    harvestSuccessRate.value = successRate
+//     ongoingCount.value = currentOngoing
+//     ongoingPercentageChange.value = ongoingChanges.percentage
+//     ongoingIsIncrease.value = ongoingChanges.isIncrease
 
-    // Update previous counts
-    previousCounts.value = {
-      total: currentTotal,
-      planted: currentPlanted,
-      ongoing: currentOngoing,
-      harvested: currentHarvested
-    }
-  })
-}
+//     harvestSuccessRate.value = currentSuccessRate
+//     harvestRatePercentageChange.value = harvestRateChanges.percentage
+//     harvestRateIsIncrease.value = harvestRateChanges.isIncrease
+
+//     // Update previous counts
+//     previousCounts.value = {
+//       total: currentTotal,
+//       planted: currentPlanted,
+//       ongoing: currentOngoing,
+//       harvested: currentHarvested,
+//       previousSuccessRate: currentSuccessRate
+//     }
+//   })
+// }
 
 // Add cleanup in onUnmounted if using Composition API
-onUnmounted(() => {
-  if (statsUnsubscribe) {
-    statsUnsubscribe();
-  }
-});
 
 const selectedGreenhouse = ref(1)
 
@@ -2153,78 +2208,43 @@ const submitForm = async () => {
 }
 
 const saveRecommendation = async () => {
-  isSavingRecommendation.value = true;
-  // Construct the document data matching your desired Firebase structure
-  const recommendationData = {
-    recommendedCrop: recommendedCrop.value,
-    successRate: successRate.value,
-    soilCompatibility: soilCompatibility.value,
-    growthRate: growthRate.value,
-    yieldPotential: yieldPotential.value,
-    fertilizer: {
-      type: fertilizer.value.type,
-      name: fertilizer.value.name,
-      base_amount: fertilizer.value.base_amount,
-      adjusted_amount: fertilizer.value.adjusted_amount,
-      unit: fertilizer.value.unit
-    },
-    alternativeOptions: alternativeOptions.value.map(alt => ({
-      crop: alt.crop,
-      confidence: alt.confidence,
-      fertilizer: {
-        type: alt.fertilizer.type,
-        name: alt.fertilizer.name,
-        base_amount: alt.fertilizer.base_amount,
-        adjusted_amount: alt.fertilizer.adjusted_amount,
-        unit: alt.fertilizer.unit
-      }
-    })),
-    // Add soil reading data
-    soilData: {
-      nitrogen: nitrogen.value,
-      phosphorus: phosphorus.value,
-      potassium: potassium.value,
-      soilpH: soilpH.value,
-      soilMoisture: soilMoisture.value,
-      temperature: temperature.value,
-      humidity: humidity.value,
-    },
-    status: "Recommended", // Set default status
-    timestamp: serverTimestamp() // Use Firebase server timestamp
-  };
-
   try {
-    // ✅ MODIFIED: Save soil reading to new collection structure
-    // Save to esp32-1 for NPK + pH data
-    const esp32_1_ref = await addDoc(collection(db, "3sensor_readings", "esp32-1", "readings"), {
-      nitrogen: parseFloat(nitrogen.value),
-      phosphorus: parseFloat(phosphorus.value),
-      potassium: parseFloat(potassium.value),
-      soilPh: parseFloat(soilpH.value),
-      timestamp: serverTimestamp()
-    });
-
-    // Save to esp32-2 for environmental data
-    const esp32_2_ref = await addDoc(collection(db, "3sensor_readings", "esp32-2", "readings"), {
-      soilMoisture: parseFloat(soilMoisture.value),
-      temperature: parseFloat(temperature.value),
-      humidity: parseFloat(humidity.value),
-      timestamp: serverTimestamp()
-    });
-
-    recommendationData.soilReadingId = esp32_1_ref.id;
-   
-    await addDoc(collection(db, "crop_recommendations"), recommendationData);
+    isSavingRecommendation.value = true
     
-    console.log("✅ Saved recommendation directly to Firebase:", recommendationData);
-    window.showToast('Recommendation Saved successfully','success')
+    const recommendationData = {
+      recommendedCrop: recommendedCrop.value,
+      successRate: successRate.value,
+      soilCompatibility: soilCompatibility.value,
+      growthRate: growthRate.value,
+      yieldPotential: yieldPotential.value,
+      fertilizer: fertilizer.value,
+      alternativeOptions: alternativeOptions.value,
+      soilData: {
+        nitrogen: nitrogen.value,
+        phosphorus: phosphorus.value,
+        potassium: potassium.value,
+        soilpH: soilpH.value,
+        soilMoisture: soilMoisture.value,
+        temperature: temperature.value,
+        humidity: humidity.value
+      },
+      status: "Recommended",
+      timestamp: serverTimestamp() // Use Firestore server timestamp
+    }
+
+    // Add document to Firestore
+    const docRef = await addDoc(collection(db, "crop_recommendations"), recommendationData)
+    console.log("Recommendation saved with ID: ", docRef.id)
+    
+    window.showToast('Recommendation saved successfully', 'success')
     closeModal()
-    fetchSavedRecommendations()
+    fetchRecommendationStats() // Refresh stats
+    
   } catch (error) {
-    console.error('❌ Error saving recommendation:', error)
-    window.showToast('Unexpected error, please try again','failed')
+    console.error('Error saving recommendation:', error)
+    window.showToast('Failed to save recommendation', 'failed')
   } finally {
-    isSavingRecommendation.value = false;
+    isSavingRecommendation.value = false
   }
 }
 

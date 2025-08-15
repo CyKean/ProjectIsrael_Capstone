@@ -1039,8 +1039,11 @@ const sendNotification = async (message, title, severity = 'info', uniqueKey = n
     notificationStorage.set(storageKey, 'complete');
     
     // Send SMS if configured and critical
-    if (user.value?.phoneNumber && severity === 'critical') {
-      await sendSMS(user.value.phoneNumber, `[URGENT] ${title}: ${message}`);
+    if (user.value?.phoneNumber) {
+      await sendSMS(
+        user.value.phoneNumber,
+        `[${title}] ${message}`
+      );
     }
   } catch (error) {
     console.error('Failed to save notification:', error);

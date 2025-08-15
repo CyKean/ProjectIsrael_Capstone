@@ -96,8 +96,7 @@
           <!-- First Row - Water Level, Motor Status, and Weather -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Enhanced Water Level Card -->
-            <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <!-- Header -->
+            <!-- <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center bg-blue-50 rounded-full px-2.5 py-1 shadow-inner space-x-1.5">
                   <Waves class="w-4 h-4 text-blue-500" />
@@ -106,17 +105,14 @@
                 <div class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">LIVE</div>
               </div>
 
-              <!-- Water Tank -->
               <div class="relative w-64 h-80 mx-auto mt-4">
                 <div class="relative w-[80%] h-full md:w-full md:h-full rounded-[2rem] border-[6px] border-blue-300 bg-white shadow-2xl overflow-hidden tank-style">
-                  <!-- Water Fill Area -->
                   <div class="absolute bottom-0 left-0 w-full h-full z-10 overflow-hidden">
                     <div
                       class="absolute top-0 left-0 w-full h-full transition-transform duration-700 ease-in-out"
                       :style="{ transform: `translateY(${100 - waterLevel}%)` }"
                     >
                       <div class="relative w-[900%] h-full">
-                        <!-- Wave 1 -->
                         <div class="absolute w-full h-full left-0 top-0 animate-long-wave-1">
                           <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
                             <path
@@ -125,7 +121,6 @@
                             />
                           </svg>
                         </div>
-                        <!-- Wave 2 -->
                         <div class="absolute w-full h-full left-0 top-0 animate-long-wave-2">
                           <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
                             <path
@@ -134,7 +129,6 @@
                             />
                           </svg>
                         </div>
-                        <!-- Wave 3 -->
                         <div class="absolute w-full h-full left-0 top-0 animate-long-wave-3">
                           <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
                             <path
@@ -147,7 +141,6 @@
                     </div>
                   </div>
 
-                  <!-- Water Percentage -->
                   <div class="absolute inset-0 flex items-center justify-center z-20">
                     <div class="bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow-lg border border-blue-100">
                       <span v-if="!isChartsLoading" class="text-4xl font-bold text-blue-600">{{ waterLevel }}%</span>
@@ -158,7 +151,6 @@
                   </div>
                 </div>
 
-                <!-- Level Markers -->
                 <div class="absolute top-2 bottom-2 left-1/2 -translate-x-[-5rem] md:-translate-x-[-8rem] md:-right-14 w-10 flex flex-col justify-between z-30">
                   <div v-for="n in 5" :key="n" class="flex items-center gap-2">
                     <div class="h-[2px] w-4 bg-blue-400 shadow-sm"></div>
@@ -167,6 +159,93 @@
                     </span>
                   </div>
                 </div>
+              </div>
+            </div> -->
+
+            <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <!-- Header -->
+              <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center bg-blue-50 rounded-full px-2.5 py-1 shadow-inner space-x-1.5">
+                  <Waves class="w-4 h-4 text-blue-500" />
+                  <h3 class="text-xs md:text-sm font-semibold text-blue-700 tracking-wide">Water Level</h3>
+                </div>
+                <div class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">LIVE</div>
+              </div>
+
+              <!-- Water Tank Container -->
+              <div class="flex justify-center items-start">
+                <!-- Level Markers - Left Side -->
+                <div class="h-80 flex flex-col justify-between pt-2 pb-2 mr-2 z-30">
+                  <div v-for="n in 5" :key="n" class="flex items-center gap-2">
+                    <span class="text-xs md:text-sm font-medium text-blue-600 bg-white/90 px-1 rounded whitespace-nowrap">
+                      {{ 100 - (n - 1) * 25 }}%
+                    </span>
+                    <div class="h-[2px] w-4 bg-blue-400 shadow-sm"></div>
+                  </div>
+                </div>
+
+                <!-- Water Tank -->
+                <div class="relative w-64 h-80">
+                  <div class="relative w-full h-full rounded-[2rem] border-[6px] border-blue-300 bg-white shadow-2xl overflow-hidden tank-style">
+                    <!-- Water Fill Area -->
+                    <div class="absolute bottom-0 left-0 w-full h-full z-10 overflow-hidden">
+                      <div
+                        class="absolute top-0 left-0 w-full h-full transition-transform duration-700 ease-in-out"
+                        :style="{ transform: `translateY(${100 - waterLevel}%)` }"
+                      >
+                        <div class="relative w-[900%] h-full">
+                          <!-- Wave 1 -->
+                          <div class="absolute w-full h-full left-0 top-0 animate-long-wave-1">
+                            <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
+                              <path
+                                d="M0,0 C200,60 400,-60 600,0 C800,60 1000,-60 1200,0 L1200,300 L0,300 Z"
+                                fill="#3B82F6" fill-opacity="0.6"
+                              />
+                            </svg>
+                          </div>
+                          <!-- Wave 2 -->
+                          <div class="absolute w-full h-full left-0 top-0 animate-long-wave-2">
+                            <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
+                              <path
+                                d="M0,0 C200,50 400,-50 600,0 C800,50 1000,-50 1200,0 L1200,300 L0,300 Z"
+                                fill="#60A5FA" fill-opacity="0.4"
+                              />
+                            </svg>
+                          </div>
+                          <!-- Wave 3 -->
+                          <div class="absolute w-full h-full left-0 top-0 animate-long-wave-3">
+                            <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
+                              <path
+                                d="M0,0 C200,40 400,-40 600,0 C800,40 1000,-40 1200,0 L1200,300 L0,300 Z"
+                                fill="#3B82F6" fill-opacity="0.2"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Water Percentage -->
+                    <div class="absolute inset-0 flex items-center justify-center z-20">
+                      <div class="bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow-lg border border-blue-100">
+                        <span v-if="!isChartsLoading" class="text-4xl font-bold text-blue-600">{{ waterLevel }}%</span>
+                        <span v-else class="text-4xl font-bold text-blue-600">
+                          <div class="h-8 w-16 bg-gray-300 rounded animate-pulse"></div>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Optional: Right Side Markers (if you want markers on both sides) -->
+                <!-- <div class="h-80 flex flex-col justify-between pt-2 pb-2 ml-2 z-30">
+                  <div v-for="n in 5" :key="n" class="flex items-center gap-2">
+                    <div class="h-[2px] w-4 bg-blue-400 shadow-sm"></div>
+                    <span class="text-xs md:text-sm font-medium text-blue-600 bg-white/90 px-1 rounded whitespace-nowrap">
+                      {{ 100 - (n - 1) * 25 }}%
+                    </span>
+                  </div>
+                </div> -->
               </div>
             </div>
 
@@ -265,7 +344,7 @@
               <!-- Weekly Breakdown -->
               <div class="mt-4">
                 <h4 class="text-[10px] md:text-xs font-semibold text-purple-700 mb-2">Weekly Breakdown</h4>
-                <div class="grid grid-cols-4 mid:grid-cols-7 gap-2 md:gap-1">
+                <div class="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-1">
                   <div v-for="(day, index) in weeklyData" :key="index" class="flex flex-col items-center">
                     <div class="w-full bg-purple-100 rounded-full overflow-hidden">
                       <div 
@@ -965,7 +1044,8 @@ const loadWeather = async () => {
 
 const setupEventSource = () => {
   try {
-    streamConnection.value = new EventSource('http://localhost:8000/api/stream');
+    // streamConnection.value = new EventSource('http://localhost:8000/api/stream');
+    streamConnection.value = new EventSource('https://project-israel-backend.onrender.com/api/stream');
     
     streamConnection.value.onmessage = (event) => {
       streamDataReceived.value = true;

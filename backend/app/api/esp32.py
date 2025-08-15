@@ -14,7 +14,7 @@ async def save_esp32_ip(request: ESP32IPRequest):
     """Save ESP32 IP address"""
     if not request.ip or len(request.ip.split('.')) != 4:
         raise HTTPException(status_code=400, detail="Invalid IP address format")
-    
+    v
     esp32_devices["last_known_ip"] = request.ip
     esp32_devices["last_contact"] = datetime.utcnow().isoformat()
     
