@@ -375,28 +375,28 @@
               
               <!-- Date Range -->
               <div class="space-y-2">
-    <label class="text-[10px] md:text-xs text-gray-500">Date Range</label>
-    <div class="flex flex-col space-y-2">
-      <div class="flex items-center">
-        <span class="text-[10px] md:text-xs text-gray-500 w-14">From:</span>
-        <input 
-          type="date" 
-          v-model="historyFilters.startDate" 
-          class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          :max="currentDateFormatted"
-        />
-      </div>
-      <div class="flex items-center">
-        <span class="text-[10px] md:text-xs text-gray-500 w-14">To:</span>
-        <input 
-          type="date" 
-          :value="currentDateFormatted"
-          class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-gray-100"
-          readonly
-        />
-      </div>
-    </div>
-  </div>
+                <label class="text-[10px] md:text-xs text-gray-500">Date Range</label>
+                <div class="flex flex-col space-y-2">
+                  <div class="flex items-center">
+                    <span class="text-[10px] md:text-xs text-gray-500 w-14">From:</span>
+                    <input 
+                      type="date" 
+                      v-model="historyFilters.startDate" 
+                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      :max="currentDateFormatted"
+                    />
+                  </div>
+                  <div class="flex items-center">
+                    <span class="text-[10px] md:text-xs text-gray-500 w-14">To:</span>
+                    <input 
+                      type="date" 
+                      :value="currentDateFormatted"
+                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-gray-100"
+                      readonly
+                    />
+                  </div>
+                </div>
+              </div>
               
               <!-- Schedule Type -->
               <div class="space-y-2">

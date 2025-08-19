@@ -10,14 +10,14 @@
           <!-- Total Predictions -->
           <div class="bg-white rounded-[1rem] md:rounded-xl p-2 md:p-5 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2 md:gap-3">
+              <div class="flex items-center flex-col-reverse md:flex-row gap-2 md:gap-3">
                 <ChartBarIcon class="h-3 w-3 md:h-5 md:w-5 text-purple-500" />
                 <span class="text-[10px] md:text-sm font-medium text-purple-700 bg-purple-500/10 px-2 py-0.5 rounded-full">Total</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center md:text-left font-bold text-gray-900 mb-2">{{ totalRecommendations }}</div>
-              <div class="flex items-center justify-center text-xs font-medium mt-1">
+              <div class="flex items-center justify-center text-[7px] md:text-xs font-medium mt-1">
                 <template v-if="percentageChange > 0">
                   <component
                     :is="isIncrease ? ArrowUpIcon : ArrowDownIcon"
@@ -42,14 +42,14 @@
           <!-- Planted -->
           <div class="bg-white rounded-[1rem] md:rounded-xl p-1 pt-2 md:p-5 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-1 md:gap-2 md:pt-4">
+              <div class="flex items-center flex-col-reverse md:flex-row gap-1 md:gap-2 md:pt-4">
                 <SproutIcon class="h-3 w-3 md:h-5 md:w-5 text-green-500" />
                 <span class="text-[10px] md:text-sm font-medium text-green-700 bg-green-500/10 px-2 py-0.5 rounded-full">Planted</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ plantedCount }}</div>
-              <div class="flex items-center justify-center text-xs font-medium mt-1">
+              <div class="flex items-center justify-center text-[7px] md:text-xs font-medium mt-1">
                 <template v-if="plantedPercentageChange > 0">
                   <component
                     :is="plantedIsIncrease ? ArrowUpIcon : ArrowDownIcon"
@@ -74,14 +74,14 @@
           <!-- Success Rate -->
           <div class="bg-white rounded-[1rem] md:rounded-xl p-2 md:p-5 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center flex-col-reverse md:flex-row gap-2">
                 <ActivityIcon class="h-3 w-3 md:h-5 md:w-5 text-blue-500" />
                 <span class="text-[10px] md:text-sm font-medium text-blue-700 bg-blue-500/10 px-2 py-0.5 rounded-full">Rate</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ harvestSuccessRate }}%</div>
-              <div class="flex items-center justify-center text-xs font-medium mt-1">
+              <div class="flex items-center justify-center text-[7px] md:text-xs font-medium mt-1">
                 <template v-if="harvestRatePercentageChange > 0">
                   <component
                     :is="harvestRateIsIncrease ? ArrowUpIcon : ArrowDownIcon"
@@ -106,14 +106,14 @@
           <!-- Ongoing -->
           <div class="bg-white rounded-[1rem] md:rounded-xl p-2 md:p-5 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-1">
+              <div class="flex items-center flex-col-reverse md:flex-row gap-1">
                 <ClipboardListIcon class="h-3 w-3 md:h-5 md:w-5 text-red-500" />
                 <span class="text-[10px] md:text-sm font-medium text-red-700 bg-red-500/10 px-2 py-0.5 rounded-full">Active</span>
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
               <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ ongoingCount }}</div>
-              <div class="flex items-center justify-center text-xs font-medium mt-1">
+              <div class="flex items-center justify-center text-[7px] md:text-xs font-medium mt-1">
                 <template v-if="ongoingPercentageChange > 0">
                   <component
                     :is="ongoingIsIncrease ? ArrowUpIcon : ArrowDownIcon"
@@ -612,7 +612,15 @@
                       </div>
                     </div>
                   </transition>
+                  
                 </div>
+                <button 
+                  @click="showPrintModal = true"
+                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                >
+                  <PrinterIcon class="h-4 w-4" />
+                  <span class="text-xs">Print</span>
+                </button>
               </div>
             </div>
 
@@ -908,41 +916,109 @@
             </div>
 
             <!-- Enhanced Pagination -->
-            <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
-              <div class="flex items-center gap-2">
-                <label class="text-xs md:text-sm text-gray-600">Items per page</label>
+            <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <!-- Items per page selector - full width on mobile -->
+              <div class="w-full sm:w-auto flex items-center gap-2">
+                <label class="text-xs md:text-sm text-gray-600 whitespace-nowrap">Items per page</label>
                 <select 
                   v-model="itemsPerPage"
-                  class="text-xs md:text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  class="text-xs md:text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 w-full sm:w-auto"
                 >
-                  <option value="5">5</option>
+                  <option value="6">6</option>
                   <option value="10">10</option>
                   <option value="20">20</option>
                 </select>
               </div>
               
-              <div class="flex items-center gap-2">
+              <!-- Pagination controls - centered on mobile -->
+              <div class="w-full sm:w-auto flex items-center justify-center gap-2">
                 <button 
                   class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   :disabled="currentPage === 1"
                   @click="currentPage--"
+                  aria-label="Previous page"
                 >
                   <ChevronLeftIcon class="h-4 w-4" />
                 </button>
                 
-                <div class="flex items-center gap-1">
+                <!-- Mobile-friendly page numbers with ellipsis -->
+                <div class="flex items-center gap-1 overflow-x-auto py-1 max-w-[200px] sm:max-w-none">
+                  <!-- Always show first page button if not on first page -->
                   <button 
-                    v-for="page in totalPages"
-                    :key="page"
+                    v-if="currentPage > 1"
                     :class="[
-                      'px-3 py-1 text-sm font-medium rounded-lg transition-colors duration-200',
-                      currentPage === page
+                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                      currentPage === 1
                         ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
                         : 'text-gray-500 hover:bg-gray-50'
                     ]"
-                    @click="currentPage = page"
+                    @click="currentPage = 1"
                   >
-                    {{ page }}
+                    1
+                  </button>
+                  
+                  <!-- Show ellipsis if current page is far from start -->
+                  <span 
+                    v-if="currentPage > 3"
+                    class="px-1 text-gray-400"
+                  >
+                    ...
+                  </span>
+                  
+                  <!-- Show previous page if not first page -->
+                  <button 
+                    v-if="currentPage > 2"
+                    :class="[
+                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                      'text-gray-500 hover:bg-gray-50'
+                    ]"
+                    @click="currentPage = currentPage - 1"
+                  >
+                    {{ currentPage - 1 }}
+                  </button>
+                  
+                  <!-- Always show current page -->
+                  <button 
+                    :class="[
+                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                    ]"
+                  >
+                    {{ currentPage }}
+                  </button>
+                  
+                  <!-- Show next page if not last page -->
+                  <button 
+                    v-if="currentPage < totalPages - 1"
+                    :class="[
+                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                      'text-gray-500 hover:bg-gray-50'
+                    ]"
+                    @click="currentPage = currentPage + 1"
+                  >
+                    {{ currentPage + 1 }}
+                  </button>
+                  
+                  <!-- Show ellipsis if current page is far from end -->
+                  <span 
+                    v-if="currentPage < totalPages - 2"
+                    class="px-1 text-gray-400"
+                  >
+                    ...
+                  </span>
+                  
+                  <!-- Always show last page button if not on last page -->
+                  <button 
+                    v-if="currentPage < totalPages"
+                    :class="[
+                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                      currentPage === totalPages
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                        : 'text-gray-500 hover:bg-gray-50'
+                    ]"
+                    @click="currentPage = totalPages"
+                  >
+                    {{ totalPages }}
                   </button>
                 </div>
                 
@@ -950,6 +1026,7 @@
                   class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   :disabled="currentPage === totalPages"
                   @click="currentPage++"
+                  aria-label="Next page"
                 >
                   <ChevronRightIcon class="h-4 w-4" />
                 </button>
@@ -1157,198 +1234,354 @@
     <div class="absolute inset-0 bg-black/50 backdrop-blur-[2px]" @click="closeDetailsModal"></div>
   
     <!-- Modal Content - Centered and above the backdrop -->
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="relative bg-white rounded-2xl shadow-xl max-w-xl w-full mx-auto max-h-[90vh] overflow-y-auto">
-        <!-- Modal Header -->
-        <div class="text-center p-4 pb-0">
-          <h2 class="text-lg font-semibold text-gray-800">Crop Details</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Detailed information and management</p>
+    <div class="absolute inset-0 flex items-center justify-center p-2 sm:p-4">
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-auto h-full max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+        
+        <!-- Fixed Header with Green Background - Non-scrollable -->
+        <div class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 sm:px-6 py-4 sm:py-5 rounded-t-2xl flex-shrink-0">
+          <h2 class="text-lg sm:text-xl font-semibold text-center">Crop Details</h2>
+          <p class="text-xs sm:text-sm text-green-100 mt-1 text-center">Detailed information and management</p>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-          <!-- Left Column -->
-          <div class="space-y-3">
-            <!-- Primary Recommendation -->
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50/50 rounded-lg p-4">
-              <div class="flex items-center gap-2 text-green-600 mb-2">
-                <SproutIcon class="h-4 w-4" />
-                <span class="text-xs font-medium">Recommended Crop</span>
-              </div>
-              <h3 class="text-lg font-bold text-green-700 mb-1">{{ selectedPrediction?.crop }}</h3>
-              <div class="flex items-baseline gap-1 mb-1">
-                <span class="text-xl font-bold text-green-600">{{ selectedPrediction?.successRate }}</span>
-                <span class="text-sm font-medium text-green-600">%</span>
-              </div>
-              <p class="text-xs text-gray-600">
-                Recommended on {{ new Date(selectedPrediction?.date).toLocaleString() }}
-              </p>
-            </div>
-
-            <!-- Recommended Fertilizer -->
-            <div class="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-              <div class="flex items-center gap-2 text-green-600 mb-3">
-                <FlaskIcon class="h-4 w-4" />
-                <span class="text-xs font-medium">Recommended Fertilizer</span>
-              </div>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-medium text-gray-700">Type:</span>
-                  <span class="text-sm text-gray-600">{{ selectedPrediction?.fertilizer?.type || 'N/A' }}</span>
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto px-3 sm:px-4 py-4">
+          <!-- Main Content Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <!-- Left Column -->
+            <div class="space-y-3 sm:space-y-4">
+              <!-- Primary Recommendation -->
+              <div class="bg-gradient-to-br from-green-50 to-emerald-50/50 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 text-green-600 mb-2">
+                  <SproutIcon class="h-4 w-4" />
+                  <span class="text-xs font-medium">Recommended Crop</span>
                 </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-medium text-gray-700">Name:</span>
-                  <span class="text-sm text-gray-600">{{ selectedPrediction?.fertilizer?.name || 'N/A' }}</span>
+                <h3 class="text-lg sm:text-xl font-bold text-green-700 mb-1">{{ selectedPrediction?.crop }}</h3>
+                <div class="flex items-baseline gap-1 mb-1">
+                  <span class="text-xl sm:text-2xl font-bold text-green-600">{{ selectedPrediction?.successRate }}</span>
+                  <span class="text-sm font-medium text-green-600">%</span>
                 </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-medium text-gray-700">Amount:</span>
-                  <span class="text-sm text-gray-600">
-                    {{ selectedPrediction?.fertilizer?.adjusted_amount || 0 }} {{ selectedPrediction?.fertilizer?.unit || '' }}
-                  </span>
+                <p class="text-xs text-gray-600">
+                  Recommended on {{ new Date(selectedPrediction?.date).toLocaleString() }}
+                </p>
+              </div>
+
+              <!-- Recommended Fertilizer -->
+              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 shadow-sm">
+                <div class="flex items-center gap-2 text-green-600 mb-3">
+                  <FlaskIcon class="h-4 w-4" />
+                  <span class="text-xs font-medium">Recommended Fertilizer</span>
+                </div>
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">Type:</span>
+                    <span class="text-sm text-gray-600">{{ selectedPrediction?.fertilizer?.type || 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">Name:</span>
+                    <span class="text-sm text-gray-600">{{ selectedPrediction?.fertilizer?.name || 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">Amount:</span>
+                    <span class="text-sm text-gray-600">
+                      {{ selectedPrediction?.fertilizer?.adjusted_amount || 0 }} {{ selectedPrediction?.fertilizer?.unit || '' }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Status Management -->
-            <div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-              <div class="flex items-center gap-2 text-green-600 mb-2">
-                <ActivityIcon class="h-4 w-4" />
-                <span class="text-xs font-medium">Status Management</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="status in ['Planted', 'Ongoing', 'Harvested', 'Cancelled']"
-                  :key="status"
-                  @click="updateStatus(status)"
-                  :class="[
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
-                    editedStatus === status
-                      ? getStatusButtonClass(status)
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                  ]"
-                >
-                  {{ status }}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column -->
-          <div class="space-y-3">
-            <!-- Alternative Options with Fertilizers -->
-            <div class="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-              <div class="flex items-center gap-2 text-green-600 mb-3">
-                <ListIcon class="h-4 w-4" />
-                <span class="text-xs font-medium">Alternative Options</span>
-              </div>
-              <div class="space-y-4">
-                <div v-for="option in alternativeCrops" :key="option.crop" class="space-y-2">
-                  <!-- Crop Info -->
+              <!-- Success Metrics moved here (was in right column) -->
+              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 shadow-sm">
+                <div class="flex items-center gap-2 text-green-600 mb-3">
+                  <TrendingUpIcon class="h-4 w-4" />
+                  <span class="text-xs font-medium">Success Metrics</span>
+                </div>
+                <div class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <div>
-                      <h4 class="text-sm font-medium text-gray-900">{{ option.crop }}</h4>
-                      <p class="text-[10px] text-gray-500">Alternative crop</p>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-sm font-semibold text-gray-900">
-                        {{ option.confidence }}%
-                      </div>
-                    </div>
+                    <span class="text-xs text-gray-600">Soil Compatibility</span>
+                    <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.soilCompatibility }}%</span>
                   </div>
-                  <!-- Progress Bar -->
-                  <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
                     <div 
-                      class="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all" 
-                      :style="{ width: `${option.confidence}%` }"
-                    ></div>
+                      class="bg-green-500 h-1.5 rounded-full transition-all duration-300"
+                      :style="{ width: `${selectedPrediction?.soilCompatibility}%` }"
+                    />
                   </div>
-                  <!-- Fertilizer Info -->
-                  <div class="bg-gray-50 rounded-lg p-2 mt-2">
-                    <div class="text-[10px] font-medium text-gray-600 mb-1">Recommended Fertilizer:</div>
-                    <div class="grid grid-cols-2 gap-1 text-[10px]">
-                      <div class="text-gray-500">Type:</div>
-                      <div class="text-gray-700 text-right">{{ option.fertilizer?.type || 'N/A' }}</div>
-                      <div class="text-gray-500">Name:</div>
-                      <div class="text-gray-700 text-right">{{ option.fertilizer?.name || 'N/A' }}</div>
-                      <div class="text-gray-500">Amount:</div>
-                      <div class="text-gray-700 text-right">
-                        {{ option.fertilizer?.adjusted_amount || 0 }} {{ option.fertilizer?.unit || '' }}
-                      </div>
-                    </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Growth Rate</span>
+                    <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.growthRate }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                    <div 
+                      class="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                      :style="{ width: `${selectedPrediction?.growthRate}%` }"
+                    />
+                  </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Yield Potential</span>
+                    <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.yieldPotential }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                    <div 
+                      class="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
+                      :style="{ width: `${selectedPrediction?.yieldPotential}%` }"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Success Metrics -->
-            <div class="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-              <div class="flex items-center gap-2 text-green-600 mb-3">
-                <TrendingUpIcon class="h-4 w-4" />
-                <span class="text-xs font-medium">Success Metrics</span>
+            <!-- Right Column -->
+            <div class="space-y-3 sm:space-y-4">
+              <!-- Alternative Options with Fertilizers -->
+              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 shadow-sm">
+                <div class="flex items-center gap-2 text-green-600 mb-3">
+                  <ListIcon class="h-4 w-4" />
+                  <span class="text-xs font-medium">Alternative Options</span>
+                </div>
+                <div class="space-y-4">
+                  <div v-for="option in alternativeCrops" :key="option.crop" class="space-y-2">
+                    <!-- Crop Info -->
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h4 class="text-sm font-medium text-gray-900">{{ option.crop }}</h4>
+                        <p class="text-[10px] text-gray-500">Alternative crop</p>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-sm font-semibold text-gray-900">
+                          {{ option.confidence }}%
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        class="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-300" 
+                        :style="{ width: `${option.confidence}%` }"
+                      ></div>
+                    </div>
+                    <!-- Fertilizer Info -->
+                    <div class="bg-gray-50 rounded-lg p-2 mt-2">
+                      <div class="text-[10px] font-medium text-gray-600 mb-1">Recommended Fertilizer:</div>
+                      <div class="grid grid-cols-2 gap-1 text-[10px]">
+                        <div class="text-gray-500">Type:</div>
+                        <div class="text-gray-700 text-right">{{ option.fertilizer?.type || 'N/A' }}</div>
+                        <div class="text-gray-500">Name:</div>
+                        <div class="text-gray-700 text-right">{{ option.fertilizer?.name || 'N/A' }}</div>
+                        <div class="text-gray-500">Amount:</div>
+                        <div class="text-gray-700 text-right">
+                          {{ option.fertilizer?.adjusted_amount || 0 }} {{ option.fertilizer?.unit || '' }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Soil Compatibility</span>
-                  <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.soilCompatibility }}%</span>
+
+              <!-- Status Management moved here (was in left column) -->
+              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-100 shadow-sm">
+                <div class="flex items-center gap-2 text-green-600 mb-3">
+                  <ActivityIcon class="h-4 w-4" />
+                  <span class="text-xs font-medium">Status Management</span>
                 </div>
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                  <div 
-                    class="bg-green-500 h-1.5 rounded-full"
-                    :style="{ width: `${selectedPrediction?.soilCompatibility}%` }"
-                  />
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Growth Rate</span>
-                  <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.growthRate }}%</span>
-                </div>
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                  <div 
-                    class="bg-blue-500 h-1.5 rounded-full"
-                    :style="{ width: `${selectedPrediction?.growthRate}%` }"
-                  />
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Yield Potential</span>
-                  <span class="text-xs font-medium text-gray-900">{{ selectedPrediction?.yieldPotential }}%</span>
-                </div>
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                  <div 
-                    class="bg-purple-500 h-1.5 rounded-full"
-                    :style="{ width: `${selectedPrediction?.yieldPotential}%` }"
-                  />
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    v-for="status in ['Planted', 'Ongoing', 'Harvested', 'Cancelled']"
+                    :key="status"
+                    @click="updateStatus(status)"
+                    :class="[
+                      'px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1',
+                      editedStatus === status
+                        ? getStatusButtonClass(status)
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 focus:ring-gray-200'
+                    ]"
+                  >
+                    {{ status }}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-end gap-2 p-4 pt-3 border-t border-gray-100">
-          <button 
-            @click="closeDetailsModal"
-            class="px-3 py-1.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          >
-            Close
-          </button>
-          <button 
-            class="px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors flex items-center gap-1.5 shadow-sm"
-            @click="saveChanges"
-            :disabled="isSavingChanges"
-          >
-            <template v-if="isSavingChanges">
-              <svg class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Saving...</span>
-            </template>
-            <template v-else>
-              <SaveIcon class="h-3.5 w-3.5" />
-              <span>Save Changes</span>
-            </template>
-          </button>
+        <!-- Fixed Footer with Action Buttons - Non-scrollable -->
+        <div class="bg-gray-50 px-3 sm:px-4 py-3 sm:py-4 rounded-b-2xl border-t border-gray-100 flex-shrink-0">
+          <div class="flex justify-end gap-2 sm:gap-3">
+            <button 
+              @click="closeDetailsModal"
+              class="px-3 sm:px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-1"
+            >
+              Close
+            </button>
+            <button 
+              class="px-3 sm:px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors flex items-center gap-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed"
+              @click="saveChanges"
+              :disabled="isSavingChanges"
+            >
+              <template v-if="isSavingChanges">
+                <svg class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Saving...</span>
+              </template>
+              <template v-else>
+                <SaveIcon class="h-3.5 w-3.5" />
+                <span>Save Changes</span>
+              </template>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Preview Modal -->
+  <div v-if="showPrintModal" class="fixed inset-0 z-50 overflow-auto bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="border-b p-4 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Print Preview ({{ previewPages.length }} pages)</h3>
+        <button @click="showPrintModal = false" class="text-gray-500 hover:text-gray-700">
+          <XIcon class="h-5 w-5" />
+        </button>
+      </div>
+      
+      <!-- Main Content - Settings on right, preview on left -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Preview Area (Left) -->
+        <div class="flex-1 overflow-auto p-4 bg-gray-100">
+          <div class="flex flex-col items-center" style="gap: 0; padding: 0">
+            <div 
+              v-for="(page, index) in previewPages" 
+              :key="index"
+              class="bg-white shadow-sm relative" 
+              :style="{
+                width: printSettings.orientation === 'portrait' ? '210mm' : '297mm',
+                height: printSettings.orientation === 'portrait' ? '297mm' : '210mm',
+                transform: 'scale(0.6)',
+                transformOrigin: 'top center',
+                marginTop: index === 0 ? '0' : '-440px' /* This is the magic - negative margin */
+              }"
+            >
+              <!-- Page content -->
+              <div class="h-full w-full p-[10mm] flex flex-col">
+                <!-- Header -->
+                <div v-if="printSettings.includeHeader" class="text-center mb-1 border-b pb-1">
+                  <h1 class="text-lg font-bold">Crop Recommendations Report</h1>
+                  <p class="text-xs text-gray-600">Page {{ index + 1 }} of {{ previewPages.length }} • {{ new Date().toLocaleDateString() }}</p>
+                </div>
+                
+                <!-- Table -->
+                <div class="flex-1 overflow-hidden">
+                  <table class="w-full border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100">
+                        <th v-for="header in printHeaders" :key="header.key" class="border p-1 text-left text-xs">
+                          {{ header.label }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="prediction in page.data" :key="prediction.id" class="border-b">
+                        <td class="border p-1 text-xs">{{ prediction.crop }}</td>
+                        <td class="border p-1 text-xs">{{ prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0] }}</td>
+                        <td class="border p-1 text-xs">{{ prediction.successRate }}%</td>
+                        <td class="border p-1 text-xs">{{ prediction.status }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <!-- Footer -->
+                <div v-if="printSettings.includeFooter" class="text-center mt-1 border-t pt-1 text-xs text-gray-500">
+                  <p>Confidential • AgriTech Dashboard</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Settings Panel (Right) -->
+        <div class="w-80 border-l p-4 overflow-y-auto">
+          <h4 class="font-medium text-gray-700 mb-3">Print Settings</h4>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Paper Size</label>
+              <select 
+                v-model="printSettings.paperSize" 
+                class="w-full border rounded-md p-2 text-sm"
+                @change="updatePreview"
+              >
+                <option value="A4">A4 (210 × 297 mm)</option>
+                <option value="Letter">Letter (216 × 279 mm)</option>
+                <option value="Legal">Legal (216 × 356 mm)</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Orientation</label>
+              <select 
+                v-model="printSettings.orientation" 
+                class="w-full border rounded-md p-2 text-sm"
+                @change="updatePreview"
+              >
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Margins</label>
+              <select 
+                v-model="printSettings.margin" 
+                class="w-full border rounded-md p-2 text-sm"
+                @change="updatePreview"
+              >
+                <option value="10mm">Normal (10mm)</option>
+                <option value="5mm">Narrow (5mm)</option>
+                <option value="15mm">Wide (15mm)</option>
+              </select>
+            </div>
+            
+            <div class="pt-2 border-t">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+              <div class="space-y-2">
+                <div class="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    v-model="printSettings.includeHeader" 
+                    id="includeHeader" 
+                    class="h-4 w-4"
+                    @change="updatePreview"
+                  >
+                  <label for="includeHeader" class="ml-2 text-sm">Include Header</label>
+                </div>
+                <div class="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    v-model="printSettings.includeFooter" 
+                    id="includeFooter" 
+                    class="h-4 w-4"
+                    @change="updatePreview"
+                  >
+                  <label for="includeFooter" class="ml-2 text-sm">Include Footer</label>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pt-4 border-t">
+              <button 
+                @click="printTable"
+                class="w-full py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-1"
+              >
+                <PrinterIcon class="h-4 w-4" />
+                Print Now
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1357,7 +1590,7 @@
 
 <script setup>
 // Script section remains the same as in the previous version
-import { ref, computed, onMounted, onUnmounted, onBeforeMount } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onBeforeMount, reactive } from 'vue'
 import { 
   ChartBarIcon,
   ClipboardListIcon,
@@ -1388,10 +1621,9 @@ import {
   BeakerIcon as FlaskIcon,
   SaveIcon,
   TableIcon,
-  MinusIcon // Added MinusIcon for no change indicator
+  MinusIcon,
+  PrinterIcon,
 } from 'lucide-vue-next'
-import Sidebar from '../layout/Sidebar.vue'
-// import Pagination from '../layout/Pagination.vue'
 import api from '../../api/index.js'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -1428,7 +1660,7 @@ const temperature = ref(0)
 const humidity = ref(0)
 
 // Add new state for grid view and filter panel
-const isGridView = ref(false)
+const isGridView = ref(true)
 const showFilterPanel = ref(false)
 
 // Filter states
@@ -1459,7 +1691,7 @@ const predictions = ref([])
 const filteredPredictionsCache = ref([]) // Cache for filtered predictions
 const searchQuery = ref('')
 const currentPage = ref(1)
-const itemsPerPage = ref(5)
+const itemsPerPage = ref(6)
 const activeFilter = ref('All')
 
 const showDetailsModal = ref(false)
@@ -1467,25 +1699,6 @@ const selectedPrediction = ref(null)
 const alternativeCrops = ref([])
 const recommendedFertilizers = ref([])
 const editedStatus = ref(null)
-
-// const totalRecommendations = ref(0)
-// const previousRecommendationCount = ref(0)
-// const percentageChange = ref(0)
-// const isIncrease = ref(true)
-
-// const plantedCount = ref(0)
-// const plantedPercentageChange = ref(0)
-// const plantedIsIncrease = ref(true)
-
-// const harvestSuccessRate = ref(0)
-// const harvestedCount = ref(0)
-// const previousSuccessRate = ref(0) // This was commented out, but we need it in previousCounts
-// const harvestRatePercentageChange = ref(0) // New ref for success rate change
-// const harvestRateIsIncrease = ref(true) // New ref for success rate increase/decrease
-
-// const ongoingCount = ref(0) // Ongoing Count
-// const ongoingPercentageChange = ref(0) // Ongoing Percentage Change
-// const ongoingIsIncrease = ref(true) // Ongoing Increase or Decrease
 
 const isStatsLoading = ref(true); // For the top metric cards
 const isPredictionsLoading = ref(true); // For the predictions table/grid
@@ -1503,6 +1716,446 @@ const MAX_VALUES = {
   temperature: 50, // °C
   humidity: 100 // percentage
 }
+
+const showPrintModal = ref(false)
+const printContent = ref(null)
+
+const printHeaders = computed(() => {
+  return [
+    { key: 'crop', label: 'Recommended Crop' },
+    { key: 'date', label: 'Date & Time' },
+    { key: 'successRate', label: 'Success Rate' },
+    { key: 'status', label: 'Status' }
+  ];
+});
+
+const printSettings = reactive({
+  paperSize: 'A4',
+  orientation: 'portrait',
+  margin: '10mm',
+  includeHeader: true,
+  includeFooter: true,
+  fontSize: '12px'
+})
+
+const previewPages = computed(() => {
+  const pages = []
+  const rowsPerPage = calculateRowsPerPage()
+  let currentPage = []
+  
+  for (let i = 0; i < filteredPredictions.value.length; i++) {
+    currentPage.push(filteredPredictions.value[i])
+    
+    if (currentPage.length >= rowsPerPage || i === filteredPredictions.value.length - 1) {
+      pages.push({
+        pageNumber: pages.length + 1,
+        data: [...currentPage]
+      })
+      currentPage = []
+    }
+  }
+  
+  return pages
+})
+
+const calculateRowsPerPage = () => {
+  // These are approximate values based on typical row heights
+  const portraitRows = {
+    'A4': 35,
+    'Letter': 30,
+    'Legal': 45
+  }
+  
+  const landscapeRows = {
+    'A4': 25,
+    'Letter': 20,
+    'Legal': 35
+  }
+  
+  const baseRows = printSettings.orientation === 'portrait' 
+    ? portraitRows[printSettings.paperSize] 
+    : landscapeRows[printSettings.paperSize]
+  
+  // Adjust for margins
+  const marginFactor = {
+    '5mm': 1.1,
+    '10mm': 1.0,
+    '15mm': 0.9
+  }
+  
+  return Math.floor(baseRows * marginFactor[printSettings.margin])
+}
+
+// const printTable = () => {
+//   const headers = printHeaders.value || [
+//     { key: 'crop', label: 'Recommended Crop' },
+//     { key: 'date', label: 'Date & Time' },
+//     { key: 'successRate', label: 'Success Rate' },
+//     { key: 'status', label: 'Status' }
+//   ];
+
+//   // Build the HTML content step by step to avoid template literal issues
+//   let printContent = `<!DOCTYPE html><html><head>
+//     <title>Crop Recommendations Report</title>
+//     <style>
+//       @page {
+//         size: ${printSettings.paperSize} ${printSettings.orientation};
+//         margin: ${printSettings.margin};
+//       }
+//       body {
+//         font-family: Arial, sans-serif;
+//         font-size: 12px;
+//         margin: 0;
+//         padding: 0;
+//         -webkit-print-color-adjust: exact;
+//         print-color-adjust: exact;
+//       }
+//       .print-page {
+//         width: 100%;
+//         height: 100%;
+//         page-break-after: always;
+//         margin-bottom: 0;
+//       }
+//       .print-page:last-child {
+//         page-break-after: auto;
+//       }
+//       table {
+//         width: 100%;
+//         border-collapse: collapse;
+//         margin: 0;
+//       }
+//       th, td {
+//         border: 1px solid #ddd;
+//         padding: 4px;
+//         text-align: left;
+//       }
+//       th {
+//         background-color: #f2f2f2;
+//         font-weight: bold;
+//       }
+//       .header {
+//         text-align: center;
+//         margin-bottom: 10px;
+//         padding-bottom: 5px;
+//         border-bottom: 1px solid #ddd;
+//       }
+//       .footer {
+//         text-align: center;
+//         margin-top: 10px;
+//         padding-top: 5px;
+//         border-top: 1px solid #ddd;
+//         font-size: 0.9em;
+//         color: #666;
+//       }
+//     </style>
+//     <script>
+//       // Try to print directly to the default printer
+//       function tryDirectPrint() {
+//         try {
+//           // First attempt: regular print (will show dialog)
+//           window.print();
+          
+//           // If we reach here, the print was initiated
+//           setTimeout(function() {
+//             window.close();
+//           }, 1000);
+//         } catch (e) {
+//           console.error('Print error:', e);
+//           window.close();
+//         }
+//       }
+      
+//       // Auto-trigger print when the window loads
+//       window.onload = function() {
+//         setTimeout(tryDirectPrint, 100);
+//       };
+//     <` + `/script>
+//   </head><body>`;
+
+//   // Add page content
+//   previewPages.value.forEach((page, index) => {
+//     printContent += `<div class="print-page">`;
+    
+//     if (printSettings.includeHeader) {
+//       printContent += `
+//         <div class="header">
+//           <h1>Crop Recommendations Report</h1>
+//           <p>Page ${index + 1} of ${previewPages.value.length} • ${new Date().toLocaleDateString()}</p>
+//         </div>`;
+//     }
+    
+//     printContent += `
+//       <table>
+//         <thead>
+//           <tr>`;
+    
+//     headers.forEach(header => {
+//       printContent += `<th>${header.label}</th>`;
+//     });
+    
+//     printContent += `
+//           </tr>
+//         </thead>
+//         <tbody>`;
+    
+//     page.data.forEach(prediction => {
+//       printContent += `
+//           <tr>
+//             <td>${prediction.crop}</td>
+//             <td>${prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0]}</td>
+//             <td>${prediction.successRate}%</td>
+//             <td>${prediction.status}</td>
+//           </tr>`;
+//     });
+    
+//     printContent += `
+//         </tbody>
+//       </table>`;
+    
+//     if (printSettings.includeFooter) {
+//       printContent += `
+//         <div class="footer">
+//           Confidential • AgriTech Dashboard
+//         </div>`;
+//     }
+    
+//     printContent += `</div>`;
+//   });
+  
+//   printContent += `</body></html>`;
+  
+//   // Open print window with specific features that might help with printing
+//   const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+  
+//   if (!printWindow) {
+//     alert('Please allow popups for this site to enable printing.');
+//     return;
+//   }
+  
+//   // Write content to the window
+//   printWindow.document.open();
+//   printWindow.document.write(printContent);
+//   printWindow.document.close();
+// };
+
+const printTable = () => {
+  // Get the print button element to show loading state
+  const printButtons = document.querySelectorAll('button');
+  let printButton = null;
+  
+  // Find the button by text content
+  for (const button of printButtons) {
+    if (button.textContent.includes('Print Now')) {
+      printButton = button;
+      break;
+    }
+  }
+  
+  // Store original button text and disable it
+  const originalText = printButton?.textContent || 'Print Now';
+  const originalHTML = printButton?.innerHTML || '';
+  
+  if (printButton) {
+    printButton.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Printing...
+    `;
+    printButton.disabled = true;
+  }
+  
+  const headers = printHeaders.value || [
+    { key: 'crop', label: 'Recommended Crop' },
+    { key: 'date', label: 'Date & Time' },
+    { key: 'successRate', label: 'Success Rate' },
+    { key: 'status', label: 'Status' }
+  ];
+
+  // Build the HTML content step by step to avoid template literal issues
+  let printContent = `<!DOCTYPE html><html><head>
+    <title>Crop Recommendations Report</title>
+    <style>
+      @page {
+        size: ${printSettings.paperSize} ${printSettings.orientation};
+        margin: ${printSettings.margin};
+      }
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .print-page {
+        width: 100%;
+        height: 100%;
+        page-break-after: always;
+        margin-bottom: 0;
+      }
+      .print-page:last-child {
+        page-break-after: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 4px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 10px;
+        padding-top: 5px;
+        border-top: 1px solid #ddd;
+        font-size: 0.9em;
+        color: #666;
+      }
+    </style>
+    <script>
+      // Try to print directly to the default printer
+      function tryDirectPrint() {
+        try {
+          // First attempt: regular print (will show dialog)
+          window.print();
+          
+          // If we reach here, the print was initiated
+          setTimeout(function() {
+            window.close();
+            // Notify the parent window that printing is complete
+            try {
+              window.opener.postMessage('printingComplete', '*');
+            } catch (e) {
+              console.log('Could not notify parent window');
+            }
+          }, 1000);
+        } catch (e) {
+          console.error('Print error:', e);
+          window.close();
+          try {
+            window.opener.postMessage('printingFailed', '*');
+          } catch (e) {
+            console.log('Could not notify parent window');
+          }
+        }
+      }
+      
+      // Auto-trigger print when the window loads
+      window.onload = function() {
+        setTimeout(tryDirectPrint, 100);
+      };
+    <` + `/script>
+  </head><body>`;
+
+  // Add page content
+  previewPages.value.forEach((page, index) => {
+    printContent += `<div class="print-page">`;
+    
+    if (printSettings.includeHeader) {
+      printContent += `
+        <div class="header">
+          <h1>Crop Recommendations Report</h1>
+          <p>Page ${index + 1} of ${previewPages.value.length} • ${new Date().toLocaleDateString()}</p>
+        </div>`;
+    }
+    
+    printContent += `
+      <table>
+        <thead>
+          <tr>`;
+    
+    headers.forEach(header => {
+      printContent += `<th>${header.label}</th>`;
+    });
+    
+    printContent += `
+          </tr>
+        </thead>
+        <tbody>`;
+    
+    page.data.forEach(prediction => {
+      printContent += `
+          <tr>
+            <td>${prediction.crop}</td>
+            <td>${prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0]}</td>
+            <td>${prediction.successRate}%</td>
+            <td>${prediction.status}</td>
+          </tr>`;
+    });
+    
+    printContent += `
+        </tbody>
+      </table>`;
+    
+    if (printSettings.includeFooter) {
+      printContent += `
+        <div class="footer">
+          Confidential • AgriTech Dashboard
+        </div>`;
+    }
+    
+    printContent += `</div>`;
+  });
+  
+  printContent += `</body></html>`;
+  
+  // Add message listener to handle printing completion
+  const messageHandler = (event) => {
+    if (event.data === 'printingComplete' || event.data === 'printingFailed') {
+      // Restore the print button
+      if (printButton) {
+        printButton.innerHTML = originalHTML;
+        printButton.disabled = false;
+      }
+      // Remove the event listener
+      window.removeEventListener('message', messageHandler);
+    }
+  };
+  
+  window.addEventListener('message', messageHandler);
+  
+  // Open print window with specific features that might help with printing
+  const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+  
+  if (!printWindow) {
+    alert('Please allow popups for this site to enable printing.');
+    // Restore the print button if popup was blocked
+    if (printButton) {
+      printButton.innerHTML = originalHTML;
+      printButton.disabled = false;
+    }
+    return;
+  }
+  
+  // Write content to the window
+  printWindow.document.open();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  
+  // Fallback: Restore button after 10 seconds if no message is received
+  setTimeout(() => {
+    if (printButton && printButton.disabled) {
+      printButton.innerHTML = originalHTML;
+      printButton.disabled = false;
+    }
+    window.removeEventListener('message', messageHandler);
+  }, 10000);
+};
 
 // Add this helper method to your script
 const getIntensityClass = (value, max, color) => {
@@ -1722,7 +2375,7 @@ onMounted(async () => {
   fetchLatestSensorDataFromFirebase();
 
   // Start listening for SSE stream
-  let eventSource = new EventSource('http://localhost:8000/api/stream');
+  /*let eventSource = new EventSource('http://localhost:8000/api/stream');
 
   eventSource.onmessage = (event) => {
     try {
@@ -1764,7 +2417,7 @@ onMounted(async () => {
         eventSource = new EventSource('http://localhost:8000/api/stream');
       }
     }, 5000);
-  };
+  };*/
 
   // Set up stream health check
   const streamCheckInterval = setInterval(() => {
@@ -1782,12 +2435,12 @@ onMounted(async () => {
 
   document.addEventListener('click', handleClickOutside);
   // Cleanup on unmount
-  onUnmounted(() => {
-    if (eventSource) eventSource.close();
-    clearInterval(streamCheckInterval);
-    if (esp32_1_unsubscribe) esp32_1_unsubscribe();
-    if (esp32_2_unsubscribe) esp32_2_unsubscribe();
-  });
+  // onUnmounted(() => {
+  //   if (eventSource) eventSource.close();
+  //   clearInterval(streamCheckInterval);
+  //   if (esp32_1_unsubscribe) esp32_1_unsubscribe();
+  //   if (esp32_2_unsubscribe) esp32_2_unsubscribe();
+  // });
 });
 
 onUnmounted(() => {
@@ -1915,7 +2568,7 @@ const stats = ref({
     harvested: 0,
     successRate: 0
   },
-  baseline: JSON.parse(localStorage.getItem(`cropStats_${statsVersion}`)) || {
+  baseline: {
     total: 0,
     planted: 0,
     ongoing: 0,
@@ -1924,6 +2577,44 @@ const stats = ref({
     timestamp: null
   }
 })
+
+const statsDocRef = doc(db, 'system_stats', 'crop_recommendation_metrics');
+
+const fetchStatsBaseline = async () => {
+  try {
+    const docSnap = await getDoc(statsDocRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      stats.value.baseline = {
+        total: data.total || 0,
+        planted: data.planted || 0,
+        ongoing: data.ongoing || 0,
+        harvested: data.harvested || 0,
+        successRate: data.successRate || 0,
+        timestamp: data.timestamp?.toDate() || null
+      };
+    }
+    console.log("Loaded baseline stats from Firestore:", stats.value.baseline);
+  } catch (error) {
+    console.error("Error loading baseline stats:", error);
+  }
+};
+
+const updateStatsBaseline = async (newStats) => {
+  try {
+    const now = new Date();
+    const baselineData = {
+      ...newStats,
+      timestamp: now
+    };
+    
+    await setDoc(statsDocRef, baselineData, { merge: true });
+    stats.value.baseline = baselineData;
+    console.log("Updated baseline stats in Firestore:", baselineData);
+  } catch (error) {
+    console.error("Error updating baseline stats:", error);
+  }
+};
 
 // Calculate percentage change (always shows change if baseline exists)
 const calculateChange = (current, baseline) => {
@@ -1976,60 +2667,56 @@ const ongoingIsIncrease = computed(() =>
 )
 
 // Update stats and baseline
-const updateStats = (newStats) => {
-  const now = new Date()
+const updateStats = async (newStats) => {
+  const now = new Date();
   
   // Always update current stats
-  stats.value.current = newStats
+  stats.value.current = newStats;
   
   // Set baseline on first run or when empty
   if (!stats.value.baseline.timestamp) {
-    stats.value.baseline = {
-      ...newStats,
-      timestamp: now.getTime()
-    }
-    localStorage.setItem(`cropStats_${statsVersion}`, JSON.stringify(stats.value.baseline))
+    await updateStatsBaseline(newStats);
   }
   
   // Update baseline daily
-  const hoursDiff = (now.getTime() - stats.value.baseline.timestamp) / (1000 * 60 * 60)
+  const hoursDiff = (now - stats.value.baseline.timestamp) / (1000 * 60 * 60);
   if (hoursDiff > 24) {
-    stats.value.baseline = {
-      ...stats.value.current,
-      timestamp: now.getTime()
-    }
-    localStorage.setItem(`cropStats_${statsVersion}`, JSON.stringify(stats.value.baseline))
+    await updateStatsBaseline(newStats);
   }
-}
+};
 
-// Firestore listener with debug logging
-const fetchRecommendationStats = () => {
+// Modify the fetchRecommendationStats to use our new system
+const fetchRecommendationStats = async () => {
   try {
-    isStatsLoading.value = true
+    isStatsLoading.value = true;
     
-    const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'))
+    // First load the baseline from Firestore
+    await fetchStatsBaseline();
     
-    return onSnapshot(q, (snapshot) => {
+    // Then set up the real-time listener for current counts
+    const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'));
+    
+    return onSnapshot(q, async (snapshot) => {
       const allDocs = snapshot.docs.map(doc => {
-        const data = doc.data()
+        const data = doc.data();
         return {
           ...data,
           timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp?.seconds * 1000) || new Date()
-        }
-      })
+        };
+      });
       
       const counts = {
         total: allDocs.length,
         planted: allDocs.filter(d => d.status === 'Planted').length,
         ongoing: allDocs.filter(d => d.status === 'Ongoing').length,
         harvested: allDocs.filter(d => d.status === 'Harvested').length
-      }
+      };
       
       counts.successRate = counts.total > 0 
         ? Math.round((counts.harvested / counts.total) * 100)
-        : 0
+        : 0;
 
-      updateStats(counts)
+      await updateStats(counts);
       
       console.log('Stats updated:', {
         current: stats.value.current,
@@ -2040,16 +2727,16 @@ const fetchRecommendationStats = () => {
           ongoing: ongoingPercentageChange.value,
           successRate: harvestRatePercentageChange.value
         }
-      })
+      });
 
-      isStatsLoading.value = false
-    })
+      isStatsLoading.value = false;
+    });
 
   } catch (error) {
-    console.error('Error fetching stats:', error)
-    isStatsLoading.value = false
+    console.error('Error fetching stats:', error);
+    isStatsLoading.value = false;
   }
-}
+};
 
 onMounted(() => {
   fetchRecommendationStats()
@@ -2209,44 +2896,44 @@ const submitForm = async () => {
 
 const saveRecommendation = async () => {
   try {
-    isSavingRecommendation.value = true
+    isSavingRecommendation.value = true;
     
     const recommendationData = {
       recommendedCrop: recommendedCrop.value,
-      successRate: successRate.value,
-      soilCompatibility: soilCompatibility.value,
-      growthRate: growthRate.value,
-      yieldPotential: yieldPotential.value,
+      successRate: parseFloat(successRate.value),
+      soilCompatibility: parseFloat(soilCompatibility.value),
+      growthRate: parseFloat(growthRate.value),
+      yieldPotential: parseFloat(yieldPotential.value),
       fertilizer: fertilizer.value,
       alternativeOptions: alternativeOptions.value,
       soilData: {
-        nitrogen: nitrogen.value,
-        phosphorus: phosphorus.value,
-        potassium: potassium.value,
-        soilpH: soilpH.value,
-        soilMoisture: soilMoisture.value,
-        temperature: temperature.value,
-        humidity: humidity.value
+        nitrogen: parseFloat(nitrogen.value),
+        phosphorus: parseFloat(phosphorus.value),
+        potassium: parseFloat(potassium.value),
+        soilpH: parseFloat(soilpH.value),
+        soilMoisture: parseFloat(soilMoisture.value),
+        temperature: parseFloat(temperature.value),
+        humidity: parseFloat(humidity.value)
       },
-      status: "Recommended",
-      timestamp: serverTimestamp() // Use Firestore server timestamp
-    }
+      status: "Recommended", // Default status
+      timestamp: serverTimestamp()
+    };
 
-    // Add document to Firestore
-    const docRef = await addDoc(collection(db, "crop_recommendations"), recommendationData)
-    console.log("Recommendation saved with ID: ", docRef.id)
+    // Save directly to Firestore
+    const docRef = await addDoc(collection(db, "crop_recommendations"), recommendationData);
     
-    window.showToast('Recommendation saved successfully', 'success')
-    closeModal()
-    fetchRecommendationStats() // Refresh stats
+    console.log("Recommendation saved with ID: ", docRef.id);
+    window.showToast('Recommendation saved successfully', 'success');
+    closeModal();
     
+    // No need to manually refresh stats - the onSnapshot listener will handle it
   } catch (error) {
-    console.error('Error saving recommendation:', error)
-    window.showToast('Failed to save recommendation', 'failed')
+    console.error('Error saving recommendation:', error);
+    window.showToast('Failed to save recommendation', 'failed');
   } finally {
-    isSavingRecommendation.value = false
+    isSavingRecommendation.value = false;
   }
-}
+};
 
 
 const closeModal = () => {
@@ -2462,29 +3149,36 @@ const closeDetailsModal = () => {
 }
 
 const saveChanges = async () => {
-  if (!selectedPrediction.value) return
-   isSavingChanges.value = true;
+  if (!selectedPrediction.value || !editedStatus.value) return;
+  isSavingChanges.value = true;
 
   try {
-    await api.post(`/crop/recommendations/${selectedPrediction.value.id}/status`, null, {
-      params: { status: editedStatus.value }
-    })
+    // Update directly in Firestore
+    await updateDoc(doc(db, "crop_recommendations", selectedPrediction.value.id), {
+      status: editedStatus.value,
+      lastUpdated: serverTimestamp()
+    });
 
-    selectedPrediction.value.status = editedStatus.value // update locally too
+    // Update local state
+    selectedPrediction.value.status = editedStatus.value;
+    
+    // Update in the main predictions array if needed
+    const index = predictions.value.findIndex(p => p.id === selectedPrediction.value.id);
+    if (index !== -1) {
+      predictions.value[index].status = editedStatus.value;
+    }
 
-    // Optional: update in the main table
-    const index = predictions.value.findIndex(p => p.id === selectedPrediction.value.id)
-    if (index !== -1) predictions.value[index].status = editedStatus.value
-
-    window.showToast('Status updated successfully','success')
-    closeDetailsModal()
-  } catch (err) {
-    console.error('Error saving changes:', err)
-    window.showToast('Failed to save changes','failed')
+    window.showToast('Status updated successfully', 'success');
+    closeDetailsModal();
+    
+    // No need to manually refresh - the onSnapshot listener will handle it
+  } catch (error) {
+    console.error('Error updating status:', error);
+    window.showToast('Failed to update status', 'failed');
   } finally {
     isSavingChanges.value = false;
   }
-}
+};
 </script>
 
 <style>
@@ -2601,5 +3295,15 @@ const saveChanges = async () => {
   100% {
     background-position: 0% 50%;
   }
+}
+/* Add this to your style section */
+.page-preview {
+  page-break-after: always;
+  margin-bottom: 1px !important; /* Tiny gap between pages */
+}
+
+.page-preview:last-child {
+  page-break-after: auto;
+  margin-bottom: 0 !important;
 }
 </style>
