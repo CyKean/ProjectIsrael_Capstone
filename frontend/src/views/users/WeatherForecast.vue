@@ -368,7 +368,7 @@
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-500 to-emerald-300 transition-all duration-500" :style="{ height: `${hour.rainChance}%` }"></div>
                       </div>
                       <div class="precip-label text-[10px] sm:text-xs font-medium text-emerald-600 text-center mt-0.5">{{ hour.rainChance }}%</div>
-                      <div class="precip-label text-[10px] sm:text-xs text-gray-500 text-center mt-0.5">{{ hour.time }}</div>
+                      <div class="text-[6px] md:text-xs text-gray-500 text-center mt-0.5">{{ hour.time }}</div>
                     </div>
                   </div>
                 </div>
@@ -381,31 +381,31 @@
                     :key="`hourly-${index}`"
                     class="grid grid-cols-12 items-center gap-1 p-2 xs:p-2.5 sm:p-3 rounded-md xs:rounded-lg sm:rounded-xl hover:bg-emerald-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-emerald-100"
                   >
-                    <div class="col-span-2 md:col-span-2 text-[8px] md:text-[10px] xs:text-[10px] sm:text-sm font-medium text-gray-700">
+                    <div class="col-span-2 md:col-span-2 text-[8px] md:text-md xs:text-[10px] sm:text-sm font-medium text-gray-700">
                       {{ hour.time }}
                     </div>
                     <div class="col-span-1 sm:col-span-1">
                       <div class="bg-white rounded-full p-1 xs:p-1.5 sm:p-2 shadow-sm inline-flex items-center justify-center">
                         <component
                           :is="getWeatherIcon(hour.condition)"
-                          class="h-2 w-2 xs:h-4 xs:w-4 sm:h-5 sm:w-5 md:h-6 md:w-6"
+                          class="h-2 w-2 xs:h-4 xs:w-4 sm:h-5 sm:w-5 md:h-8 md:w-8"
                           :class="getWeatherIconColor(hour.condition)"
                         />
                       </div>
                     </div>
-                    <div class="col-span-2 sm:col-span-2 text-[10px] md:text-xs xs:text-sm sm:text-base font-medium text-gray-800">
+                    <div class="col-span-2 sm:col-span-2 text-[10px] md:text-md xs:text-sm sm:text-base font-medium text-gray-800">
                       {{ hour.temp }}°C
                     </div>
                     <div class="col-span-2 sm:col-span-2 flex items-center">
-                      <Droplet class="h-3 w-3 xs:h-4 xs:w-4 text-emerald-500 mr-1" />
-                      <span class="text-[12px] xs:text-xs sm:text-sm text-gray-700">{{ hour.rainChance }}%</span>
+                      <Droplet class="h-3 w-3 md:h-8 md:h-8 text-emerald-500 mr-1" />
+                      <span class="text-[12px] md:text-lg text-gray-700">{{ hour.rainChance }}%</span>
                     </div>
                     <div class="col-span-3 sm:col-span-2 flex items-center">
-                      <Wind class="h-3 w-3 xs:h-4 xs:w-4 text-teal-500 mr-1" />
-                      <span class="text-[10px] md:text-sm xs:text-xs sm:text-sm text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
+                      <Wind class="h-3 w-3 md:h-8 md:h-8 text-teal-500 mr-1" />
+                      <span class="text-[10px] md:text-lg text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
                     </div>
                     <div
-                      class="col-span-2 sm:col-span-3 min-w-0 text-right md:text-sm xs:text-[12px] text-[9px] font-medium leading-snug sm:whitespace-nowrap"
+                      class="col-span-2 sm:col-span-3 min-w-0 text-right md:text-lg xs:text-[12px] text-[9px] font-medium leading-snug sm:whitespace-nowrap"
                       :class="getConditionColor(hour.condition)"
                       :title="hour.condition"
                     >
@@ -416,7 +416,7 @@
               </div>
 
               <div v-else-if="activeTab === 'details'" class="h-full">
-                <div class="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4">
+                <div class="md:grid md:grid-cols-2 gap-2 xs:gap-3 sm:gap-4">
                   <div class="space-y-2 xs:space-y-3 sm:space-y-4">
                     <div class="bg-emerald-50/50 rounded-md xs:rounded-lg sm:rounded-xl p-2 xs:p-3 sm:p-4">
                       <h3 class="text-sm xs:text-sm font-semibold text-emerald-800 mb-1.5 xs:mb-2 sm:mb-3 flex items-center"><CloudRain class="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 mr-1 xs:mr-1.5 sm:mr-2 text-emerald-600" />Precipitation</h3>

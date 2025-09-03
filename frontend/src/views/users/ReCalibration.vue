@@ -848,31 +848,11 @@ import {
 } from 'lucide-vue-next'
 
 import { ref, onMounted, onBeforeUnmount, watch, reactive, onUnmounted, computed } from 'vue'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  doc,
-  setDoc,
-  Timestamp,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  where,
-  getDocsFromServer,
-  onSnapshot
-} from 'firebase/firestore'
 import axios from 'axios';
 import api from '../../api/index.js'
 
-const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'https://project-israel-backend.onrender.com';
+// const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'https://project-israel-backend.onrender.com';
 
-const db = getFirestore()
 const searchQuery = ref('')
 
 const wifiDetails = reactive({

@@ -298,20 +298,7 @@ import { useUserStore } from '../../utils/user'
 import api from '../../api/index.js' // Assuming this is your configured Axios instance
 import toastr from "toastr"
 import axios from 'axios'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  serverTimestamp,
-  doc, // Added import
-  updateDoc // Added import
-} from "firebase/firestore"
 
-const db = getFirestore();
-// const auth = getAuth(); // Firebase auth instance removed (was for reCAPTCHA)
 const userStore = useUserStore()
 const router = useRouter();
 const transitionKey = ref(0);
@@ -521,100 +508,68 @@ const handleSubmit = async () => {
   const trimmedPhone = String(phoneNumber).trim()
 
   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-    window.showToast('Enter a valid PH number.','warning')
+    window.showToast('Enter a valid PH number.', 'warning')
     return
   }
 
   const formattedPhone = toE164(trimmedPhone)
   if (!formattedPhone) {
-    window.showToast('Invalid phone format.','warning')
+    window.showToast('Invalid phone format.', 'warning')
     return
   }
 
   if (!credentialValue || !credentialValue.trim()) {
-    window.showToast(`Please enter your ${authType}.`,'warning')
+    window.showToast(`Please enter your ${authType}.`, 'warning')
     return
   }
 
   if (authType === 'pin' && !isPinComplete.value) {
     pinError.value = true
-    window.showToast('Please enter all 4 digits of your PIN.','warning')
+    window.showToast('Please enter all 4 digits of your PIN.', 'warning')
     return
   }
 
   isLoading.value = true
 
   try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone))
-    const snapshot = await getDocs(q)
-
-    let userDocId = null
-    const userExists = !snapshot.empty
-    let isVerified = false
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const randomAvatar = avatarOptions.value[Math.floor(Math.random() * avatarOptions.value.length)]
-
-    if (userExists) {
-      const existingUser = snapshot.docs[0]
-      userDocId = existingUser.id
-      const data = existingUser.data()
-      isVerified = data.verified
-
-      if (isVerified) {
-        window.showToast('Phone number already verified.','info')
-        isLoading.value = false
-        return
-      }
-
-      await updateDoc(doc(db, 'users', userDocId), {
-        authType,
-        password: authType === 'password' ? credentialValue : '',
-        pin: authType === 'pin' ? credentialValue : '',
-        otp,
-        otpSentAt: serverTimestamp(),
-        avatar: randomAvatar,
-        updatedAt: serverTimestamp()
-      })
-
-      window.showToast('User found. Sending OTP again...','info')
-    } else {
-      const newUserRef = await addDoc(usersRef, {
-        phoneNumber: formattedPhone,
-        authType,
-        password: authType === 'password' ? credentialValue : '',
-        pin: authType === 'pin' ? credentialValue : '',
-        otp,
-        otpSentAt: serverTimestamp(),
-        verified: false,
-        avatar: randomAvatar,
-        createdAt: serverTimestamp()
-      })
-      userDocId = newUserRef.id
-      window.showToast('User registered. Sending OTP...','success')
-    }
-
-    await api.post('/sms/send-sms', {
-      number: formattedPhone,
-      message: `PROJECT ISRAEL: Your OTP code is ${otp}`
+    // Call the new backend registration endpoint
+    const response = await api.post('/auth/register', {
+      phoneNumber: formattedPhone,
+      credential: credentialValue,
+      authType: authType
     })
 
-    // Clear any existing session before redirecting
-    try {
-      userStore.clearUser()
-    } catch (error) {
-      console.error('Error clearing user store:', error)
-      localStorage.removeItem('user') // Fallback cleanup
-    }
+    if (response.data.success) {
+      window.showToast(response.data.message, 'success')
+      
+      // Clear any existing session before redirecting
+      try {
+        userStore.clearUser()
+      } catch (error) {
+        console.error('Error clearing user store:', error)
+        localStorage.removeItem('user') // Fallback cleanup
+      }
 
-    localStorage.setItem('otpPhone', formattedPhone)
-    window.showToast('OTP sent successfully.','success')
-    router.push(`/auth/verify-otp?phone=${encodeURIComponent(formattedPhone)}`)
+      localStorage.setItem('otpPhone', formattedPhone)
+      // For testing, you might want to store the OTP in development
+      if (process.env.NODE_ENV === 'development') {
+        localStorage.setItem('debug_otp', response.data.otp)
+        console.log('DEBUG OTP:', response.data.otp)
+      }
+      
+      router.push(`/auth/verify-otp?phone=${encodeURIComponent(formattedPhone)}`)
+    } else {
+      window.showToast(response.data.message || 'Registration failed.', 'failed')
+    }
 
   } catch (error) {
     console.error('Registration error:', error)
-    window.showToast(error?.response?.data?.detail || 'Registration failed. Please try again.','failed')
+    window.showToast(
+      error?.response?.data?.detail || 
+      error?.response?.data?.message || 
+      'Registration failed. Please try again.', 
+      'failed'
+    )
   } finally {
     isLoading.value = false
   }

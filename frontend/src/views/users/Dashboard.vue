@@ -173,7 +173,7 @@
               </div>
 
               <!-- Water Tank Container -->
-              <div class="flex justify-center items-start">
+              <div class="flex justify-center items-start md:mt-8">
                 <!-- Level Markers - Left Side -->
                 <div class="h-80 flex flex-col justify-between pt-2 pb-2 mr-2 z-30">
                   <div v-for="n in 5" :key="n" class="flex items-center gap-2">
@@ -237,15 +237,6 @@
                   </div>
                 </div>
 
-                <!-- Optional: Right Side Markers (if you want markers on both sides) -->
-                <!-- <div class="h-80 flex flex-col justify-between pt-2 pb-2 ml-2 z-30">
-                  <div v-for="n in 5" :key="n" class="flex items-center gap-2">
-                    <div class="h-[2px] w-4 bg-blue-400 shadow-sm"></div>
-                    <span class="text-xs md:text-sm font-medium text-blue-600 bg-white/90 px-1 rounded whitespace-nowrap">
-                      {{ 100 - (n - 1) * 25 }}%
-                    </span>
-                  </div>
-                </div> -->
               </div>
             </div>
 
@@ -764,7 +755,7 @@
             <!-- Enhanced Circular Progress Section -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 mb-2 md:mb-8">
               <div
-                v-for="(npk, index) in npkLevels"
+                v-for="(npk, index) in normalizedNpkLevels"
                 :key="index"
                 :class="`p-4 rounded-xl border border-${npk.color}-100 bg-${npk.color}-50/30 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105`"
               >
@@ -787,7 +778,7 @@
                         stroke-width="12"
                         :stroke="npk.title === 'Nitrogen' ? '#4ADE80' : npk.title === 'Phosphorus' ? '#60A5FA' : '#A78BFA'"
                         :stroke-dasharray="circumference"
-                        :stroke-dashoffset="getDashOffset(npk.value)"
+                        :stroke-dashoffset="getDashOffset(npk.percentage)"
                         stroke-linecap="round"
                         fill="transparent"
                         r="56"
@@ -797,7 +788,7 @@
                         <animate
                           attributeName="stroke-dashoffset"
                           :from="circumference"
-                          :to="getDashOffset(npk.value)"
+                          :to="getDashOffset(npk.percentage)"
                           dur="1.5s"
                           fill="freeze"
                           calcMode="spline"
@@ -809,10 +800,13 @@
                     <!-- Text inside circle -->
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
                       <span :class="`text-3xl font-bold text-${npk.color}-700`">
-                        {{ Number(npk.value?.value || 0).toFixed(1) }}%
+                        {{ npk.percentage.toFixed(1) }}%
                       </span>
                       <span :class="`text-sm font-medium text-${npk.color}-600 mt-1`">
                         {{ npk.title }}
+                      </span>
+                      <span :class="`text-xs text-${npk.color}-500 mt-1`">
+                        {{ npk.displayValue }}
                       </span>
                     </div>
                   </div>
@@ -866,30 +860,9 @@ import {
   ArrowDown,
   FlaskConical
 } from 'lucide-vue-next';
-import Sidebar from '../layout/Sidebar.vue'
 import { getWeatherData } from '../../utils/weather';
-import api from '../../api/index'
-import { eventBus } from '../../eventBus';
-import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    doc,
-    setDoc,
-    Timestamp,
-    serverTimestamp,
-    getDoc,
-    updateDoc,
-    deleteDoc,
-    where,
-    onSnapshot 
-} from 'firebase/firestore'
+import api from '../../api/index.js'
 
-const db = getFirestore()
 Chart.register(...registerables);
 
 const isLoading = ref(true);
@@ -902,29 +875,24 @@ const lastStreamUpdate = ref(null);
 const usingFirebaseFallback = ref(false);
 const waterLevel = ref(0);
 
-// Refs for chart instances
 const soilMoistureChartInstance = ref(null);
 const humidityChartInstance = ref(null);
 const temperatureChartInstance = ref(null);
 const soilPhChartInstance = ref(null);
 const performanceChartInstance = ref(null);
 
-// Refs for chart DOM elements
 const performanceChartRef = ref(null);
 const soilMoistureChartRef = ref(null);
 const humidityChartRef = ref(null);
 const temperatureChartRef = ref(null);
 const soilPhChartRef = ref(null);
 
-// Update the motorStatus and motorStatusPercentage variables
 const motorStatus = ref(false);
 const motorOnPercentage = ref(0); 
 
-const circumference = 2 * Math.PI * 48; // Used for NPK progress rings and motor status ring
-const dashOffset = computed(() => circumference * (1 - motorOnPercentage.value / 100));
+const circumference = 2 * Math.PI * 48; 
 
 const weatherData = ref({})
-const npkData = ref({})
 const weather = ref(null)
 const forecast = ref([])
 
@@ -947,7 +915,6 @@ let intervalId = null;
 const firestoreListenersUnsubscribers = ref([]);
 const weeklyData = ref([])
 
-// Step 1: Calculate average values
 const avgNitrogen = computed(() => {
   if (!npkReadings.value || npkReadings.value.length === 0) return 0;
   const total = npkReadings.value.reduce((sum, r) => sum + (r.nitrogen || 0), 0);
@@ -966,36 +933,117 @@ const avgPotassium = computed(() => {
   return total / npkReadings.value.length;
 });
 
-// Step 2: Normalize so total = 100%
 const totalNpk = computed(() => avgNitrogen.value + avgPhosphorus.value + avgPotassium.value);
 
-const npkLevels = [
+const normalizedNpkLevels = computed(() => {
+  if (!npkReadings.value || npkReadings.value.length === 0) {
+    return [
+      { title: 'Nitrogen', value: 0, displayValue: '0 mg/kg', color: 'green', percentage: 0 },
+      { title: 'Phosphorus', value: 0, displayValue: '0 mg/kg', color: 'blue', percentage: 0 },
+      { title: 'Potassium', value: 0, displayValue: '0 mg/kg', color: 'purple', percentage: 0 }
+    ];
+  }
+
+  const latest = npkReadings.value[npkReadings.value.length - 1];
+  
+  const nitrogenVal = latest.nitrogen || 0;
+  const phosphorusVal = latest.phosphorus || 0;
+  const potassiumVal = latest.potassium || 0;
+  
+  const total = nitrogenVal + phosphorusVal + potassiumVal;
+  
+  const nitrogenPercent = total > 0 ? (nitrogenVal / total) * 100 : 0;
+  const phosphorusPercent = total > 0 ? (phosphorusVal / total) * 100 : 0;
+  const potassiumPercent = total > 0 ? (potassiumVal / total) * 100 : 0;
+
+  return [
+    {
+      title: 'Nitrogen',
+      value: nitrogenVal,
+      percentage: nitrogenPercent,
+      displayValue: `${nitrogenVal} mg/kg`,
+      color: 'green',
+    },
+    {
+      title: 'Phosphorus',
+      value: phosphorusVal,
+      percentage: phosphorusPercent,
+      displayValue: `${phosphorusVal} mg/kg`,
+      color: 'blue',
+    },
+    {
+      title: 'Potassium',
+      value: potassiumVal,
+      percentage: potassiumPercent,
+      displayValue: `${potassiumVal} mg/kg`,
+      color: 'purple',
+    },
+  ];
+});
+
+const npkLevels = ref([
   {
     title: 'Nitrogen',
-    value: computed(() =>
-      totalNpk.value > 0 ? (avgNitrogen.value / totalNpk.value) * 100 : 0
-    ),
+    value: 0,
+    displayValue: '0 mg/kg',
     color: 'green',
   },
   {
     title: 'Phosphorus',
-    value: computed(() =>
-      totalNpk.value > 0 ? (avgPhosphorus.value / totalNpk.value) * 100 : 0
-    ),
+    value: 0,
+    displayValue: '0 mg/kg',
     color: 'blue',
   },
   {
     title: 'Potassium',
-    value: computed(() =>
-      totalNpk.value > 0 ? (avgPotassium.value / totalNpk.value) * 100 : 0
-    ),
+    value: 0,
+    displayValue: '0 mg/kg',
     color: 'purple',
   },
-];
+]);
 
-const getDashOffset = (val) => {
-  const value = typeof val === 'object' && 'value' in val ? val.value : val;
-  return circumference - (value / 100) * circumference;
+const updateNpkLevels = () => {
+  if (!npkReadings.value || npkReadings.value.length === 0) {
+    console.log('No NPK readings available');
+    return;
+  }
+  
+  const latest = npkReadings.value[npkReadings.value.length - 1];
+  
+  npkLevels.value = [
+    {
+      title: 'Nitrogen',
+      value: latest.nitrogen || 0,
+      displayValue: `${latest.nitrogen || 0} mg/kg`,
+      color: 'green',
+    },
+    {
+      title: 'Phosphorus',
+      value: latest.phosphorus || 0,
+      displayValue: `${latest.phosphorus || 0} mg/kg`,
+      color: 'blue',
+    },
+    {
+      title: 'Potassium',
+      value: latest.potassium || 0,
+      displayValue: `${latest.potassium || 0} mg/kg`,
+      color: 'purple',
+    },
+  ];
+  
+  console.log('Updated NPK levels:', npkLevels.value);
+};
+
+watch(npkReadings, () => {
+  updateNpkLevels();
+}, { deep: true });
+
+const getDashOffset = (value) => {
+  const numericValue = Number(value) || 0;
+  
+  const normalizedValue = Math.min(Math.max(numericValue, 0), 100);
+  
+  return circumference - (normalizedValue / 100) * circumference;
 };
 
 const lineChartOptions = {
@@ -1042,16 +1090,16 @@ const loadWeather = async () => {
   }
 };
 
+const API_BASE = 'http://localhost:8000/api';
+
 const setupEventSource = () => {
   try {
-    // streamConnection.value = new EventSource('http://localhost:8000/api/stream');
-    streamConnection.value = new EventSource('https://project-israel-backend.onrender.com/api/stream');
+    streamConnection.value = new EventSource(`${API_BASE}/stream`);
     
     streamConnection.value.onmessage = (event) => {
       streamDataReceived.value = true;
       lastStreamUpdate.value = new Date();
       
-      // Reset the timeout since we received data
       if (streamTimeout.value) clearTimeout(streamTimeout.value);
       
       const data = JSON.parse(event.data);
@@ -1059,41 +1107,236 @@ const setupEventSource = () => {
 
       // Update metrics from stream data
       if (data.type === 'esp32-1') {
-        nitrogen.value = data.data.nitrogen;
-        phosphorus.value = data.data.phosphorus;
-        potassium.value = data.data.potassium;
-        soilpH.value = data.data.soilPh;
+        nitrogen.value = data.data.nitrogen || 0;
+        phosphorus.value = data.data.phosphorus || 0;
+        potassium.value = data.data.potassium || 0;
+        soilpH.value = data.data.soilPh || 7.0;
       } 
       else if (data.type === 'esp32-2') {
-        temperature.value = data.data.temperature;
-        humidity.value = data.data.humidity;
-        soilMoisture.value = data.data.soilMoisture;
+        temperature.value = data.data.temperature || 0;
+        humidity.value = data.data.humidity || 0;
+        soilMoisture.value = data.data.soilMoisture || 0;
       }
       else if (data.type === 'esp32-3') {
-        waterLevel.value = data.data.waterLevel;
+        waterLevel.value = data.data.waterLevel || 0;
       }
 
-      // Update chart data if needed
       updateChartDataFromStream(data);
     };
 
     streamConnection.value.onerror = (e) => {
       console.error("❌ SSE Error:", e);
-      if (!streamDataReceived.value && !usingFirebaseFallback.value) {
-        console.log("⚡ Stream error, falling back to Firebase");
-        usingFirebaseFallback.value = true;
-        fetchLatestSensorDataFromFirebase();
+      if (!streamDataReceived.value) {
+        console.log("⚡ Stream error, falling back to regular API");
+        fetchLatestSensorData();
         fetchLatestWaterLevel();
       }
     };
 
   } catch (error) {
     console.error("❌ Error setting up EventSource:", error);
-    if (!usingFirebaseFallback.value) {
-      usingFirebaseFallback.value = true;
-      fetchLatestSensorDataFromFirebase();
-      fetchLatestWaterLevel();
+    fetchLatestSensorData();
+    fetchLatestWaterLevel();
+  }
+};
+
+const fetchLatestSensorData = async () => {
+  try {
+    const response = await api.get('/sensor-data/latest');
+    const data = response.data;
+    
+    // Update all device data
+    if (data['esp32-1']) {
+      nitrogen.value = data['esp32-1'].nitrogen || 0;
+      phosphorus.value = data['esp32-1'].phosphorus || 0;
+      potassium.value = data['esp32-1'].potassium || 0;
+      soilpH.value = data['esp32-1'].soilPh || 7.0;
     }
+    
+    if (data['esp32-2']) {
+      temperature.value = data['esp32-2'].temperature || 0;
+      humidity.value = data['esp32-2'].humidity || 0;
+      soilMoisture.value = data['esp32-2'].soilMoisture || 0;
+    }
+    
+  } catch (error) {
+    console.error("❌ Error fetching sensor data:", error);
+  }
+};
+
+const fetchLatestWaterLevel = async () => {
+  try {
+    const response = await api.get('/water-level/latest');
+    waterLevel.value = response.data.waterLevel || 0;
+    console.log("💧 Latest Water Level:", waterLevel.value);
+  } catch (error) {
+    console.error("❌ Error fetching water level:", error);
+  }
+};
+
+const fetchMotorStatusData = async () => {
+  try {
+    // Get current motor status
+    const statusResponse = await api.get('/motor-status/current');
+    motorStatus.value = statusResponse.data.status || false;
+
+    // Get history logs
+    const historyResponse = await api.get('/motor-status/history?week_only=true');
+    const logs = historyResponse.data;
+
+    // Ensure logs is an array
+    if (!Array.isArray(logs)) {
+      console.warn('Motor history API did not return an array:', logs);
+      weeklyData.value = [];
+      motorOnPercentage.value = 0;
+      return;
+    }
+
+    // Filter this week's logs
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const thisWeekLogs = logs.filter(log => {
+      const ts = new Date(log.timestamp || now);
+      return ts >= startOfWeek;
+    });
+
+    // Compute % of time ON per day
+    const dailyOnCounts = Array(7).fill(0);
+    const dailyTotalLogs = Array(7).fill(0);
+
+    thisWeekLogs.forEach(log => {
+      const ts = new Date(log.timestamp || now);
+      const dayIndex = ts.getDay();
+      dailyTotalLogs[dayIndex]++;
+      if (log.status === true) {
+        dailyOnCounts[dayIndex]++;
+      }
+    });
+
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dailyPercentages = dailyOnCounts.map((onCount, index) => ({
+      label: dayLabels[index],
+      percentage: dailyTotalLogs[index] > 0 ? (onCount / dailyTotalLogs[index]) * 100 : 0
+    }));
+
+    weeklyData.value = dailyPercentages;
+
+    // Calculate overall weekly ON percentage
+    const totalOnLogsForWeek = dailyOnCounts.reduce((sum, count) => sum + count, 0);
+    const totalLogsForWeek = dailyTotalLogs.reduce((sum, count) => sum + count, 0);
+    
+    motorOnPercentage.value = totalLogsForWeek > 0 ? (totalOnLogsForWeek / totalLogsForWeek) * 100 : 0;
+
+  } catch (error) {
+    console.error('Error fetching motor status and history:', error);
+    weeklyData.value = [];
+    motorOnPercentage.value = 0;
+  }
+};
+
+const fetchAllSensorData = async () => {
+  try {
+    const response = await api.get('/sensor-data/all');
+    const data = response.data;
+    
+    console.log('Fetched all sensor data:', data); // Debug log
+    
+    // Process NPK data (esp32-1)
+    if (data.npkData && Array.isArray(data.npkData)) {
+      const npkReadingsData = data.npkData.map(item => ({
+        id: `npk-${item.timestamp}`,
+        deviceId: 'esp32-1',
+        nitrogen: Number(item.nitrogen) || 0,
+        phosphorus: Number(item.phosphorus) || 0,
+        potassium: Number(item.potassium) || 0,
+        soilPh: Number(item.soilPh) || 7.0,
+        timestamp: new Date(item.timestamp)
+      }));
+      
+      // Update all relevant refs
+      soilPhReadings.value = npkReadingsData;
+      npkReadings.value = npkReadingsData;
+      
+      // Set latest values for display
+      if (npkReadingsData.length > 0) {
+        const latest = npkReadingsData[npkReadingsData.length - 1];
+        nitrogen.value = latest.nitrogen;
+        phosphorus.value = latest.phosphorus;
+        potassium.value = latest.potassium;
+        soilpH.value = latest.soilPh;
+        
+        console.log('Latest NPK values:', {
+          nitrogen: nitrogen.value,
+          phosphorus: phosphorus.value,
+          potassium: potassium.value,
+          soilPh: soilpH.value
+        });
+      }
+    } else {
+      console.warn('No NPK data found in response');
+    }
+    
+    // Process Environmental data (esp32-2)
+    if (data.envData && Array.isArray(data.envData)) {
+      const envReadings = data.envData.map(item => ({
+        id: `env-${item.timestamp}`,
+        deviceId: 'esp32-2',
+        temperature: Number(item.temperature) || 0,
+        humidity: Number(item.humidity) || 0,
+        soilMoisture: Number(item.soilMoisture) || 0,
+        timestamp: new Date(item.timestamp)
+      }));
+      
+      // Update all relevant refs
+      soilMoistureReadings.value = envReadings;
+      humidityReadings.value = envReadings;
+      temperatureReadings.value = envReadings;
+      
+      // Set latest values for display
+      if (envReadings.length > 0) {
+        const latest = envReadings[envReadings.length - 1];
+        temperature.value = latest.temperature;
+        humidity.value = latest.humidity;
+        soilMoisture.value = latest.soilMoisture;
+        
+        console.log('Latest environmental values:', {
+          temperature: temperature.value,
+          humidity: humidity.value,
+          soilMoisture: soilMoisture.value
+        });
+      }
+    } else {
+      console.warn('No environmental data found in response');
+    }
+    
+    // Process Water data (esp32-3)
+    if (data.waterData && Array.isArray(data.waterData)) {
+      const waterReadings = data.waterData.map(item => ({
+        id: `water-${item.timestamp}`,
+        deviceId: 'esp32-3',
+        waterLevel: Number(item.waterLevel) || 0,
+        timestamp: new Date(item.timestamp)
+      }));
+      
+      // Set latest water level
+      if (waterReadings.length > 0) {
+        const latestWaterLevel = waterReadings[waterReadings.length - 1].waterLevel;
+        waterLevel.value = Math.min(Math.max(latestWaterLevel, 0), 100); // Ensure between 0-100
+        console.log('Water level set to:', waterLevel.value);
+      } else {
+        console.warn('No water level readings found');
+      }
+    } else {
+      console.warn('No water data found in response');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error fetching all sensor data:', error);
+    return false;
   }
 };
 
@@ -1117,273 +1360,6 @@ const updateChartDataFromStream = (data) => {
   }
 };
 
-const fetchLatestSensorDataFromFirebase = async () => {
-  // Only run if we're in fallback mode
-  if (!usingFirebaseFallback.value) return;
-  
-  let devicesLoaded = 0;
-  const totalDevices = 2;
-
-  const setLoadedIfComplete = () => {
-    devicesLoaded++;
-    if (devicesLoaded >= totalDevices) {
-      isLoading.value = false;
-    }
-  };
-
-  // For esp32-1 (NPK + pH)
-  try {
-    const esp32_1_query = query(
-      collection(db, "3sensor_readings", "esp32-1", "readings"), 
-      orderBy("timestamp", "desc"), 
-      limit(1)
-    );
-    
-    const unsubscribeEsp32_1 = onSnapshot(esp32_1_query, (snapshot) => {
-      if (!snapshot.empty) {
-        const esp32_1_data = snapshot.docs[0].data();
-        nitrogen.value = esp32_1_data.nitrogen;
-        phosphorus.value = esp32_1_data.phosphorus;
-        potassium.value = esp32_1_data.potassium;
-        soilpH.value = esp32_1_data.soilPh;
-      }
-      setLoadedIfComplete();
-    }, (error) => {
-      console.error("❌ Error fetching real-time ESP32-1 data:", error);
-      setLoadedIfComplete();
-    });
-    
-    firestoreListenersUnsubscribers.value.push(unsubscribeEsp32_1);
-  } catch (err) {
-    console.error("❌ Error setting up ESP32-1 snapshot:", err);
-    setLoadedIfComplete();
-  }
-
-  // For esp32-2 (Temperature, humidity, soil moisture)
-  try {
-    const esp32_2_query = query(
-      collection(db, "3sensor_readings", "esp32-2", "readings"), 
-      orderBy("timestamp", "desc"), 
-      limit(1)
-    );
-    
-    const unsubscribeEsp32_2 = onSnapshot(esp32_2_query, (snapshot) => {
-      if (!snapshot.empty) {
-        const esp32_2_data = snapshot.docs[0].data();
-        temperature.value = esp32_2_data.temperature;
-        humidity.value = esp32_2_data.humidity;
-        soilMoisture.value = esp32_2_data.soilMoisture;
-      }
-      setLoadedIfComplete();
-    }, (error) => {
-      console.error("❌ Error fetching real-time ESP32-2 data:", error);
-      setLoadedIfComplete();
-    });
-    
-    firestoreListenersUnsubscribers.value.push(unsubscribeEsp32_2);
-  } catch (err) {
-    console.error("❌ Error setting up ESP32-2 snapshot:", err);
-    setLoadedIfComplete();
-  }
-};
-
-const fetchLatestWaterLevel = () => {
-  try {
-    const q = query(
-      collection(db, "water_level_readings"),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    );
-
-    // Using onSnapshot for real-time updates
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const latestDoc = snapshot.docs[0];
-        const data = latestDoc.data();
-        waterLevel.value = data.waterLevel || 0;
-        console.log("💧 Latest Water Level from esp32-3:", waterLevel.value);
-      }
-    }, (error) => {
-      console.error("❌ Error listening to water level updates:", error);
-    });
-
-    // Return the unsubscribe function in case you want to stop listening later
-    return unsubscribe;
-    
-  } catch (error) {
-    console.error("❌ Error setting up water level listener:", error);
-    // Return a no-op function if initialization fails
-    return () => {};
-  }
-};
-
-const fetchMotorStatusData = async () => {
-  try {
-    // Get current motor status
-    const currentDoc = await getDoc(doc(db, 'motor_status', 'current'))
-    if (currentDoc.exists()) {
-      const data = currentDoc.data()
-      motorStatus.value = data.status || false
-    }
-
-    // Get history logs
-    const historySnapshot = await getDocs(collection(db, 'motor_status', 'history', 'logs'))
-    const logs = []
-    historySnapshot.forEach(doc => logs.push(doc.data()))
-
-    // Filter this week's logs
-    const now = new Date()
-    const startOfWeek = new Date(now)
-    startOfWeek.setDate(now.getDate() - now.getDay()) // Sunday
-
-    const thisWeekLogs = logs.filter(log => {
-      const ts = log.timestamp?.toDate?.() || new Date(log.timestamp)
-      return ts >= startOfWeek
-    })
-
-    // Compute % of time ON per day
-    const dailyOnCounts = Array(7).fill(0);
-    const dailyTotalLogs = Array(7).fill(0);
-
-    thisWeekLogs.forEach(log => {
-      const ts = log.timestamp?.toDate?.() || new Date(log.timestamp)
-      const dayIndex = ts.getDay() // 0 for Sunday, 1 for Monday, etc.
-      dailyTotalLogs[dayIndex]++;
-      if (log.status === true) {
-        dailyOnCounts[dayIndex]++;
-      }
-    })
-
-    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const dailyPercentages = dailyOnCounts.map((onCount, index) => ({
-      label: dayLabels[index],
-      percentage: dailyTotalLogs[index] > 0 ? (onCount / dailyTotalLogs[index]) * 100 : 0
-    }))
-
-    weeklyData.value = dailyPercentages;
-
-    // Calculate overall weekly ON percentage
-    const totalOnLogsForWeek = dailyOnCounts.reduce((sum, count) => sum + count, 0);
-    const totalLogsForWeek = dailyTotalLogs.reduce((sum, count) => sum + count, 0);
-    
-    motorOnPercentage.value = totalLogsForWeek > 0 ? (totalOnLogsForWeek / totalLogsForWeek) * 100 : 0;
-
-  } catch (error) {
-    console.error('Error fetching motor status and history:', error)
-  }
-}
-
-const mapSnapshotToReadings = (snapshot, deviceId) => {
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    let timestamp;
-    
-    if (data.timestamp?.toDate) {
-      timestamp = data.timestamp.toDate();
-    } else if (data.timestamp?.seconds) {
-      timestamp = new Date(data.timestamp.seconds * 1000);
-    } else if (data.timestamp instanceof Date) {
-      timestamp = data.timestamp;
-    } else {
-      console.warn('Unknown timestamp format in document:', doc.id);
-      timestamp = new Date(); // fallback to current time
-    }
-
-    return {
-      id: doc.id,
-      deviceId,
-      ...data,
-      timestamp: timestamp
-    };
-  }).filter(reading => {
-    // Filter out any readings that might have invalid data
-    return (
-      reading.timestamp instanceof Date && 
-      !isNaN(reading.timestamp.getTime())
-    );
-  });
-};
-
-const fetchDeviceChartData = async (deviceId, timeRange, targetRefs) => {
-  const now = new Date();
-  let startDate;
-  const minDataPoints = 15; // Minimum data points we want to display
-  const maxAttempts = 5; // Maximum extension attempts to prevent infinite loops
-  let currentRangeHours = timeRange === '24h' ? 24 : 7 * 24;
-  let attempts = 0;
-  let readings = [];
-  let sufficientData = false;
-  
-  // Only extend time range if we need more data points
-  while (!sufficientData && attempts < maxAttempts) {
-    try {
-      startDate = new Date(now.getTime() - currentRangeHours * 60 * 60 * 1000);
-      
-      const queryRef = query(
-        collection(db, '3sensor_readings', deviceId, 'readings'),
-        where('timestamp', '>=', Timestamp.fromDate(startDate)),
-        orderBy('timestamp', 'asc')
-      );
-      
-      const snapshot = await getDocs(queryRef);
-      readings = mapSnapshotToReadings(snapshot, deviceId);
-      
-      // Check if we have enough data points
-      if (readings.length >= minDataPoints) {
-        sufficientData = true;
-      } else {
-        // Double the time range for next attempt
-        currentRangeHours *= 2;
-        attempts++;
-      }
-    } catch (error) {
-      console.error(`Error fetching ${timeRange} data for ${deviceId}:`, error);
-      break;
-    }
-  }
-  
-  // Sort readings by timestamp and take the last minDataPoints
-  readings.sort((a, b) => a.timestamp - b.timestamp);
-  if (readings.length > minDataPoints) {
-    readings = readings.slice(-minDataPoints);
-  }
-  
-  // Update all target refs with the fetched readings
-  targetRefs.forEach(ref => {
-    ref.value = readings;
-  });
-
-  // Set up real-time listener using the final range
-  try {
-    const finalQueryRef = query(
-      collection(db, '3sensor_readings', deviceId, 'readings'),
-      where('timestamp', '>=', Timestamp.fromDate(startDate)),
-      orderBy('timestamp', 'asc')
-    );
-    
-    const unsubscribe = onSnapshot(finalQueryRef, (snapshot) => {
-      const updatedReadings = mapSnapshotToReadings(snapshot, deviceId);
-      
-      // Sort and take last minDataPoints
-      updatedReadings.sort((a, b) => a.timestamp - b.timestamp);
-      let finalReadings = updatedReadings;
-      if (updatedReadings.length > minDataPoints) {
-        finalReadings = updatedReadings.slice(-minDataPoints);
-      }
-      
-      targetRefs.forEach(ref => {
-        ref.value = finalReadings;
-      });
-    });
-
-    firestoreListenersUnsubscribers.value.push(unsubscribe);
-    return readings;
-  } catch (error) {
-    console.error(`Error setting up real-time listener for ${deviceId}:`, error);
-    return readings;
-  }
-};
-
 const formatTimeLabel = (timestamp) => {
   const date = timestamp?.toDate?.() || new Date(timestamp);
   return date.toLocaleString('en-US', { 
@@ -1393,79 +1369,6 @@ const formatTimeLabel = (timestamp) => {
     minute: '2-digit',
     hour12: true 
   });
-};
-
-const formatDateLabel = (timestamp) => {
-  const date = timestamp?.toDate?.() || new Date(timestamp);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-const isInitialChartRender = ref(true);
-const isInitialRender = ref(true);
-
-const getFixedPercentageChartOptions = (title) => {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          boxWidth: 12
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${context.parsed.y}%`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        min: 0,
-        max: 100,
-        ticks: {
-          stepSize: 20,
-          callback: function(value) {
-            return `${value}%`;
-          },
-          color: '#6B7280'
-        },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: '#6B7280',
-          maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 6,
-          callback: function(value, index, values) {
-            // Only show every 3rd label to prevent overcrowding
-            return index % 3 === 0 ? this.getLabelForValue(value) : '';
-          }
-        }
-      }
-    },
-    elements: {
-      line: {
-        tension: 0.4
-      },
-      point: {
-        radius: 4,
-        hoverRadius: 6
-      }
-    }
-  };
 };
 
 const initSoilMoistureChart = () => {
@@ -1735,20 +1638,27 @@ const initSoilPhChart = () => {
 };
 
 const initNpkChart = () => {
-  if (!performanceChartRef.value) return;
+  if (!performanceChartRef.value || !npkReadings.value.length) return;
   
-  const readings = npkReadings.value;
-  if (readings.length === 0) return;
-  
-  const labels = readings.map(r => formatTimeLabel(r.timestamp));
-  const nitrogenData = readings.map(r => r.nitrogen || 0);
-  const phosphorusData = readings.map(r => r.phosphorus || 0);
-  const potassiumData = readings.map(r => r.potassium || 0);
-
   try {
     if (performanceChartInstance.value) {
       performanceChartInstance.value.destroy();
     }
+
+    // Get the last 20 readings for better visibility
+    const recentReadings = npkReadings.value.slice(-20);
+    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
+    const nitrogenData = recentReadings.map(r => r.nitrogen || 0);
+    const phosphorusData = recentReadings.map(r => r.phosphorus || 0);
+    const potassiumData = recentReadings.map(r => r.potassium || 0);
+
+    // Find the maximum value to set appropriate Y-axis scale
+    const maxValue = Math.max(
+      Math.max(...nitrogenData),
+      Math.max(...phosphorusData),
+      Math.max(...potassiumData),
+      50 // Minimum scale of 50
+    );
 
     performanceChartInstance.value = new Chart(performanceChartRef.value.getContext('2d'), {
       type: 'line',
@@ -1763,7 +1673,7 @@ const initNpkChart = () => {
             fill: true,
             tension: 0.4,
             borderWidth: 3,
-            pointRadius: 4,
+            pointRadius: 3,
             pointBackgroundColor: '#4ADE80',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
@@ -1776,7 +1686,7 @@ const initNpkChart = () => {
             fill: true,
             tension: 0.4,
             borderWidth: 3,
-            pointRadius: 4,
+            pointRadius: 3,
             pointBackgroundColor: '#60A5FA',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
@@ -1789,7 +1699,7 @@ const initNpkChart = () => {
             fill: true,
             tension: 0.4,
             borderWidth: 3,
-            pointRadius: 4,
+            pointRadius: 3,
             pointBackgroundColor: '#A78BFA',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
@@ -1812,13 +1722,11 @@ const initNpkChart = () => {
           tooltip: {
             mode: 'index',
             intersect: false,
-            backgroundColor: 'white',
-            titleColor: '#374151',
-            bodyColor: '#374151',
-            borderColor: '#E5E7EB',
-            borderWidth: 1,
-            padding: 12,
-            displayColors: true
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.parsed.y} mg/kg`;
+              }
+            }
           }
         },
         interaction: { intersect: false, mode: 'index' },
@@ -1826,17 +1734,19 @@ const initNpkChart = () => {
           x: {
             grid: { display: false },
             ticks: { 
-              color: '#6B7280',
-              autoSkip: false
+              maxTicksLimit: 6,
+              callback: function(value, index, values) {
+                return index % 3 === 0 ? this.getLabelForValue(value) : '';
+              }
             }
           },
           y: {
             beginAtZero: true,
+            suggestedMax: maxValue * 1.1, // Add 10% padding
             ticks: {
-              color: '#6B7280',
               callback: v => v + ' mg/kg'
             },
-            grid: { color: '#E5E7EB' }
+            grid: { color: 'rgba(0, 0, 0, 0.1)' }
           }
         }
       }
@@ -1846,53 +1756,6 @@ const initNpkChart = () => {
   }
 };
 
-const getChartOptions = (title, unit, maxY, beginAtZero = true, minY = 0) => {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          usePointStyle: true,
-          padding: 20
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${context.parsed.y}${unit}`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero,
-        min: minY,
-        max: maxY,
-        ticks: {
-          callback: value => `${value}${unit}`,
-          color: '#6B7280'
-        },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: '#6B7280'
-        }
-      }
-    }
-  };
-};
-
-// Watchers for chart data
 watch(soilMoistureReadings, () => {
   if (soilMoistureChartRef.value) initSoilMoistureChart();
 }, { deep: true });
@@ -1914,14 +1777,27 @@ watch(npkReadings, () => {
 }, { deep: true });
 
 const initAllCharts = () => {
-  initSoilMoistureChart();
-  initHumidityChart();
-  initTemperatureChart();
-  initSoilPhChart();
-  initNpkChart();
+  if (soilMoistureChartRef.value && soilMoistureReadings.value.length > 0) {
+    initSoilMoistureChart();
+  }
+  
+  if (humidityChartRef.value && humidityReadings.value.length > 0) {
+    initHumidityChart();
+  }
+  
+  if (temperatureChartRef.value && temperatureReadings.value.length > 0) {
+    initTemperatureChart();
+  }
+  
+  if (soilPhChartRef.value && soilPhReadings.value.length > 0) {
+    initSoilPhChart();
+  }
+  
+  if (performanceChartRef.value && npkReadings.value.length > 0) {
+    initNpkChart();
+  }
 };
 
-// Destroy all charts
 const destroyAllCharts = () => {
   [soilMoistureChartInstance, humidityChartInstance, 
    temperatureChartInstance, soilPhChartInstance, 
@@ -1933,50 +1809,60 @@ const destroyAllCharts = () => {
   });
 };
 
+// const debugData = () => {
+//   console.log('NPK Readings:', npkReadings.value);
+//   console.log('NPK Levels:', npkLevels.value);
+//   console.log('Water Level:', waterLevel.value);
+//   console.log('Soil Moisture Readings:', soilMoistureReadings.value);
+//   console.log('Humidity Readings:', humidityReadings.value);
+//   console.log('Temperature Readings:', temperatureReadings.value);
+// };
+
+// const debugApiResponse = async () => {
+//   try {
+//     const response = await api.get('/sensor-data/all');
+//     console.log('API Response:', response.data);
+    
+//     if (response.data.npkData) {
+//       console.log('NPK Data:', response.data.npkData);
+//       console.log('Latest NPK:', response.data.npkData[response.data.npkData.length - 1]);
+//     }
+    
+//     if (response.data.waterData) {
+//       console.log('Water Data:', response.data.waterData);
+//       console.log('Latest Water:', response.data.waterData[response.data.waterData.length - 1]);
+//     }
+//   } catch (error) {
+//     console.error('Debug API Error:', error);
+//   }
+// };
+
 onMounted(async () => {
   isLoading.value = true;
   isWeatherLoading.value = true;
   isChartsLoading.value = true;
 
-  // Set up real-time data stream
-  setupEventSource();
-
-  // Set fallback timeout (10 seconds)
-  streamTimeout.value = setTimeout(() => {
-    if (!streamDataReceived.value) {
-      console.log("⚡ No stream data received, falling back to Firebase");
-      usingFirebaseFallback.value = true;
-      fetchLatestSensorDataFromFirebase();
-      fetchLatestWaterLevel();
-    }
-  }, 10000);
-
-  // Set up stream monitor
-  const streamMonitorInterval = setInterval(() => {
-    if (lastStreamUpdate.value && (new Date() - lastStreamUpdate.value) > 30000) {
-      console.log("⚠️ No stream data for 30 seconds, switching to Firebase");
-      usingFirebaseFallback.value = true;
-      streamConnection.value?.close();
-      fetchLatestSensorDataFromFirebase();
-      fetchLatestWaterLevel();
-      clearInterval(streamMonitorInterval);
-    }
-  }, 5000);
-
-  // Load initial data
   try {
+    setupEventSource();
+
     await Promise.all([
       loadWeather(),
-      fetchDeviceChartData('esp32-2', '24h', [soilMoistureReadings, humidityReadings, temperatureReadings]),
-      fetchDeviceChartData('esp32-1', '24h', [soilPhReadings]),
-      fetchDeviceChartData('esp32-1', '7d', [npkReadings]),
-      fetchMotorStatusData()
+      fetchAllSensorData(),
+      fetchMotorStatusData(),
+      fetchLatestWaterLevel()
     ]);
 
-    // Initialize charts
+    updateNpkLevels();
+
     isChartsLoading.value = false;
     await nextTick();
-    initAllCharts();
+    
+    setTimeout(() => {
+      initAllCharts();
+      
+      // debugData();
+      // debugApiResponse();
+    }, 100);
 
   } catch (error) {
     console.error("Initialization error:", error);
@@ -2147,14 +2033,12 @@ function getPhStatus(value) {
   return { label: 'Extremely Alkaline', color: 'text-purple-600' };
 }
 
-// Get highest value among all NPK
 const maxNpk = computed(() => Math.max(
   ...(nitrogenData.value || [0]),
   ...(phosphorusData.value || [0]),
   ...(potassiumData.value || [0])
 ));
 
-// Round up to nearest multiple of 10 (for clean y-axis)
 const maxY = computed(() => Math.ceil(maxNpk.value / 10) * 10);
 
 const getMaxY = (data, step = 10) => {
@@ -2178,9 +2062,8 @@ onBeforeUnmount(() => {
   }
 
   clearInterval(intervalId);
-  // Unsubscribe from all Firestore listeners
   firestoreListenersUnsubscribers.value.forEach(unsubscribe => unsubscribe());
-  firestoreListenersUnsubscribers.value = []; // Clear the array
+  firestoreListenersUnsubscribers.value = [];
   console.log("🚫 Unsubscribed from all Firestore listeners.");
 })
 
@@ -2207,7 +2090,6 @@ const weatherDetails = computed(() => [
   },
 ]);
 
-// Add new helper function for weather icon colors
 const getWeatherIconColor = (weather) => {
   switch (weather) {
     case 'sunny':
@@ -2263,7 +2145,6 @@ const getWeatherIcon = (condition) => {
   }
 }
 
-// Add new helper function for detail icon colors
 const getDetailIconColor = (label) => {
   switch (label) {
     case 'Humidity':

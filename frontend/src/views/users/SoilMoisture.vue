@@ -16,124 +16,135 @@
           </div>
           
           <!-- Controls aligned horizontally with improved styling -->
-          <div class="flex flex-col sm:flex-row items-stretch gap-2">
-            <!-- Search bar - full width on mobile, fixed width on larger screens -->
-            <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
-              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search measurements..."
-                class="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
-                v-model="searchQuery"
-                @input="performSearch"
-              />
-            </div>
-
-            <!-- Button group - horizontal on all screens but wraps if needed -->
-            <div class="flex flex-wrap sm:flex-nowrap gap-2">
+          <div class="flex md:block flex-row gap-2">
+            <!-- Button group - wraps on mobile, nowrap on larger screens -->
+            <div class="flex flex-col md:flex-row flex-wrap sm:flex-nowrap gap-2">
+              <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search NPK measurements..."
+                  class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
+                  v-model="searchQuery"
+                  @input="performSearch"
+                />
+              </div>
               <!-- Filter Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[100px]">
-                <button 
-                  @click.stop="toggleDropdown('filter')"
-                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                >
-                  <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
-                  <span>Filter</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'filter'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-[250px] md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
-                    <div v-for="field in filterFields" :key="field.key" class="space-y-2">
-                      <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
-                      <div class="flex items-center gap-2">
-                        <input
-                          v-model="filters[field.key].min"
-                          type="number"
-                          placeholder="Min"
-                          class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                        />
-                        <span class="text-gray-400">-</span>
-                        <input
-                          v-model="filters[field.key].max"
-                          type="number"
-                          placeholder="Max"
-                          class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                        />
+              <div class="flex flex-row gap-2">
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('filter')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Filter</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'filter'"
+                    class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                      <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
+                        <div class="flex items-center gap-2">
+                          <input
+                            v-model="filters[field.key].min"
+                            type="number"
+                            placeholder="Min"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          />
+                          <span class="text-gray-400">-</span>
+                          <input
+                            v-model="filters[field.key].max"
+                            type="number"
+                            placeholder="Max"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
                       </div>
+                      <button 
+                        @click="applyFilters"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                      >
+                        Apply Filters
+                      </button>
                     </div>
-                    <button 
-                      @click="applyFilters"
-                      class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors"
-                    >
-                      Apply Filters
-                    </button>
                   </div>
                 </div>
-              </div>
 
-              <!-- Sort Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[100px]">
-                <button 
-                  @click.stop="toggleDropdown('sort')"
-                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                >
-                  <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
-                  <span>Sort</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'sort'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="header in headers"
-                      :key="header.key"
-                      @click="setSortKey(header.key)"
-                      class="w-full px-4 py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      {{ header.label }}
-                      <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
-                    </button>
+                <!-- Sort Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('sort')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Sort</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'sort'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="header in headers"
+                        :key="header.key"
+                        @click="setSortKey(header.key)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                      >
+                        {{ header.label }}
+                        <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-green-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Export Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[100px]">
-                <button 
-                  @click.stop="toggleDropdown('export')"
-                  class="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-500 text-white text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
-                >
-                  <Download class="h-3 sm:h-4 w-3 sm:w-4" />
-                  <span>Export</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'export'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="format in exportFormats"
-                      :key="format"
-                      @click="exportData(format)"
-                      class="w-full px-4 py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                    >
-                      <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-4 w-4" /></span>
-                      <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-4 w-4" /></span>
-                      Export as {{ format.toUpperCase() }}
-                    </button>
+                <!-- Export Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('export')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500 text-white text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
+                  >
+                    <Download class="h-3 sm:h-4 w-3 sm:w-4" />
+                    <span class="hidden md:block">Export</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'export'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="format in exportFormats"
+                        :key="format"
+                        @click="exportData(format)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      >
+                        <span v-if="format === 'csv'" class="mr-2 text-green-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        Export as {{ format.toUpperCase() }}
+                      </button>
+                    </div>
                   </div>
+                </div>
+
+                <!-- Print Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click="printTable"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Print</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -257,154 +268,169 @@
         
         <!-- Table Container - Larger width with FIXED ALIGNMENT -->
         <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
-          <!-- Single Table Structure for Perfect Alignment -->
-          <div class="flex-1 overflow-auto">
-            <table class="w-full min-w-[600px] table-fixed">
-              <!-- Fixed Header -->
-              <thead class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
-                    <div class="text-blue-600">Soil Moisture</div>
-                    <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
-                  </th>
-                  <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
-                    <div class="text-emerald-600">Soil Status</div>
-                    <div class="text-gray-400 text-[10px]">CONDITION</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
-                    <div class="text-gray-600">Date</div>
-                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
-                    <div class="text-gray-600">Time</div>
-                    <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
-                  </th>
-                </tr>
-              </thead>
-              
-              <!-- Table Body -->
-              <tbody class="bg-white divide-y divide-gray-50">
-                <tr 
-                  v-for="(row, index) in paginatedData" 
-                  :key="index"
-                  class="hover:bg-gray-50/50 transition-colors"
-                >
-                  <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                  </td>
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-blue-600">
-                      {{ row.soilMoisture }}
-                    </div>
-                  </td>
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
-                    <span 
-                      :class="[
-                        'px-3 py-1 rounded-full text-xs font-medium',
-                        row.soilStatus === 'WET' ? 'bg-emerald-100 text-emerald-800' :
-                        row.soilStatus === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      ]"
-                    >
-                      {{ row.soilStatus }}
-                    </span>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
-                  </td>
-                </tr>
+          <!-- Mobile Card View (shown on small screens) -->
+          <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
+            <div v-for="(row, index) in paginatedData" :key="index" 
+                class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
+                  <div class="text-[10px] text-gray-500">{{ row.time }}</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Soil Moisture</div>
+                  <div class="text-xs font-semibold text-blue-600">{{ row.soilMoisture }}%</div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Status</div>
+                  <span 
+                    :class="[
+                      'px-2 py-0.5 rounded-full text-[10px] font-medium',
+                      row.soilStatus === 'WET' ? 'bg-emerald-100 text-emerald-800' :
+                      row.soilStatus === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    ]"
+                  >
+                    {{ row.soilStatus }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="paginatedData.length === 0 && !isLoading" 
+                class="flex flex-col items-center justify-center py-8">
+              <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
+              <p class="text-gray-500 text-xs font-medium">No soil moisture data found</p>
+              <p class="text-gray-400 text-[10px]">Try adjusting your search or filters</p>
+            </div>
+          </div>
+
+          <!-- Desktop Table View (shown on medium screens and up) -->
+          <div class="hidden sm:flex flex-1 flex-col min-h-0">
+            <!-- Single Table Structure for Perfect Alignment -->
+            <div class="flex-1 overflow-auto">
+              <table class="w-full min-w-[600px] table-fixed">
+                <!-- Fixed Header -->
+                <thead class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
+                      <div class="text-blue-600">Soil Moisture</div>
+                      <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
+                    </th>
+                    <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
+                      <div class="text-emerald-600">Soil Status</div>
+                      <div class="text-gray-400 text-[10px]">CONDITION</div>
+                    </th>
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
+                      <div class="text-gray-600">Date</div>
+                      <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
+                    </th>
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
+                      <div class="text-gray-600">Time</div>
+                      <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
+                    </th>
+                  </tr>
+                </thead>
                 
-                <!-- Empty state when no data -->
-                <tr v-if="paginatedData.length === 0 && !isLoading">
-                  <td colspan="5" class="px-6 py-16 text-center">
-                    <div class="flex flex-col items-center justify-center">
-                      <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
-                      <p class="text-gray-500 text-lg font-medium">No soil moisture data found</p>
-                      <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fixed Pagination Section with enhanced styling -->
-      <div class="border-t border-gray-100 py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
-        <!-- Enhanced Pagination -->
-        <div class="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          <!-- Entries selector and info -->
-          <div class="text-xs sm:text-sm text-gray-600 flex flex-col md:flex-row items-center gap-2">
-            <div class="flex items-center gap-2">
-              <span class="hidden sm:inline">Showing</span>
-              <select 
-                v-model="itemsPerPage" 
-                class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
-                @change="updatePagination"
-              >
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-              </select>
-              <span class="hidden sm:inline">entries per page</span>
+                <!-- Table Body -->
+                <tbody class="bg-white divide-y divide-gray-50">
+                  <tr 
+                    v-for="(row, index) in paginatedData" 
+                    :key="index"
+                    class="hover:bg-gray-50/50 transition-colors"
+                  >
+                    <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
+                    </td>
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-blue-600">
+                        {{ row.soilMoisture }}
+                      </div>
+                    </td>
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                      <span 
+                        :class="[
+                          'px-3 py-1 rounded-full text-xs font-medium',
+                          row.soilStatus === 'WET' ? 'bg-emerald-100 text-emerald-800' :
+                          row.soilStatus === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        ]"
+                      >
+                        {{ row.soilStatus }}
+                      </span>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
+                    </td>
+                  </tr>
+                  
+                  <!-- Empty state when no data -->
+                  <tr v-if="paginatedData.length === 0 && !isLoading">
+                    <td colspan="5" class="px-6 py-16 text-center">
+                      <div class="flex flex-col items-center justify-center">
+                        <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
+                        <p class="text-gray-500 text-lg font-medium">No soil moisture data found</p>
+                        <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <span class="hidden xs:inline text-gray-400 mx-2">|</span>
-            <span class="text-center xs:text-left">
-              {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-              <span class="text-gray-400">of</span>
-              {{ sortedData.length }}
-            </span>
           </div>
 
-          <!-- Page navigation -->
-          <div class="flex items-center gap-1">
-            <button 
-              @click="prevPage"
-              :disabled="currentPage === 1"
-              class="inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-            >
-              <ChevronLeft class="w-3 sm:w-4 h-3 sm:h-4 mr-0 sm:mr-1" />
-              <span class="hidden xs:inline">Prev</span>
-            </button>
-
-            <div class="flex items-center">
-              <button
-                v-for="page in displayedPages"
-                :key="page"
-                @click="goToPage(page)"
-                :class="[
-                  'relative inline-flex items-center justify-center w-6 sm:w-8 h-6 sm:h-8 text-xs sm:text-sm transition-colors mx-0.5 rounded-md',
-                  page === currentPage
-                    ? 'text-white bg-emerald-500 font-semibold'
-                    : page === '...'
-                      ? 'cursor-default text-gray-400'
-                      : 'text-gray-700 hover:text-emerald-600 hover:hover:bg-emerald-50'
-                ]"
-              >
-                {{ page }}
-              </button>
+          <!-- Pagination with new style -->
+          <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="text-[10px] md:text-xs text-gray-600">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
+                of {{ sortedData.length }}
+              </div>
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="prevPage"
+                  :disabled="currentPage === 1"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
+                >
+                  <ChevronLeft class="w-3.5 h-3.5" />
+                </button>
+                
+                <div class="flex items-center gap-1">
+                  <button
+                    v-for="(page, index) in paginationNumbers"
+                    :key="index"
+                    @click="goToPage(page)"
+                    :disabled="page === '...'"
+                    :class="[
+                      'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
+                      page === currentPage 
+                        ? 'bg-emerald-500 text-white font-medium' 
+                        : page === '...' 
+                          ? 'text-gray-400 cursor-default' 
+                          : 'text-gray-700 hover:text-emerald-600 hover:bg-gray-100'
+                    ]"
+                  >
+                    {{ page }}
+                  </button>
+                </div>
+                
+                <button 
+                  @click="nextPage"
+                  :disabled="currentPage >= totalPages"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
+                >
+                  <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-
-            <button 
-              @click="nextPage"
-              :disabled="currentPage >= totalPages"
-              class="inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-            >
-              <span class="hidden xs:inline">Next</span>
-              <ChevronRight class="w-3 sm:w-4 h-3 sm:h-4 ml-0 sm:ml-1" />
-            </button>
           </div>
         </div>
       </div>
@@ -422,40 +448,24 @@
   
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, FileText, FileSearch } from 'lucide-vue-next'
-import Sidebar from '../layout/Sidebar.vue'
+import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, FileText, FileSearch, Printer } from 'lucide-vue-next'
 import LoadingPage from '../layout/LoadingPage.vue'
-import Settings from '../layout/Settings.vue'
-import {
-  getFirestore,
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  onSnapshot,
-  limit,
-  Timestamp
-} from 'firebase/firestore'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
+import api from '../../api/index'
 
-// Chart.js import
 import Chart from 'chart.js/auto'
 
-const db = getFirestore()
 const soilMoistureData = ref([])
 const isLoading = ref(true)
 
-// Chart references
 const chartCanvas = ref(null)
 const chart = ref(null)
 
-// Chart data
 const chartData = ref([])
 
-// Current values and stats
 const currentMoistureValue = ref('--')
 const lastUpdated = ref('--')
 const moistureStats = ref({
@@ -464,243 +474,692 @@ const moistureStats = ref({
   avg: '--'
 })
 
-// Prefetch data cache
-const dataCache = ref(null)
+let PRINT_CHART_DATA_LIMIT = 0
 
-// ✅ MODIFIED: Updated to fetch from new 3sensor_readings collection structure
-const fetchSoilMoistureData = async () => {
+const printTable = async () => {
+  activeDropdown.value = null;
+  
+  const tempContainer = document.createElement('div');
+  tempContainer.style.width = '800px';
+  tempContainer.style.height = '400px';
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.left = '-9999px';
+  tempContainer.style.backgroundColor = 'white';
+  tempContainer.style.padding = '20px';
+  
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 800;
+  tempCanvas.height = 400;
+  tempContainer.appendChild(tempCanvas);
+  document.body.appendChild(tempContainer);
+  
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  const soilMoistureRows = sortedData.value.map(row => ({
+    id: row.id,
+    date: row.date,
+    time: row.time,
+    device: row.deviceId || 'N/A',
+    soilMoisture: row.soilMoisture,
+    soilStatus: row.soilStatus
+  }));
+  
+  // Get ALL data for the chart
+  const printChartData = soilMoistureData.value
+    .filter(item => item.soilMoisture !== '--')
+    .map(item => ({
+      timestamp: item.rawTimestamp,
+      value: Number(item.soilMoisture)
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp); 
+  
+  console.log(`📊 Print chart will show ${printChartData.length} records`);
+  
+  // Calculate overall statistics from ALL data
+  const printChartValues = printChartData.map(item => item.value);
+  const overallMin = printChartValues.length > 0 ? Math.min(...printChartValues) : 0;
+  const overallMax = printChartValues.length > 0 ? Math.max(...printChartValues) : 100;
+  const overallAvg = printChartValues.length > 0 ? 
+    (printChartValues.reduce((sum, val) => sum + val, 0) / printChartValues.length) : 0;
+  
+  console.log(`📈 Data range: ${overallMin}% - ${overallMax}% (Avg: ${overallAvg.toFixed(2)}%)`);
+  
+  // For the chart display, use all data but adjust scaling to show the actual range
+  const chartDisplayData = printChartData;
+  
+  let chartImage = '';
+  
   try {
-    // If we already have cached data, use it immediately to show something
-    if (dataCache.value) {
-      soilMoistureData.value = dataCache.value
-      isLoading.value = false
-      initializeChartData(dataCache.value)
-    } else {
-      isLoading.value = true
-    }
+    const ctx = tempCanvas.getContext('2d');
     
-    // Fetch from all ESP32 devices that might have soil moisture data
-    const allReadings = []
+    // Calculate dynamic y-axis scaling based on actual data range
+    const dataRange = overallMax - overallMin;
+    const yAxisPadding = dataRange * 0.1; // 10% padding
+    const yMin = Math.max(0, Math.floor(overallMin - yAxisPadding));
+    const yMax = Math.min(100, Math.ceil(overallMax + yAxisPadding));
     
-    // Fetch from esp32-2 (primary soil moisture sensor)
-    try {
-      const esp32_2_query = query(
-        collection(db, "3sensor_readings", "esp32-2", "readings"),
-        orderBy("timestamp", "desc")
-      )
-      const esp32_2_snapshot = await getDocs(esp32_2_query)
-      
-      esp32_2_snapshot.docs.forEach(doc => {
-        const data = doc.data()
-        if (data.soilMoisture !== undefined && data.soilMoisture !== null) {
-          allReadings.push({
-            ...data,
-            deviceId: 'esp32-2',
-            docId: doc.id
-          })
-        }
-      })
-      console.log(`📥 ESP32-2 Soil Moisture readings: ${esp32_2_snapshot.docs.length}`)
-    } catch (error) {
-      console.error("❌ Error fetching from ESP32-2:", error)
-    }
-
-    // Fetch from esp32-1 (backup soil moisture sensor if available)
-    try {
-      const esp32_1_query = query(
-        collection(db, "3sensor_readings", "esp32-1", "readings"),
-        orderBy("timestamp", "desc")
-      )
-      const esp32_1_snapshot = await getDocs(esp32_1_query)
-      
-      esp32_1_snapshot.docs.forEach(doc => {
-        const data = doc.data()
-        if (data.soilMoisture !== undefined && data.soilMoisture !== null) {
-          allReadings.push({
-            ...data,
-            deviceId: 'esp32-1',
-            docId: doc.id
-          })
-        }
-      })
-      console.log(`📥 ESP32-1 Soil Moisture readings: ${esp32_1_snapshot.docs.length}`)
-    } catch (error) {
-      console.error("❌ Error fetching from ESP32-1:", error)
-    }
-
-    // Fetch from esp32-3 (additional soil moisture sensor if available)
-    try {
-      const esp32_3_query = query(
-        collection(db, "3sensor_readings", "esp32-3", "readings"),
-        orderBy("timestamp", "desc")
-      )
-      const esp32_3_snapshot = await getDocs(esp32_3_query)
-      
-      esp32_3_snapshot.docs.forEach(doc => {
-        const data = doc.data()
-        if (data.soilMoisture !== undefined && data.soilMoisture !== null) {
-          allReadings.push({
-            ...data,
-            deviceId: 'esp32-3',
-            docId: doc.id
-          })
-        }
-      })
-      console.log(`📥 ESP32-3 Soil Moisture readings: ${esp32_3_snapshot.docs.length}`)
-    } catch (error) {
-      console.error("❌ Error fetching from ESP32-3:", error)
-    }
-
-    // Sort all readings by timestamp (newest first)
-    allReadings.sort((a, b) => {
-      const aTime = a.timestamp instanceof Timestamp ? a.timestamp.toDate() : new Date(a.timestamp.seconds * 1000)
-      const bTime = b.timestamp instanceof Timestamp ? b.timestamp.toDate() : new Date(b.timestamp.seconds * 1000)
-      return bTime - aTime
-    })
-
-    // Process soil moisture readings
-    const processedData = allReadings
-      .filter(reading => reading.soilMoisture !== undefined)
-      .map((reading, index) => {
-        // Handle timestamp
-        let formattedDate = '--'
-        let formattedTime = '--'
-        let timestampSeconds = 0
-        
-        try {
-          const timestamp = reading.timestamp instanceof Timestamp 
-            ? reading.timestamp.toDate() 
-            : new Date(reading.timestamp.seconds * 1000)
-          
-          // Format date as "MMM DD, YYYY" (e.g., "May 09, 2024")
-          formattedDate = timestamp.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-          });
-
-          // ✅ MODIFIED: Changed hour12 from false to true for 12-hour format
-          formattedTime = timestamp.toLocaleTimeString('en-US', {
+    console.log(`📊 Y-axis range: ${yMin}% - ${yMax}%`);
+    
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartDisplayData.map(item => {
+          return item.timestamp.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
-            second: '2-digit',
             hour12: true
-          });
-          
-          timestampSeconds = reading.timestamp instanceof Timestamp 
-            ? reading.timestamp.seconds 
-            : timestamp.getTime() / 1000
-        } catch (e) {
-          console.error("Error formatting date:", e)
+          })
+        }),
+        datasets: [{
+          label: 'Soil Moisture (%)',
+          data: chartDisplayData.map(item => item.value), 
+          borderColor: '#10b981', 
+          backgroundColor: 'rgba(16, 185, 129, 0.15)', 
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#10b981',
+          pointBorderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        animation: false, 
+        plugins: {
+          legend: { 
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `Moisture: ${context.raw.toFixed(1)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: yMin, // Use dynamic min based on data
+            max: yMax, // Use dynamic max based on data
+            title: {
+              display: true,
+              text: 'Moisture (%)',
+              color: '#10b981',
+              font: {
+                size: 14,
+                weight: '600'
+              }
+            },
+            ticks: {
+              font: { size: 12 },
+              color: '#64748b',
+              stepSize: calculateStepSize(dataRange), // Dynamic step size
+              callback: function(value) {
+                return value + '%'; // Add percentage sign to y-axis labels
+              }
+            },
+            grid: {
+              color: 'rgba(100, 116, 139, 0.2)'
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 9 },
+              color: '#64748b',
+              maxTicksLimit: 10,
+              maxRotation: 45,
+              callback: function(value, index, values) {
+                // Show fewer labels for better readability
+                return index % Math.ceil(values.length / 10) === 0 ? this.getLabelForValue(value) : '';
+              }
+            },
+            grid: {
+              display: false // Hide x-axis grid lines for cleaner look
+            }
+          }
         }
-
-        // Calculate soil status based on moisture level
-        const soilMoisture = reading.soilMoisture !== undefined && reading.soilMoisture !== null 
-          ? Number(reading.soilMoisture).toFixed(2) 
-          : '--'
-        
-        const soilStatus = calculateSoilStatus(Number(reading.soilMoisture))
-
-        // Return processed data
-        return {
-          id: index + 1,
-          timestamp: timestampSeconds,
-          soilMoisture: soilMoisture,
-          soilStatus: soilStatus,
-          date: formattedDate,
-          time: formattedTime,
-          rawTimestamp: reading.timestamp,
-          deviceId: reading.deviceId
-        }
-      })
-
-    // Cache the data for future use
-    dataCache.value = processedData
+      }
+    });
     
-    // Update the UI with minimal delay
+    setTimeout(async () => {
+      try {
+        chartImage = tempCanvas.toDataURL('image/png', 1.0);
+        
+        tempChart.destroy();
+        document.body.removeChild(tempContainer);
+        
+        generatePrintHTML(chartImage, soilMoistureRows, formattedDate, now, printChartData.length, overallMin, overallMax, overallAvg);
+      } catch (error) {
+        console.error('Error capturing chart:', error);
+        document.body.removeChild(tempContainer);
+        generatePrintHTML('', soilMoistureRows, formattedDate, now, 0, 0, 0, 0);
+      }
+    }, 500);
+    
+  } catch (error) {
+    console.error('Error creating chart:', error);
+    document.body.removeChild(tempContainer);
+    generatePrintHTML('', soilMoistureRows, formattedDate, now, 0, 0, 0, 0);
+  }
+};
+
+// Helper function to calculate appropriate step size for y-axis
+function calculateStepSize(dataRange) {
+  if (dataRange <= 10) return 1;
+  if (dataRange <= 20) return 2;
+  if (dataRange <= 50) return 5;
+  if (dataRange <= 100) return 10;
+  return 20;
+}
+
+const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, chartRecordCount, printMin, printMax, printAvg) => {
+  const tableContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Soil Moisture Analysis Data</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          color: #333;
+          line-height: 1.4;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #10b981;
+        }
+        .header h1 {
+          color: #065f46;
+          margin: 0 0 8px 0;
+          font-size: 24px;
+        }
+        .header .date {
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .section-header {
+          margin: 30px 0 18px 0;
+          padding: 12px 15px;
+          background-color: #f9fafb;
+          border-left: 4px solid #10b981;
+          border-radius: 4px;
+          font-size: 17px;
+          font-weight: bold;
+          color: #065f46;
+        }
+        .chart-info {
+          text-align: center;
+          margin-bottom: 10px;
+          font-size: 12px;
+          color: #6b7280;
+          font-style: italic;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0 25px 0;
+          font-size: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 2px solid #d1d5db;
+          font-size: 12px;
+        }
+        td {
+          color: #4b5563;
+          border-color: #e5e7eb;
+        }
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        .soil-moisture { color: #10b981; font-weight: 500; }
+        .status-wet { color: #059669; }
+        .status-medium { color: #d97706; }
+        .status-dry { color: #dc2626; }
+        .summary {
+          margin: 25px 0;
+          padding: 20px;
+          background-color: #f0fdf4;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .summary h3 {
+          margin-top: 0;
+          color: #065f46;
+          font-size: 18px;
+          border-bottom: 1px solid #bbf7d0;
+          padding-bottom: 10px;
+        }
+        .summary-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 8px 0;
+        }
+        .summary-label {
+          font-weight: 600;
+          color: #374151;
+        }
+        .summary-value {
+          color: #059669;
+          font-weight: 500;
+        }
+        .chart-image {
+          width: 100%;
+          max-width: 800px;
+          margin: 15px auto;
+          display: block;
+          page-break-inside: avoid;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 15px;
+          background: white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .chart-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 15px;
+          text-align: center;
+          padding: 10px;
+          background-color: #f9fafb;
+          border-radius: 4px;
+        }
+        .stats-summary {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          margin: 20px 0;
+          text-align: center;
+        }
+        .stat-item {
+          padding: 15px;
+          background-color: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .stat-item h4 {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #10b981;
+        }
+        .stat-values {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .footer {
+          margin-top: 30px;
+          font-size: 12px;
+          color: #9ca3af;
+          text-align: center;
+          padding-top: 15px;
+          border-top: 1px solid #e5e7eb;
+        }
+        @media print {
+          body { margin: 0.5in; padding: 0; }
+          .no-print { display: none; }
+          .header { page-break-after: avoid; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          .chart-image { page-break-inside: avoid; }
+        }
+        @page { size: portrait; margin: 0.5in; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Soil Moisture Analysis Report</h1>
+        <div class="date">${formattedDate}</div>
+      </div>
+      
+      <div class="summary">
+        <h3>Report Summary</h3>
+        <div class="summary-item">
+          <span class="summary-label">Total Records:</span>
+          <span class="summary-value">${soilMoistureRows.length}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Chart Data Points:</span>
+          <span class="summary-value">${chartRecordCount}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Date Range:</span>
+          <span class="summary-value">${soilMoistureRows.length > 0 ? soilMoistureRows[soilMoistureRows.length-1].date + ' to ' + soilMoistureRows[0].date : 'N/A'}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Report Generated:</span>
+          <span class="summary-value">${now.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      <div class="section-header">Soil Moisture Trend Analysis</div>
+      ${chartImage ? `
+        <div class="chart-title">Soil Moisture Levels Over Time</div>
+        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
+        <img src="${chartImage}" class="chart-image" alt="Soil Moisture Chart" />
+        
+        <div class="stats-summary">
+          <div class="stat-item">
+            <h4>Soil Moisture</h4>
+            <div class="stat-values">
+              Min: ${printMin.toFixed(2)}%<br>
+              Avg: ${printAvg.toFixed(2)}%<br>
+              Max: ${printMax.toFixed(2)}%
+            </div>
+          </div>
+        </div>
+      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
+      
+      <div class="section-header">Detailed Soil Moisture Sensor Readings</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%">ID</th>
+            <th style="width: 15%">Date</th>
+            <th style="width: 12%">Time</th>
+            <th style="width: 10%">Device</th>
+            <th style="width: 15%">Soil Moisture</th>
+            <th style="width: 15%">Soil Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${soilMoistureRows.map(row => `
+            <tr>
+              <td>${row.id}</td>
+              <td>${row.date}</td>
+              <td>${row.time}</td>
+              <td>${row.device}</td>
+              <td><span class="soil-moisture">${row.soilMoisture}%</span></td>
+              <td>
+                <span class="${
+                  row.soilStatus === 'WET' ? 'status-wet' :
+                  row.soilStatus === 'MEDIUM' ? 'status-medium' : 'status-dry'
+                }">${row.soilStatus}</span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        Generated by Soil Moisture Analysis System • ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
+      </div>
+    </body>
+    </html>
+  `;
+  
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  iframe.style.left = '-9999px';
+  document.body.appendChild(iframe);
+  
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+  
+  iframeDoc.open();
+  iframeDoc.write(tableContent);
+  iframeDoc.close();
+  
+  iframe.onload = function() {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 100);
+    } catch (error) {
+      console.error('Print error:', error);
+      document.body.removeChild(iframe);
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(tableContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  };
+};
+
+const paginationNumbers = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  
+  if (total <= 1) return [1]
+  
+  if (current === 1) {
+    return [1, '..', total]
+  } else if (current === total) {
+    return [1, '..', total]
+  } else {
+    return [current, '...', total]
+  }
+})
+
+const dataCache = ref(null)
+
+const fetchSoilMoistureData = async () => {
+  try {
+    isLoading.value = true
+    console.log('🌱 Fetching soil moisture data...')
+
+    const response = await api.get(`/soil-moisture`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+
+    console.log('📊 API Response:', response)
+    
+    let data
+    if (response && typeof response === 'object') {
+      if (response.data !== undefined) {
+        data = response.data
+        console.log('📊 Response status:', response.status)
+      } else if (Array.isArray(response)) {
+        data = response
+      } else {
+        data = response
+      }
+    }
+
+    console.log('📊 Response data:', data)
+
+    if (!Array.isArray(data)) {
+      console.error('❌ Expected array but got:', typeof data, data)
+      throw new Error(`Expected array but got: ${typeof data}`)
+    }
+
+    console.log('📊 Number of items received:', data.length)
+
+    if (data.length === 0) {
+      console.log('📭 No soil moisture data found in database')
+      soilMoistureData.value = []
+      isLoading.value = false
+      return
+    }
+
+    const processedData = data.map((reading, index) => {
+      let timestamp
+      if (reading.timestamp) {
+        if (typeof reading.timestamp === 'string') {
+          timestamp = new Date(reading.timestamp)
+        } else if (reading.timestamp instanceof Date) {
+          timestamp = reading.timestamp
+        } else {
+          console.warn('Unknown timestamp format:', reading.timestamp)
+          timestamp = new Date()
+        }
+      } else {
+        timestamp = new Date()
+      }
+
+      const soilMoistureValue = reading.soilMoisture !== undefined ? reading.soilMoisture : 
+                               reading.value !== undefined ? reading.value : 
+                               reading.moisture !== undefined ? reading.moisture : 0
+
+      return {
+        id: `${index + 1}`,
+        timestamp: timestamp.getTime() / 1000,
+        soilMoisture: Number(soilMoistureValue).toFixed(2),
+        soilStatus: calculateSoilStatus(Number(soilMoistureValue)),
+        date: timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        }),
+        time: timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }),
+        rawTimestamp: timestamp, 
+        deviceId: reading.deviceId || reading.device_id || 'unknown'
+      }
+    })
+
     soilMoistureData.value = processedData
+    dataCache.value = processedData
     isLoading.value = false
     
-    // Initialize chart data after loading
     initializeChartData(processedData)
+    PRINT_CHART_DATA_LIMIT = processedData.length
     
-    console.log(`✅ Total processed soil moisture readings: ${processedData.length}`)
+    console.log(`✅ Successfully loaded ${processedData.length} soil moisture readings`)
+
   } catch (error) {
     console.error("❌ Error fetching soil moisture data:", error)
     isLoading.value = false
-    
-    // If we have cached data, use it as fallback
-    if (dataCache.value) {
-      soilMoistureData.value = dataCache.value
-      initializeChartData(dataCache.value)
-    }
+    soilMoistureData.value = []
   }
 }
 
-// ✅ MODIFIED: Updated real-time listener for new collection structure
+
+let socket = null
 const setupRealtimeListener = () => {
-  // Set up listeners for all ESP32 devices
-  const unsubscribeFunctions = []
-  
-  // ESP32-2 listener (primary soil moisture sensor)
-  const esp32_2_query = query(
-    collection(db, "3sensor_readings", "esp32-2", "readings"),
-    orderBy("timestamp", "desc"),
-    limit(10)
-  )
-  
-  const unsubscribe2 = onSnapshot(esp32_2_query, (snapshot) => {
-    processRealtimeSnapshot(snapshot, 'esp32-2')
-  }, (error) => {
-    console.error("Error in ESP32-2 realtime listener:", error)
-  })
-  
-  unsubscribeFunctions.push(unsubscribe2)
-
-  // ESP32-1 listener (backup soil moisture sensor)
-  const esp32_1_query = query(
-    collection(db, "3sensor_readings", "esp32-1", "readings"),
-    orderBy("timestamp", "desc"),
-    limit(10)
-  )
-  
-  const unsubscribe1 = onSnapshot(esp32_1_query, (snapshot) => {
-    processRealtimeSnapshot(snapshot, 'esp32-1')
-  }, (error) => {
-    console.error("Error in ESP32-1 realtime listener:", error)
-  })
-  
-  unsubscribeFunctions.push(unsubscribe1)
-
-  // Return a function that unsubscribes from all listeners
-  return () => {
-    unsubscribeFunctions.forEach(unsubscribe => unsubscribe())
+  try {
+    // Connect to WebSocket for real-time updates
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${wsProtocol}//${window.location.host.replace('3000', '8000')}/ws/soil-moisture`
+    
+    socket = new WebSocket(wsUrl)
+    
+    socket.onopen = () => {
+      console.log('WebSocket connected for real-time soil moisture updates')
+    }
+    
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      processRealtimeData(data)
+    }
+    
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error)
+    }
+    
+    socket.onclose = () => {
+      console.log('WebSocket connection closed')
+    }
+    
+    return () => {
+      if (socket) {
+        socket.close()
+      }
+    }
+  } catch (error) {
+    console.error('Error setting up WebSocket:', error)
+    return () => {} // Return empty cleanup function
   }
 }
 
-// Process realtime snapshot data
 let debounceTimer = null
 let lastUpdateTime = Date.now()
 let combinedRealtimeData = []
 
-const processRealtimeSnapshot = (snapshot, deviceId) => {
-  // Debounce updates to prevent too frequent rendering
-  if (debounceTimer) clearTimeout(debounceTimer)
-  
-  // If it's been less than 500ms since the last update, debounce
-  const now = Date.now()
-  const timeSinceLastUpdate = now - lastUpdateTime
-  
-  if (timeSinceLastUpdate < 500) {
-    debounceTimer = setTimeout(() => updateRealtimeData(snapshot, deviceId), 500 - timeSinceLastUpdate)
+const processRealtimeData = (data) => {
+  let timestamp
+  if (data.timestamp) {
+    if (typeof data.timestamp === 'string') {
+      timestamp = new Date(data.timestamp)
+    } else if (data.timestamp instanceof Date) {
+      timestamp = data.timestamp
+    } else {
+      timestamp = new Date()
+    }
   } else {
-    updateRealtimeData(snapshot, deviceId)
-    lastUpdateTime = now
+    timestamp = new Date()
   }
+  
+  const newDataPoint = {
+    timestamp,
+    value: data.soilMoisture,
+    deviceId: data.deviceId || 'unknown'
+  }
+  
+  combinedRealtimeData.push(newDataPoint)
+  combinedRealtimeData = combinedRealtimeData.slice(-20) 
+  
+  chartData.value = combinedRealtimeData
+  
+  if (combinedRealtimeData.length > 0) {
+    const latestReading = combinedRealtimeData[combinedRealtimeData.length - 1]
+    currentMoistureValue.value = latestReading.value.toFixed(2)
+    
+    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+    
+    const values = combinedRealtimeData.map(item => item.value)
+    moistureStats.value = {
+      min: Math.min(...values).toFixed(2),
+      max: Math.max(...values).toFixed(2),
+      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
+    }
+  }
+  
+  requestAnimationFrame(() => {
+    updateChart()
+  })
 }
 
 const updateRealtimeData = (snapshot, deviceId) => {
-  // Process the data for the chart
   const newData = snapshot.docs
     .filter(doc => doc.data().soilMoisture !== undefined)
     .map(doc => {
@@ -716,24 +1175,18 @@ const updateRealtimeData = (snapshot, deviceId) => {
       }
     })
   
-  // Update combined realtime data
   combinedRealtimeData = combinedRealtimeData.filter(item => item.deviceId !== deviceId)
   combinedRealtimeData.push(...newData)
   
-  // Sort by timestamp and keep only the most recent 20 readings
   combinedRealtimeData.sort((a, b) => a.timestamp - b.timestamp)
   combinedRealtimeData = combinedRealtimeData.slice(-20)
   
-  // Update chart data
   chartData.value = combinedRealtimeData
   
-  // Update current value and stats
   if (combinedRealtimeData.length > 0) {
-    // Get the most recent value
     const latestReading = combinedRealtimeData[combinedRealtimeData.length - 1]
     currentMoistureValue.value = latestReading.value.toFixed(2)
     
-    // ✅ MODIFIED: Changed hour12 from false to true for 12-hour format
     lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -741,7 +1194,6 @@ const updateRealtimeData = (snapshot, deviceId) => {
       hour12: true
     })
     
-    // Calculate stats
     const values = combinedRealtimeData.map(item => item.value)
     moistureStats.value = {
       min: Math.min(...values).toFixed(2),
@@ -750,34 +1202,27 @@ const updateRealtimeData = (snapshot, deviceId) => {
     }
   }
   
-  // Use requestAnimationFrame for smoother chart updates
   requestAnimationFrame(() => {
     updateChart()
   })
 }
 
-// Initialize chart data from fetched data
 const initializeChartData = (data) => {
-  // Take the most recent 20 entries for initial chart data
   const initialChartData = data.slice(0, 20)
     .map(item => ({
-      timestamp: item.rawTimestamp instanceof Timestamp 
-        ? item.rawTimestamp.toDate() 
-        : new Date(item.rawTimestamp.seconds * 1000),
+      timestamp: item.rawTimestamp, 
       value: Number(item.soilMoisture),
       deviceId: item.deviceId || 'unknown'
     }))
-    .sort((a, b) => a.timestamp - b.timestamp) // Sort by timestamp ascending for the chart
+    .sort((a, b) => a.timestamp - b.timestamp) 
   
   chartData.value = initialChartData
   combinedRealtimeData = initialChartData
   
-  // Set initial current value and stats
   if (initialChartData.length > 0) {
     const latestReading = initialChartData[initialChartData.length - 1]
     currentMoistureValue.value = latestReading.value.toFixed(2)
     
-    // ✅ MODIFIED: Changed hour12 from false to true for 12-hour format
     lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -793,27 +1238,22 @@ const initializeChartData = (data) => {
     }
   }
   
-  // Initialize the chart
   initializeChart()
 }
 
-// Initialize the chart with enhanced styling
 const initializeChart = () => {
   nextTick(() => {
     if (chartCanvas.value) {
-      // Destroy existing chart if it exists
       if (chart.value) {
         chart.value.destroy()
       }
       
       const ctx = chartCanvas.value.getContext('2d')
       
-      // Create new chart with enhanced styling
       chart.value = new Chart(ctx, {
         type: 'line',
         data: {
           labels: chartData.value.map(item => {
-            // ✅ MODIFIED: Changed hour12 from false to true for 12-hour format
             return item.timestamp.toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
@@ -823,8 +1263,8 @@ const initializeChart = () => {
           datasets: [{
             label: 'Soil Moisture (%)',
             data: chartData.value.map(item => item.value),
-            borderColor: '#10b981', // emerald-500
-            backgroundColor: 'rgba(16, 185, 129, 0.15)', // emerald-500 with opacity
+            borderColor: '#10b981', 
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
             borderWidth: 2.5,
             tension: 0.4,
             fill: true,
@@ -843,7 +1283,7 @@ const initializeChart = () => {
             intersect: false,
           },
           animation: {
-            duration: 500, // Reduced for better performance
+            duration: 500,
             easing: 'easeOutQuart'
           },
           layout: {
@@ -875,7 +1315,7 @@ const initializeChart = () => {
                 font: {
                   size: 10
                 },
-                color: '#64748b', // slate-500
+                color: '#64748b', 
                 padding: 8
               },
               grid: {
@@ -890,7 +1330,7 @@ const initializeChart = () => {
                 },
                 maxRotation: 0,
                 padding: 8,
-                color: '#64748b' // slate-500
+                color: '#64748b' 
               },
               grid: {
                 display: false,
@@ -900,13 +1340,13 @@ const initializeChart = () => {
           },
           plugins: {
             legend: {
-              display: false, // Hide legend to improve performance
+              display: false, 
             },
             tooltip: {
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#334155', // slate-700
-              bodyColor: '#334155', // slate-700
-              borderColor: '#e2e8f0', // slate-200
+              titleColor: '#334155', 
+              bodyColor: '#334155', 
+              borderColor: '#e2e8f0', 
               borderWidth: 1,
               padding: 12,
               cornerRadius: 6,
@@ -934,12 +1374,9 @@ const initializeChart = () => {
   })
 }
 
-// Update the chart with new data - optimized for performance
 const updateChart = () => {
   if (chart.value && chartData.value.length > 0) {
-    // Update only what's needed
     chart.value.data.labels = chartData.value.map(item => {
-      // ✅ MODIFIED: Changed hour12 from false to true for 12-hour format
       return item.timestamp.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -947,36 +1384,33 @@ const updateChart = () => {
       })
     })
     
-    // Update dataset
     chart.value.data.datasets[0].data = chartData.value.map(item => item.value)
     
-    // Update y-axis scale based on new data
-    chart.value.options.scales.y.min = Math.max(0, Math.floor(moistureStats.value.min * 0.95))
-    chart.value.options.scales.y.max = Math.min(100, Math.ceil(moistureStats.value.max * 1.05))
+    const values = chartData.value.map(item => item.value)
+    if (values.length > 0) {
+      chart.value.options.scales.y.min = Math.max(0, Math.min(...values) * 0.95)
+      chart.value.options.scales.y.max = Math.min(100, Math.max(...values) * 1.05)
+    }
     
-    // Use a more performant update
-    chart.value.update('none') // 'none' mode skips animations for better performance
+    chart.value.update('none') 
   }
 }
 
-// Function to determine soil status based on moisture level
 const calculateSoilStatus = (moisture) => {
   if (moisture >= 70) return 'WET'
   if (moisture >= 30 && moisture < 70) return 'MEDIUM'
   return 'DRY'
 }
 
-// Initialize filters object
 const filters = ref({
   soilMoisture: { min: '', max: '' }
 })
 
-// Reactive state
 const searchQuery = ref('')
-const itemsPerPage = ref(20) // Default to 20 items per page
+const itemsPerPage = ref(20) 
 const currentPage = ref(1)
 const activeDropdown = ref(null)
-const sortKey = ref('id')
+const sortKey = ref('date')
 const sortDirection = ref('asc')
 const activeFilters = ref({})
 
@@ -994,11 +1428,9 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
-// Computed properties with memoization for better performance
 const filteredData = computed(() => {
   let result = [...soilMoistureData.value]
 
-  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(row => {
@@ -1008,7 +1440,6 @@ const filteredData = computed(() => {
     })
   }
 
-  // Apply range filters
   Object.keys(activeFilters.value).forEach(key => {
     const { min, max } = activeFilters.value[key]
     if (min !== '' && max !== '') {
@@ -1030,18 +1461,15 @@ const sortedData = computed(() => {
     let aValue = a[sortKey.value]
     let bValue = b[sortKey.value]
     
-    // Handle empty values
     if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
     if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
     
-    // Handle string comparison
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection.value === 'asc' 
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue)
     }
     
-    // Handle numeric comparison
     return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
   })
 })
@@ -1062,22 +1490,17 @@ const displayedPages = computed(() => {
   const pages = []
 
   if (total <= 7) {
-    // If 7 or fewer pages, show all
     for (let i = 1; i <= total; i++) {
       pages.push(i)
     }
   } else {
-    // Always show first page
     pages.push(1)
 
     if (current <= 3) {
-      // If near start, show 2-5 then ellipsis
       pages.push(2, 3, 4, 5, '...', total)
     } else if (current >= total - 2) {
-      // If near end, show ellipsis then last 4
       pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
     } else {
-      // Otherwise show ellipsis, current -1, current, current + 1, ellipsis
       pages.push('...', current - 1, current, current + 1, '...', total)
     }
   }
@@ -1085,7 +1508,6 @@ const displayedPages = computed(() => {
   return pages
 })
 
-// Methods
 const toggleDropdown = (dropdownName) => {
   if (activeDropdown.value === dropdownName) {
     activeDropdown.value = null
@@ -1101,11 +1523,10 @@ const handleClickOutside = (event) => {
 }
 
 const performSearch = () => {
-  currentPage.value = 1 // Reset to first page when searching
+  currentPage.value = 1 
 }
 
 const applyFilters = () => {
-  // Create a new object with only the filters that have values
   const newFilters = {}
 
   Object.keys(filters.value).forEach(key => {
@@ -1121,19 +1542,18 @@ const applyFilters = () => {
   })
 
   activeFilters.value = newFilters
-  currentPage.value = 1 // Reset to first page when filtering
-  activeDropdown.value = null // Close dropdown after applying
+  currentPage.value = 1 
+  activeDropdown.value = null
 }
 
 const setSortKey = (key) => {
   if (sortKey.value === key) {
-    // Toggle direction if clicking the same column
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
     sortKey.value = key
-    sortDirection.value = 'asc' // Default to ascending for new column
+    sortDirection.value = 'asc' 
   }
-  activeDropdown.value = null // Close dropdown after sorting
+  activeDropdown.value = null 
 }
 
 const nextPage = () => {
@@ -1149,7 +1569,7 @@ const prevPage = () => {
 }
 
 const updatePagination = () => {
-  currentPage.value = 1 // Reset to first page when changing items per page
+  currentPage.value = 1 
 }
 
 const goToPage = (page) => {
@@ -1159,18 +1579,15 @@ const goToPage = (page) => {
 }
 
 const exportData = async (format) => {
-  // Get the data to export (all filtered and sorted data, not just current page)
   const dataToExport = sortedData.value
   if (!dataToExport.length) return
 
-  // Prepare headers and rows
   const exportHeaders = headers.map(h => h.label)
   const exportRows = dataToExport.map(row =>
     headers.map(header => row[header.key] ?? '')
   )
 
   if (format === 'csv') {
-    // CSV Export
     let csvContent = exportHeaders.join(',') + '\n'
     exportRows.forEach(row => {
       csvContent += row.map(val => `"${val}"`).join(',') + '\n'
@@ -1179,17 +1596,14 @@ const exportData = async (format) => {
     saveAs(blob, 'soil_moisture_data.csv')
     window.showToast('Soil Moisture exported as CSV', 'success')
   } else if (format === 'pdf') {
-    // PDF Export with graph
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm'
     })
     
-    // Add title
     doc.setFontSize(16)
     doc.text('Soil Moisture Data Report', 105, 15, { align: 'center' })
     
-    // Add current date
     doc.setFontSize(10)
     const dateStr = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -1198,31 +1612,25 @@ const exportData = async (format) => {
     })
     doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' })
     
-    // Add summary stats
     doc.setFontSize(12)
     doc.text('Current Moisture Status:', 15, 30)
     doc.text(`Value: ${currentMoistureValue.value}%`, 15, 36)
     doc.text(`Status: ${calculateSoilStatus(currentMoistureValue.value)}`, 15, 42)
     
-    // Add the chart image
     if (chartCanvas.value) {
-      // Convert canvas to image data URL
       const canvas = chartCanvas.value
       const chartImage = canvas.toDataURL('image/png')
       
-      // Add chart image to PDF (centered, with some margin)
-      const imgWidth = 180 // mm
+      const imgWidth = 180 
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 50, imgWidth, imgHeight)
       
-      // Add stats below the chart
       doc.setFontSize(10)
       doc.text('Moisture Statistics:', 15, 50 + imgHeight + 10)
       doc.text(`Minimum: ${moistureStats.value.min}%`, 15, 50 + imgHeight + 16)
       doc.text(`Average: ${moistureStats.value.avg}%`, 15, 50 + imgHeight + 22)
       doc.text(`Maximum: ${moistureStats.value.max}%`, 15, 50 + imgHeight + 28)
       
-      // Add the data table on a new page
       doc.addPage()
       doc.setFontSize(14)
       doc.text('Soil Moisture Data Table', 105, 15, { align: 'center' })
@@ -1236,16 +1644,15 @@ const exportData = async (format) => {
           overflow: 'linebreak'
         },
         headStyles: {
-          fillColor: [16, 185, 129], // emerald-500
-          textColor: 255 // white
+          fillColor: [16, 185, 129], 
+          textColor: 255 
         },
         alternateRowStyles: {
-          fillColor: [241, 245, 249] // slate-50
+          fillColor: [241, 245, 249] 
         },
         margin: { top: 20 }
       })
     } else {
-      // Fallback if chart isn't available
       doc.text('Soil Moisture Chart Not Available', 105, 50, { align: 'center' })
       autoTable(doc, {
         head: [exportHeaders],
@@ -1258,7 +1665,6 @@ const exportData = async (format) => {
     doc.save('soil_moisture_report.pdf')
     window.showToast('Soil Moisture report exported as PDF', 'success')
   } else if (format === 'docs') {
-    // Word Export (DOCX)
     const tableRows = [
       new TableRow({
         children: exportHeaders.map(h => new TableCell({
@@ -1287,44 +1693,36 @@ const exportData = async (format) => {
     saveAs(buffer, 'soil_moisture_data.docx')
   }
 
-  activeDropdown.value = null // Close dropdown after exporting
+  activeDropdown.value = null
 }
 
-// Watch for changes that should reset pagination
 watch([searchQuery, activeFilters, itemsPerPage], () => {
   currentPage.value = 1
 })
 
-// Cleanup function for chart and listener
 let unsubscribe = null
 
-// Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  
-  // Implement progressive loading strategy
-  // 1. First try to get data from cache (if any)
-  // 2. Then fetch fresh data
   fetchSoilMoistureData()
+  const cleanup = setupRealtimeListener()
   
-  // Set up realtime listener
-  unsubscribe = setupRealtimeListener()
+  // Store cleanup function
+  unsubscribe = cleanup
   
-  // Set up window resize handler for chart responsiveness
+  // Resize handler (remains the same)
   const handleResize = () => {
     if (chart.value) {
       chart.value.resize()
     }
   }
   
-  // Use ResizeObserver for better performance than window resize
   if (typeof ResizeObserver !== 'undefined') {
     const resizeObserver = new ResizeObserver(handleResize)
     if (chartCanvas.value) {
       resizeObserver.observe(chartCanvas.value.parentElement)
     }
   } else {
-    // Fallback to window resize
     window.addEventListener('resize', handleResize)
   }
 })
@@ -1332,19 +1730,21 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   
-  // Clean up chart
   if (chart.value) {
     chart.value.destroy()
   }
   
-  // Clean up realtime listener
   if (unsubscribe) {
     unsubscribe()
   }
   
-  // Remove resize listener
+  if (socket) {
+    socket.close()
+  }
+  
   window.removeEventListener('resize', () => {})
 })
+
 </script>
   
 <style>

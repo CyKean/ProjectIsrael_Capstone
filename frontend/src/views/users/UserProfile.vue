@@ -655,7 +655,6 @@
 
   <LogoutModal v-if="showModal" @confirm="executeLogout" @cancel="showModal = false" />
 
-  <!-- Toast Notification - Bottom Right -->
   <div 
     v-if="showToast" 
     class="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-50 flex items-center transform transition-all duration-300 ease-in-out backdrop-blur-sm"
@@ -677,19 +676,23 @@ import {
   KeyRound, Edit3, X
 } from 'lucide-vue-next'
 import LogoutModal from '../layout/LogoutModal.vue'
-import { getDoc, doc, updateDoc, getFirestore, addDoc } from 'firebase/firestore'
-import { collection, query, where, onSnapshot, getDocs, serverTimestamp } from "firebase/firestore"
 import api from '../../api/index.js'
 
-const db = getFirestore()
 const router = useRouter()
 const userStore = useUserStore()
 
-// Use the user from the store
 const user = computed(() => userStore.user)
-const userId = computed(() => userStore.userId)
+const userId = computed(() => {
+  return userStore.userId || 
+         userStore.user?.id || 
+         userStore.user?._id ||
+         JSON.parse(localStorage.getItem('user'))?.userId;
+})
 
-// Other existing refs and reactive objects remain the same...
+watch(userId, (newId) => {
+  console.log('User ID changed:', newId)
+}, { immediate: true })
+
 const showToast = ref(false)
 const toastMessage = ref('')
 const showPasswordSection = ref(false)
@@ -724,14 +727,14 @@ const confirmResetPin = ref('')
 const togglePasswordSection = () => {
   showPasswordSection.value = !showPasswordSection.value
   if (showPasswordSection.value) {
-    showPinSection.value = false // Hide PIN section if showing password
+    showPinSection.value = false 
   }
 }
 
 const togglePinSection = () => {
   showPinSection.value = !showPinSection.value
   if (showPinSection.value) {
-    showPasswordSection.value = false // Hide password section if showing PIN
+    showPasswordSection.value = false 
   }
 }
 
@@ -743,7 +746,6 @@ const showToastMessage = (message, severity = 'info', persistKey = null) => {
   window.showToast(message, severity)
 }
 
-// Initialize profileData with store data
 const profileData = reactive({
   name: '',
   phone: ''
@@ -756,7 +758,6 @@ const canSave = computed(() => {
   return isEditMode.value && hasChanges.value
 })
 
-// Avatar options...
 const avatarOptions = ref([
   { id: 1, icon: '🌱', name: 'Seedling' },
   { id: 2, icon: '🌿', name: 'Herb' },
@@ -786,7 +787,6 @@ const avatarOptions = ref([
 
 const selectedAvatar = ref(avatarOptions.value[0])
 
-// Password and PIN forms...
 const passwordForm = reactive({
   current: '',
   new: '',
@@ -799,7 +799,6 @@ const pinForm = reactive({
   confirm: ''
 })
 
-// Watch for user changes and update profileData
 watch(() => userStore.user, (newUser) => {
   if (newUser) {
     profileData.name = newUser.name || ''
@@ -809,7 +808,6 @@ watch(() => userStore.user, (newUser) => {
       phone: profileData.phone
     }
     
-    // Set selected avatar
     if (newUser.avatar) {
       selectedAvatar.value = avatarOptions.value.find(
         opt => opt.id === newUser.avatar.id
@@ -819,15 +817,12 @@ watch(() => userStore.user, (newUser) => {
 }, { immediate: true })
 
 
-// Edit mode functions
 const toggleEditMode = () => {
   if (isEditMode.value) {
-    // Cancel editing - restore original data
     profileData.name = originalData.value.name
     profileData.phone = originalData.value.phone
     hasChanges.value = false
   } else {
-    // Start editing - save current data as original
     originalData.value = {
       name: profileData.name,
       phone: profileData.phone
@@ -845,14 +840,11 @@ const onFieldChange = () => {
   )
 }
 
-// Add this utility function at the top of your script
 const normalizePhoneNumber = (phone) => {
   if (!phone) return null;
   
-  // Remove all non-digit characters
   let normalized = phone.replace(/\D/g, '');
   
-  // Handle Philippine numbers specifically
   if (normalized.startsWith('0')) {
     normalized = '+63' + normalized.substring(1);
   } else if (normalized.startsWith('63')) {
@@ -864,13 +856,11 @@ const normalizePhoneNumber = (phone) => {
   return normalized;
 };
 
-// Update saveProfile to use the store properly
 const saveProfile = async () => {
   if (!canSave.value) return;
   
   isLoadingProfile.value = true;
 
-  // Get current values
   const name = profileData.name?.trim() || '';
   const phone = profileData.phone?.trim() || '';
 
@@ -887,27 +877,12 @@ const saveProfile = async () => {
   }
 
   try {
-    // 1. First query for the user document by phone number
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', phone));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      throw new Error('User document not found');
-    }
-
-    // 2. Get the first matching document (assuming phone numbers are unique)
-    const userDoc = querySnapshot.docs[0];
-    
-    // 3. Update the document with its actual ID
-    await updateDoc(doc(db, 'users', userDoc.id), {
+    const response = await api.put(`/users/${userId.value}`, {
       name: name,
       phoneNumber: phone,
-      avatar: selectedAvatar.value,
-      updatedAt: serverTimestamp()
+      avatar: selectedAvatar.value
     });
 
-    // 4. Update local state
     const updatedUser = {
       ...userStore.user,
       name: name,
@@ -918,10 +893,9 @@ const saveProfile = async () => {
     userStore.setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify({
       user: updatedUser,
-      userId: userDoc.id  // Store the actual document ID
+      userId: userId.value
     }));
 
-    // 5. Reset edit mode
     originalData.value = { name, phone };
     hasChanges.value = false;
     isEditMode.value = false;
@@ -930,7 +904,7 @@ const saveProfile = async () => {
   } catch (err) {
     console.error('Update error:', err);
     
-    if (err.message.includes('not found')) {
+    if (err.response?.status === 404) {
       showToastMessage('User record not found in database');
     } else {
       showToastMessage('Failed to update profile. Please try again.');
@@ -944,45 +918,34 @@ const selectAvatar = async (avatar) => {
   selectedAvatar.value = avatar;
   showToastMessage(`Avatar changed to ${avatar.name}`);
 
-  // Get the user ID - try multiple sources
-  const currentUserId = userId.value || 
-                      userStore.userId || 
-                      userStore.user?.id || 
-                      JSON.parse(localStorage.getItem('user'))?.userId;
-
-  if (!currentUserId) {
-    console.error('User ID not found in any source');
+  if (!userId.value) {
+    console.error('User ID not found');
     showToastMessage('Please login again');
     return;
   }
 
   try {
-    await updateDoc(doc(db, 'users', currentUserId), {
-      avatar: avatar,
-      updatedAt: serverTimestamp()
+    await api.patch(`/users/${userId.value}/avatar`, {
+      avatar: avatar
     });
 
-    // Update local state - maintain all existing user data
     const updatedUser = {
       ...userStore.user,
       avatar: avatar
     };
     
-    // Update store
     userStore.setUser(updatedUser);
     
-    // Update localStorage - maintain the same structure
     localStorage.setItem('user', JSON.stringify({
       user: updatedUser,
-      userId: currentUserId
+      userId: userId.value
     }));
 
     showToastMessage('Avatar updated successfully!');
   } catch (error) {
-    console.error('Firestore update error:', error);
+    console.error('Update error:', error);
     showToastMessage('Failed to save avatar. Please try again.');
     
-    // Revert UI on error
     selectedAvatar.value = userStore.user?.avatar || avatarOptions.value[0];
   }
 }
@@ -991,16 +954,12 @@ const changePassword = async () => {
   isLoadingPassword.value = true;
   
   try {
-    // Get current user ID from store
-    const currentUserId = userStore.userId || JSON.parse(localStorage.getItem('user'))?.userId;
-    
-    if (!currentUserId) {
+    if (!userId.value) {
       showToastMessage('User not authenticated');
       isLoadingPassword.value = false;
       return;
     }
 
-    // Validate inputs
     if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
       showToastMessage('Please fill all fields');
       isLoadingPassword.value = false;
@@ -1019,45 +978,22 @@ const changePassword = async () => {
       return;
     }
 
-    // Get current user data
-    const userDoc = await getDoc(doc(db, 'users', currentUserId));
-    
-    if (!userDoc.exists()) {
-      showToastMessage('User not found');
-      isLoadingPassword.value = false;
-      return;
-    }
-
-    const userData = userDoc.data();
-
-    // Verify current password (you should hash compare in real implementation)
-    if (userData.password !== passwordForm.current) {
-      showToastMessage('Current password is incorrect');
-      isLoadingPassword.value = false;
-      return;
-    }
-
-    // Update password
-    await updateDoc(doc(db, 'users', currentUserId), {
-      password: passwordForm.new,
-      authType: 'password',
-      updatedAt: serverTimestamp()
+    await api.put(`/users/${userId.value}/password`, {
+      currentPassword: passwordForm.current,
+      newPassword: passwordForm.new
     });
 
-    // Update local state
     const updatedUser = {
       ...userStore.user,
-      password: passwordForm.new,
       authType: 'password'
     };
     
     userStore.setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify({
       user: updatedUser,
-      userId: currentUserId
+      userId: userId.value
     }));
 
-    // Reset form
     passwordForm.current = '';
     passwordForm.new = '';
     passwordForm.confirm = '';
@@ -1066,7 +1002,11 @@ const changePassword = async () => {
     showToastMessage('Password updated successfully!');
   } catch (error) {
     console.error('Error updating password:', error);
-    showToastMessage('Failed to update password');
+    if (error.response?.status === 401) {
+      showToastMessage('Current password is incorrect');
+    } else {
+      showToastMessage('Failed to update password');
+    }
   } finally {
     isLoadingPassword.value = false;
   }
@@ -1076,16 +1016,12 @@ const changePin = async () => {
   isLoadingPin.value = true;
   
   try {
-    // Get current user ID from store
-    const currentUserId = userStore.userId || JSON.parse(localStorage.getItem('user'))?.userId;
-    
-    if (!currentUserId) {
+    if (!userId.value) {
       showToastMessage('User not authenticated');
       isLoadingPin.value = false;
       return;
     }
 
-    // Validate inputs
     if (!pinForm.current || !pinForm.new || !pinForm.confirm) {
       showToastMessage('Please fill all fields');
       isLoadingPin.value = false;
@@ -1104,45 +1040,22 @@ const changePin = async () => {
       return;
     }
 
-    // Get current user data
-    const userDoc = await getDoc(doc(db, 'users', currentUserId));
-    
-    if (!userDoc.exists()) {
-      showToastMessage('User not found');
-      isLoadingPin.value = false;
-      return;
-    }
-
-    const userData = userDoc.data();
-
-    // Verify current PIN (you should hash compare in real implementation)
-    if (userData.pin !== pinForm.current) {
-      showToastMessage('Current PIN is incorrect');
-      isLoadingPin.value = false;
-      return;
-    }
-
-    // Update PIN
-    await updateDoc(doc(db, 'users', currentUserId), {
-      pin: pinForm.new,
-      authType: 'pin',
-      updatedAt: serverTimestamp()
+    await api.put(`/users/${userId.value}/pin`, {
+      currentPin: pinForm.current,
+      newPin: pinForm.new
     });
 
-    // Update local state
     const updatedUser = {
       ...userStore.user,
-      pin: pinForm.new,
       authType: 'pin'
     };
     
     userStore.setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify({
       user: updatedUser,
-      userId: currentUserId
+      userId: userId.value
     }));
 
-    // Reset form
     pinForm.current = '';
     pinForm.new = '';
     pinForm.confirm = '';
@@ -1151,13 +1064,16 @@ const changePin = async () => {
     showToastMessage('PIN updated successfully!');
   } catch (error) {
     console.error('Error updating PIN:', error);
-    showToastMessage('Failed to update PIN');
+    if (error.response?.status === 401) {
+      showToastMessage('Current PIN is incorrect');
+    } else {
+      showToastMessage('Failed to update PIN');
+    }
   } finally {
     isLoadingPin.value = false;
   }
 }
 
-// Utility functions for phone number validation
 function isValidPhilippinePhoneNumber(number) {
   const cleaned = number.trim();
   return /^(\+639|09)\d{9}$/.test(cleaned);
@@ -1172,7 +1088,6 @@ function toE164(phone) {
   return null;
 }
 
-// OTP input handlers
 const handleCodeInput = (event, index) => {
   const value = event.target.value
   if (!/^\d*$/.test(value)) {
@@ -1213,7 +1128,6 @@ const handlePaste = (event) => {
   }
 }
 
-// Resend timer logic
 let resendInterval = null
 const startResendTimer = () => {
   resendTimer.value = 30
@@ -1226,7 +1140,79 @@ const startResendTimer = () => {
   }, 1000)
 }
 
-// Reset Password/PIN flow functions
+const sendSMS = async (phone, message) => {
+  if (!phone) {
+    console.warn('No phone number provided for SMS');
+    return false;
+  }
+
+  // Format the phone number first
+  const formattedPhone = formatPhoneNumber(phone);
+  if (!formattedPhone) {
+    console.error('Invalid phone number format:', phone);
+    return false;
+  }
+
+  try {
+    console.log('Sending SMS with:', { 
+      number: formattedPhone,  // Use the formatted number
+      message 
+    });
+
+    const response = await api.post('/sms/send-sms', { 
+      number: formattedPhone,  // Use the formatted number
+      message 
+    });
+
+    console.log('✅ SMS sent successfully:', response.data);
+    return true;
+  } catch (error) {
+    console.error('❌ SMS send error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    showToastMessage('Failed to send SMS notification', 'warning');
+    return false;
+  }
+};
+
+// const handleSendResetCode = async () => {
+//   const trimmedPhone = user.value?.phoneNumber?.trim()
+//   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
+//     showToastMessage('Invalid phone number. Please update your profile first.')
+//     return
+//   }
+
+//   const formattedPhone = toE164(trimmedPhone)
+//   if (!formattedPhone) {
+//     showToastMessage('Could not format phone number.')
+//     return
+//   }
+
+//   isLoadingReset.value = true;
+
+//   try {
+//     const response = await api.post('/auth/forgot-password', {
+//       phoneNumber: formattedPhone
+//     })
+
+//     if (response.data.success) {
+//       showToastMessage('A password reset code has been sent to your phone.', 'success')
+//       currentResetStep.value = 2;
+//       startResendTimer(); 
+//     } else {
+//       showToastMessage(response.data.message || 'Error sending reset code.', 'failed')
+//     }
+
+//   } catch (error) {
+//     console.error("Error sending reset code:", error.response?.data || error)
+//     showToastMessage(error.response?.data?.detail || "Error sending reset code.", 'failed')
+//   } finally {
+//     isLoadingReset.value = false
+//   }
+// }
+
 const handleSendResetCode = async () => {
   const trimmedPhone = user.value?.phoneNumber?.trim()
   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
@@ -1243,67 +1229,35 @@ const handleSendResetCode = async () => {
   isLoadingReset.value = true;
 
   try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      showToastMessage('This phone number is not registered yet.');
-      isLoadingReset.value = false;
+    // Generate OTP code (you might want to get this from your backend response)
+    const otpCode = response.data?.code || response.data?.otp; // Adjust based on your API response
+    
+    // Send SMS with OTP code
+    const smsMessage = `Your password reset code is: ${otpCode}. This code will expire in 10 minutes.`;
+    const smsSent = await sendSMS(formattedPhone, smsMessage);
+    
+    if (!smsSent) {
+      showToastMessage('Failed to send SMS with reset code.', 'failed');
       return;
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const userDoc = snapshot.docs[0];
+    const response = await api.post('/auth/forgot-password', {
+      phoneNumber: formattedPhone
+    })
 
-    await updateDoc(doc(db, 'users', userDoc.id), {
-      otp,
-      otpSentAt: serverTimestamp()
-    });
-
-    // Note: You'll need to implement the API call for sending SMS
-    await api.post('/sms/send-sms', {
-      number: formattedPhone,
-      message: `[PROJECT ISRAEL] Your password reset code is: ${otp}`
-    });
-
-    showToastMessage('A password reset code has been sent to your phone.');
-    currentResetStep.value = 2;
-    startResendTimer();
+    if (response.data.success) {
+      showToastMessage('A password reset code has been sent to your phone.', 'success')
+      currentResetStep.value = 2;
+      startResendTimer(); 
+    } else {
+      showToastMessage(response.data.message || 'Error sending reset code.', 'failed')
+    }
 
   } catch (error) {
-    console.error("Error sending reset code:", error);
-    showToastMessage("Error sending reset code.");
+    console.error("Error sending reset code:", error.response?.data || error)
+    showToastMessage(error.response?.data?.detail || "Error sending reset code.", 'failed')
   } finally {
-    isLoadingReset.value = false;
-  }
-};
-
-const handleResendCode = async () => {
-  if (resendTimer.value > 0) return;
-  isLoadingReset.value = true;
-  try {
-    const trimmedPhone = user.value?.phoneNumber?.trim()
-    const formattedPhone = toE164(trimmedPhone)
-
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
-    const userDoc = snapshot.docs[0];
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await updateDoc(doc(db, 'users', userDoc.id), { otp, otpSentAt: serverTimestamp() });
-
-    await api.post('/sms/send-sms', { number: formattedPhone, message: `[PROJECT ISRAEL] Your new password reset code is: ${otp}` });
-
-    showToastMessage("A new code has been sent to your phone.");
-    startResendTimer();
-
-  } catch (error) {
-    console.error("Error resending code:", error);
-    showToastMessage("Error resending code.");
-  } finally {
-    isLoadingReset.value = false;
+    isLoadingReset.value = false
   }
 }
 
@@ -1319,133 +1273,231 @@ const handleVerifyCode = async () => {
 
   try {
     const formattedPhone = toE164(user.value?.phoneNumber);
-    const q = query(collection(db, 'users'), where('phoneNumber', '==', formattedPhone));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      showToastMessage('User not found. Please start over.');
-      currentResetStep.value = 1;
-      return;
-    }
-
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
-
-    if (userData.otp !== code) {
-      showToastMessage('Invalid verification code.');
-      return;
-    }
-
-    await updateDoc(doc(db, 'users', userDoc.id), {
-      otp: '',
+    
+    console.log('Sending verification request:', {
+      phoneNumber: formattedPhone,
+      otp: code
+    });
+    
+    const response = await api.post('/auth/verify-reset-code', {
+      phoneNumber: formattedPhone,
+      otp: code
     });
 
-    showToastMessage('Code verified successfully!');
-    currentResetStep.value = 3;
+    console.log('Verification response:', response.data);
+    
+    if (response.data.success === true) {
+      showToastMessage('Code verified successfully!', 'success');
+      currentResetStep.value = 3; 
+    } else {
+      showToastMessage(response.data.message || 'Verification failed.', 'failed');
+    }
 
   } catch (error) {
     console.error('Error verifying code:', error);
-    showToastMessage('An error occurred during verification.');
+    
+    if (error.response) {
+      console.error('Error response details:', error.response.data);
+      
+      if (error.response.status === 422 && error.response.data?.detail) {
+        const details = error.response.data.detail;
+        if (Array.isArray(details)) {
+          const errorMessages = details.map(d => d.msg || d.message).join(', ');
+          showToastMessage(`Validation error: ${errorMessages}`, 'failed');
+        } else {
+          showToastMessage(error.response.data.detail, 'failed');
+        }
+      } else if (error.response.status === 400) {
+        showToastMessage(error.response.data.detail || 'Invalid verification code.', 'failed');
+      } else if (error.response.status === 404) {
+        showToastMessage('User not found.', 'failed');
+      } else {
+        showToastMessage('An error occurred during verification.', 'failed');
+      }
+    } else {
+      showToastMessage('Network error. Please check your connection.', 'failed');
+    }
   } finally {
     isLoadingReset.value = false;
+  }
+}
+
+// const handleResendCode = async () => {
+//   if (resendTimer.value > 0) return;
+//   isLoadingReset.value = true;
+  
+//   try {
+//     const trimmedPhone = user.value?.phoneNumber?.trim();
+//     if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
+//       showToastMessage('Invalid phone number.', 'warning');
+//       isLoadingReset.value = false;
+//       return;
+//     }
+    
+//     const formattedPhone = toE164(trimmedPhone);
+
+//     const response = await api.post('/auth/forgot-password', {
+//       phoneNumber: formattedPhone
+//     })
+
+//     if (response.data.success) {
+//       showToastMessage("A new code has been sent to your phone.", 'success')
+//       startResendTimer()
+//     } else {
+//       showToastMessage(response.data.message || "Error resending code.", 'failed')
+//     }
+
+//   } catch (error) {
+//     console.error("Error resending code:", error.response?.data || error)
+//     showToastMessage(error.response?.data?.detail || "Error resending code.", 'failed')
+//   } finally {
+//     isLoadingReset.value = false
+//   }
+// }
+
+const handleResendCode = async () => {
+  if (resendTimer.value > 0) return;
+  isLoadingReset.value = true;
+  
+  try {
+    const trimmedPhone = user.value?.phoneNumber?.trim();
+    if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
+      showToastMessage('Invalid phone number.', 'warning');
+      isLoadingReset.value = false;
+      return;
+    }
+    
+    const formattedPhone = toE164(trimmedPhone);
+
+    const response = await api.post('/auth/forgot-password', {
+      phoneNumber: formattedPhone
+    })
+
+    if (response.data.success) {
+      // Generate OTP code (you might want to get this from your backend response)
+      const otpCode = response.data?.code || response.data?.otp; // Adjust based on your API response
+      
+      // Send SMS with OTP code
+      const smsMessage = `Your new password reset code is: ${otpCode}. This code will expire in 10 minutes.`;
+      const smsSent = await sendSMS(formattedPhone, smsMessage);
+      
+      if (smsSent) {
+        showToastMessage("A new code has been sent to your phone.", 'success')
+        startResendTimer()
+      } else {
+        showToastMessage("Code generated but failed to send SMS.", 'warning')
+      }
+    } else {
+      showToastMessage(response.data.message || "Error resending code.", 'failed')
+    }
+
+  } catch (error) {
+    console.error("Error resending code:", error.response?.data || error)
+    showToastMessage(error.response?.data?.detail || "Error resending code.", 'failed')
+  } finally {
+    isLoadingReset.value = false
   }
 }
 
 const handleResetPassword = async () => {
   isLoadingReset.value = true;
 
-  const formattedPhone = toE164(user.value?.phoneNumber);
-  if (!formattedPhone) {
-    showToastMessage('Invalid phone number format.');
-    isLoadingReset.value = false;
-    return;
-  }
+  try {
 
-  const updateData = {
-    authType: resetAuthType.value,
-    updatedAt: serverTimestamp()
-  };
-
-  if (resetAuthType.value === 'password') {
-    if (newResetPassword.value !== confirmResetPassword.value) {
-      showToastMessage('Passwords do not match!');
-      isLoadingReset.value = false;
-      return;
-    }
-    if (newResetPassword.value.length < 6) {
-      showToastMessage('Password must be at least 6 characters long.');
-      isLoadingReset.value = false;
-      return;
-    }
-    updateData.password = newResetPassword.value;
-    updateData.pin = '';
-  } else {
-    if (newResetPin.value !== confirmResetPin.value) {
-      showToastMessage('PINs do not match!');
-      isLoadingReset.value = false;
-      return;
-    }
-    if (!/^\d{4}$/.test(newResetPin.value)) {
+    if (resetAuthType.value === 'password') {
+      if (!newResetPassword.value || !confirmResetPassword.value) {
+        showToastMessage('Please fill in both password fields');
+        isLoadingReset.value = false;
+        return;
+      }
+      
+      if (newResetPassword.value !== confirmResetPassword.value) {
+        showToastMessage('Passwords do not match!');
+        isLoadingReset.value = false;
+        return;
+      }
+      
+      if (newResetPassword.value.length < 6) {
+        showToastMessage('Password must be at least 6 characters long.');
+        isLoadingReset.value = false;
+        return;
+      }
+    } else {
+      if (!newResetPin.value || !confirmResetPin.value) {
+        showToastMessage('Please fill in both PIN fields');
+        isLoadingReset.value = false;
+        return;
+      }
+      
+      if (newResetPin.value !== confirmResetPin.value) {
+        showToastMessage('PINs do not match!');
+        isLoadingReset.value = false;
+        return;
+      }
+      
+      if (!/^\d{4}$/.test(newResetPin.value)) {
         showToastMessage('PIN must be 4 digits.');
         isLoadingReset.value = false;
         return;
-    }
-    updateData.pin = newResetPin.value;
-    updateData.password = '';
-  }
-
-  try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      showToastMessage('Could not find an account with that phone number.');
-      isLoadingReset.value = false;
-      return;
+      }
     }
 
-    const userDoc = snapshot.docs[0];
-    await updateDoc(doc(db, 'users', userDoc.id), updateData);
-
-    // Get fresh user data from Firestore
-    const updatedUserDoc = await getDoc(doc(db, 'users', userDoc.id));
-    const updatedUserData = updatedUserDoc.data();
-
-    // Create complete user object for store
-    const updatedUser = {
-      ...userStore.user,
-      ...updatedUserData,
-      id: userDoc.id
+    const requestData = {
+      phoneNumber: user.value?.phoneNumber,  
+      authType: resetAuthType.value
     };
 
-    // Update store and storage
-    userStore.setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify({
-      user: updatedUser,
-      userId: userDoc.id
-    }));
-    
-    // Clear any session storage if used
-    sessionStorage.removeItem('user');
+    if (resetAuthType.value === 'password') {
+      requestData.password = newResetPassword.value;
+    } else {
+      requestData.pin = newResetPin.value;
+    }
 
-    // Force refresh of auth state
-    await userStore.loadUser();
+    const response = await api.post('/users/reset-credentials-by-phone', requestData);
 
-    showToastMessage('Your credentials have been reset successfully!');
-    
-    // Reset form state
-    toggleResetPasswordSection();
-    currentResetStep.value = 1;
-    newResetPassword.value = '';
-    confirmResetPassword.value = '';
-    newResetPin.value = '';
-    confirmResetPin.value = '';
-    verificationDigits.value = ['', '', '', '', '', ''];
+    if (response.data.success) {
+      const updatedUser = {
+        ...userStore.user,
+        authType: resetAuthType.value
+      };
+      
+      userStore.setUser(updatedUser);
+      
+      localStorage.setItem('user', JSON.stringify({
+        user: updatedUser,
+        userId: userId.value
+      }));
+      
+      showToastMessage(`Your ${resetAuthType.value === 'password' ? 'password' : 'PIN'} has been reset successfully!`, 'success');
+      
+      toggleResetPasswordSection();
+      currentResetStep.value = 1;
+      newResetPassword.value = '';
+      confirmResetPassword.value = '';
+      newResetPin.value = '';
+      confirmResetPin.value = '';
+      verificationDigits.value = ['', '', '', '', '', ''];
+      resetAuthType.value = 'password';
+
+    } else {
+      showToastMessage(response.data.message || 'Failed to reset credentials.', 'failed');
+    }
 
   } catch (error) {
-    console.error("Error resetting password:", error);
-    showToastMessage("An error occurred while resetting your credentials.");
+    console.error("Error resetting credentials:", error);
+    
+    if (error.response) {
+      if (error.response.status === 400) {
+        const errorMsg = error.response.data.detail || error.response.data.message || 'Invalid request.';
+        showToastMessage(errorMsg, 'failed');
+      } else if (error.response.status === 404) {
+        showToastMessage('User not found.', 'failed');
+      } else {
+        showToastMessage('An error occurred while resetting credentials.', 'failed');
+      }
+    } else {
+      showToastMessage('Network error. Please try again.', 'failed');
+    }
   } finally {
     isLoadingReset.value = false;
   }
@@ -1462,43 +1514,22 @@ const executeLogout = () => {
 let unsubscribeAuthType = null
 
 onMounted(async () => {
-  // Load user if not already loaded
   if (!userStore.isAuthenticated) {
     await userStore.loadUser()
   }
 
-  // Set initial avatar
   if (userStore.user?.avatar) {
     selectedAvatar.value = avatarOptions.value.find(
       opt => opt.id === userStore.user.avatar.id
     ) || avatarOptions.value[0]
   }
 
-  // Set auth type visibility
   if (userStore.user?.authType === 'pin') {
     showPasswordSection.value = false
   } else if (userStore.user?.authType === 'password') {
     showPinSection.value = false
   }
 
-   // Set up real-time listener for authType
-  if (userStore.userId) {
-    unsubscribeAuthType = onSnapshot(
-      doc(db, 'users', userStore.userId),
-      (doc) => {
-        if (doc.exists()) {
-          const newAuthType = doc.data().authType
-          if (userStore.user?.authType !== newAuthType) {
-            // Update the local user store
-            userStore.setUser({
-              ...userStore.user,
-              authType: newAuthType
-            })
-          }
-        }
-      }
-    )
-  }
 })
 </script>
 

@@ -234,20 +234,8 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, Eye, EyeOff, Chrome, Facebook, Key, Hash } from 'lucide-vue-next'
 import LoadingPage from '../layout/LoadingPage.vue'
 import api from '../../api/index.js'
-import { auth, googleProvider, signInWithPopup } from "../../api/firebase.js"
-import toastr from 'toastr'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs
-} from "firebase/firestore"
-import { useUserStore } from '../../utils/user' // adjust path as needed
+import { useUserStore } from '../../utils/user' 
 const userStore = useUserStore()
-
-const db = getFirestore();
 
 const router = useRouter()
 const showPassword = ref(false)
@@ -258,32 +246,27 @@ const pinError = ref(false)
 const isLoading = ref(false)
 
 const form = ref({
-  authType: 'password',  // or 'pin'
+  authType: 'password', 
   phoneNumber: '',
   password: '',
   pin: '',
 });
 
-// PIN-related reactive data
 const pinDigits = ref(['', '', '', ''])
 const pinInputs = ref([])
 
-// Computed property to check if PIN is complete
 const isPinComplete = computed(() => {
   return pinDigits.value.every(digit => digit !== '')
 })
 
-// Computed property to check if password is entered
 const isPasswordValid = computed(() => {
   return form.value.password.trim().length > 0
 })
 
-// Computed property to check if phone number is entered
 const isPhoneValid = computed(() => {
   return form.value.phoneNumber.trim().length > 0
 })
 
-// Computed property to check if form is valid for submission
 const isFormValid = computed(() => {
   const phoneValid = isPhoneValid.value
   
@@ -299,19 +282,18 @@ const updatePinValue = () => {
   form.value.pin = pinDigits.value.join('')
 }
 
-// PIN input handlers
 const handlePinInput = (index, event) => {
   const value = event.target.value.replace(/[^0-9]/g, '')
   
   if (value.length > 1) {
-    // Handle multiple characters (paste)
+   
     const digits = value.split('').slice(0, 4)
     digits.forEach((digit, i) => {
       if (index + i < 4) {
         pinDigits.value[index + i] = digit
       }
     })
-    // Focus on the next empty input or the last one
+   
     const nextIndex = Math.min(index + digits.length, 3)
     nextTick(() => {
       pinInputs.value[nextIndex]?.focus()
@@ -319,7 +301,7 @@ const handlePinInput = (index, event) => {
   } else {
     pinDigits.value[index] = value
     
-    // Auto-focus next input
+    
     if (value && index < 3) {
       nextTick(() => {
         pinInputs.value[index + 1]?.focus()
@@ -332,14 +314,14 @@ const handlePinInput = (index, event) => {
 }
 
 const handlePinKeydown = (index, event) => {
-  // Handle backspace
+  
   if (event.key === 'Backspace' && !pinDigits.value[index] && index > 0) {
     nextTick(() => {
       pinInputs.value[index - 1]?.focus()
     })
   }
   
-  // Handle arrow keys
+ 
   if (event.key === 'ArrowLeft' && index > 0) {
     nextTick(() => {
       pinInputs.value[index - 1]?.focus()
@@ -366,7 +348,7 @@ const handlePinPaste = (event) => {
   
   updatePinValue()
   
-  // Focus on the next empty input or the last filled one
+  
   const nextIndex = Math.min(digits.length, 3)
   nextTick(() => {
     pinInputs.value[nextIndex]?.focus()
@@ -377,7 +359,7 @@ const handleResize = () => {
   isMobile.value = window.innerWidth < 640
 }
 
-const leafCount = ref(20) // Fixed leafCount to be a constant value
+const leafCount = ref(20) 
 
 const handleBackToWebsite = () => {
   transitionKey.value++
@@ -410,7 +392,7 @@ const handleRequestNow = () => {
 }
 
 function isValidPhilippinePhoneNumber(number) {
-  const cleaned = number.trim(); // only trim whitespace
+  const cleaned = number.trim(); 
   return /^(\+639|09)\d{9}$/.test(cleaned);
 }
 
@@ -457,92 +439,36 @@ const handleLogin = async () => {
   }
 
   try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone))
-    const snapshot = await getDocs(q)
+    const response = await api.post('/auth/login', {
+      phoneNumber: formattedPhone,
+      credential: credential,
+      authType: authType
+    })
 
-    if (snapshot.empty) {
-      window.showToast('No account found with this phone number.', 'failed')
-      return
+    if (response.data.success) {
+      userStore.setUser(response.data.user)
+      localStorage.setItem('user', JSON.stringify({
+        user: response.data.user,
+        userId: response.data.user._id
+      }))
+
+      window.showToast('Login successful!', 'success')
+      router.push('/app/dashboard')
+    } else {
+      window.showToast(response.data.message || 'Login failed.', 'failed')
     }
-
-    const userDoc = snapshot.docs[0]
-    const userData = userDoc.data()
-
-    if (!userData.verified) {
-      window.showToast('Account is not verified.', 'failed')
-      return
-    }
-
-    if (authType === 'password' && userData.password !== password) {
-      window.showToast('Incorrect password.', 'failed')
-      return
-    }
-
-    if (authType === 'pin' && userData.pin !== pin) {
-      window.showToast('Incorrect PIN.', 'failed')
-      return
-    }
-
-    // Store the complete user data including the document ID
-    const completeUserData = {
-      ...userData,
-      id: userDoc.id  // Make sure to include the document ID
-    }
-
-    // Save to store and localStorage
-    userStore.setUser(completeUserData)
-    localStorage.setItem('user', JSON.stringify({
-      user: completeUserData,
-      userId: userDoc.id
-    }))
-
-    window.showToast('Login successful!', 'success')
-    router.push('/app/dashboard')
   } catch (error) {
     console.error('Login error:', error)
-    window.showToast('Login failed.', 'failed')
+    if (error.response && error.response.data) {
+      window.showToast(error.response.data.message || 'Login failed.', 'failed')
+    } else {
+      window.showToast('Login failed.', 'failed')
+    }
   } finally {
     isLoading.value = false
   }
 }
 
-const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-
-    console.log("✅ Google User:", user);
-
-    const idToken = await user.getIdToken();
-    const response = await api.post("/auth/google-login", {
-      idToken: idToken
-    });
-
-    console.log("✅ Backend Response:", response.data);
-
-    const { user: userData } = response.data;
-
-    // ✅ Ensure a profile picture is set
-    if (!userData.profilePicture) {
-      userData.profilePicture = generateProfilePicture(userData.email);
-    }
-
-    // ✅ Save user info in localStorage/sessionStorage
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    // ✅ Display user info in UI
-    user.value = userData;  // If using Vue's ref()
-
-    toastr.success("Google login successful!");
-    router.push("/dashboard");
-  } catch (error) {
-    console.error("❌ Google Login Error:", error);
-    toastr.error(error.response?.data?.detail || "Google login failed.");
-  }
-};
-
-// ✅ Helper function for default profile picture
 const generateProfilePicture = (email) => {
   const initials = email[0].toUpperCase();
   return `https://dummyimage.com/100x100/000/fff.png&text=${initials}`;
@@ -550,12 +476,6 @@ const generateProfilePicture = (email) => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
-  // Check for remembered email
-  // const rememberedEmail = localStorage.getItem('rememberedEmail')
-  // if (rememberedEmail) {
-  //   email.value = rememberedEmail
-  //   rememberMe.value = true
-  // }
   
   localStorage.clear() //
   sessionStorage.clear() //

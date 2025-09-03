@@ -7,23 +7,13 @@ import json
 import os
 from dotenv import load_dotenv
 from fastapi.encoders import jsonable_encoder
-
-import firebase_admin
-from firebase_admin import credentials, firestore
+from datetime import datetime
+from app.services.database import get_database
+from bson import ObjectId
 
 router = APIRouter(prefix="/api")
 
 load_dotenv()
-
-FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
-if not FIREBASE_CREDENTIALS:
-    raise ValueError("Firebase credentials not found. Set FIREBASE_CREDENTIALS in .env")
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 subscribers: List[asyncio.Queue] = []
 
@@ -61,15 +51,19 @@ async def receive_npk_soilph(data: NPKSoilPHData):
     print(f"📡 Received ESP32-1 Data from {device_id}:", raw_data)
 
     try:
-        # ✅ Save to 3sensor_readings > esp32-1 > readings
-        db.collection("3sensor_readings").document("esp32-1").collection("readings").add({
+        # ✅ Save to MongoDB collection "sensor_readings" with type "esp32-1"
+        db = await get_database()
+        collection = db["sensor_readings"]
+        
+        await collection.insert_one({
             **raw_data,
             "device_id": device_id,
-            "timestamp": firestore.SERVER_TIMESTAMP
+            "sensor_type": "esp32-1",
+            "timestamp": datetime.utcnow()
         })
-        print(f"✅ ESP32-1 data saved to Firebase for device {device_id}")
+        print(f"✅ ESP32-1 data saved to MongoDB for device {device_id}")
     except Exception as e:
-        print(f"❌ Firebase save error (ESP32-1): {e}")
+        print(f"❌ MongoDB save error (ESP32-1): {e}")
 
     for queue in subscribers:
         await queue.put(message)
@@ -91,15 +85,19 @@ async def receive_moisture_temp_hum(data: MoistureClimateData):
     print(f"📡 Received ESP32-2 Data from {device_id}:", raw_data)
 
     try:
-        # ✅ Save to 3sensor_readings > esp32-2 > readings
-        db.collection("3sensor_readings").document("esp32-2").collection("readings").add({
+        # ✅ Save to MongoDB collection "sensor_readings" with type "esp32-2"
+        db = await get_database()
+        collection = db["sensor_readings"]
+        
+        await collection.insert_one({
             **raw_data,
             "device_id": device_id,
-            "timestamp": firestore.SERVER_TIMESTAMP
+            "sensor_type": "esp32-2",
+            "timestamp": datetime.utcnow()
         })
-        print(f"✅ ESP32-2 data saved to Firebase for device {device_id}")
+        print(f"✅ ESP32-2 data saved to MongoDB for device {device_id}")
     except Exception as e:
-        print(f"❌ Firebase save error (ESP32-2): {e}")
+        print(f"❌ MongoDB save error (ESP32-2): {e}")
 
     for queue in subscribers:
         await queue.put(message)
@@ -121,14 +119,18 @@ async def receive_water_level(data: WaterLevelData):
     print(f"📡 Received ESP32-3 Water Level from {device_id}: {raw_data['waterLevel']}")
 
     try:
-        db.collection("water_level_readings").add({
+        # ✅ Save to MongoDB collection "water_level_readings"
+        db = await get_database()
+        collection = db["water_level_readings"]
+        
+        await collection.insert_one({
             **raw_data,
             "device_id": device_id,
-            "timestamp": firestore.SERVER_TIMESTAMP
+            "timestamp": datetime.utcnow()
         })
-        print(f"✅ Water level saved to Firebase for device {device_id}")
+        print(f"✅ Water level saved to MongoDB for device {device_id}")
     except Exception as e:
-        print(f"❌ Firebase save error (ESP32-3): {e}")
+        print(f"❌ MongoDB save error (ESP32-3): {e}")
 
     for queue in subscribers:
         await queue.put(message)
@@ -152,3 +154,58 @@ async def stream_sensor_data():
             subscribers.remove(queue)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+# ========= GET HISTORICAL DATA ==========
+@router.get("/sensor-readings")
+async def get_sensor_readings(sensor_type: Optional[str] = None, device_id: Optional[str] = None, limit: int = 100):
+    try:
+        db = await get_database()
+        collection = db["sensor_readings"]
+        
+        # Build query filter
+        query_filter = {}
+        if sensor_type:
+            query_filter["sensor_type"] = sensor_type
+        if device_id:
+            query_filter["device_id"] = device_id
+        
+        # Get readings sorted by timestamp descending
+        cursor = collection.find(query_filter).sort("timestamp", -1).limit(limit)
+        readings = []
+        
+        async for doc in cursor:
+            # Convert ObjectId to string and format timestamp
+            doc["_id"] = str(doc["_id"])
+            doc["timestamp"] = doc["timestamp"].isoformat() if doc.get("timestamp") else None
+            readings.append(doc)
+        
+        return {"readings": readings}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving sensor readings: {str(e)}")
+
+@router.get("/water-level-readings")
+async def get_water_level_readings(device_id: Optional[str] = None, limit: int = 100):
+    try:
+        db = await get_database()
+        collection = db["water_level_readings"]
+        
+        # Build query filter
+        query_filter = {}
+        if device_id:
+            query_filter["device_id"] = device_id
+        
+        # Get readings sorted by timestamp descending
+        cursor = collection.find(query_filter).sort("timestamp", -1).limit(limit)
+        readings = []
+        
+        async for doc in cursor:
+            # Convert ObjectId to string and format timestamp
+            doc["_id"] = str(doc["_id"])
+            doc["timestamp"] = doc["timestamp"].isoformat() if doc.get("timestamp") else None
+            readings.append(doc)
+        
+        return {"readings": readings}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving water level readings: {str(e)}")

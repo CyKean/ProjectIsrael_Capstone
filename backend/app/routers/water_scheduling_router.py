@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder  # ✅ Add this line
-from firebase_admin import firestore
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from typing import Optional, List, Union
 from datetime import datetime, timedelta
@@ -11,6 +10,8 @@ import pytz
 import json
 import httpx
 import traceback
+from app.services.database import get_database
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -116,51 +117,57 @@ def compute_next_epoch(schedule: Schedule) -> int:
 # === Routes ===
 
 @router.get("/api/watering-schedule")
-def get_schedules_for_esp32():
+async def get_schedules_for_esp32():
     try:
-        db = firestore.client()
+        db = await get_database()
+        collection = db["watering_schedules"]
+        
         grace_seconds = 3600
         current_epoch_ms = int((time.time() - grace_seconds) * 1000)
 
-        query = db.collection("watering_schedules") \
-            .where("completed", "==", False) \
-            .where("scheduledTime", ">", current_epoch_ms) \
-            .order_by("scheduledTime")
+        # Build query for incomplete schedules with future scheduledTime
+        query_filter = {
+            "completed": False,
+            "scheduledTime": {"$gt": current_epoch_ms}
+        }
 
+        cursor = collection.find(query_filter).sort("scheduledTime", 1)
         schedule_list = []
-        for doc in query.stream():
-            data = doc.to_dict()
-            raw_sched_time = data.get("scheduledTime", 0)
+        
+        async for doc in cursor:
+            raw_sched_time = doc.get("scheduledTime", 0)
             try:
                 if isinstance(raw_sched_time, (int, float)) and raw_sched_time > 0:
-                    sched_utc = datetime.utcfromtimestamp(raw_sched_time / 1000) if raw_sched_time > 1_000_000_000_000 else datetime.utcfromtimestamp(raw_sched_time)
+                    # Handle both milliseconds and seconds timestamps
+                    if raw_sched_time > 1_000_000_000_000:  # Likely milliseconds
+                        sched_utc = datetime.utcfromtimestamp(raw_sched_time / 1000)
+                    else:  # Likely seconds
+                        sched_utc = datetime.utcfromtimestamp(raw_sched_time)
                     sched_seconds = int(sched_utc.replace(tzinfo=pytz.utc).timestamp())
                 else:
                     raise ValueError("Invalid scheduledTime format")
             except Exception as e:
-                print(f"⚠️ Skipping invalid timestamp for doc {doc.id}: {raw_sched_time}")
+                print(f"⚠️ Skipping invalid timestamp for doc {doc['_id']}: {raw_sched_time}")
                 continue  # skip this doc and move to next
 
-            sched_seconds = int(sched_utc.replace(tzinfo=pytz.utc).timestamp())
-
             try:
-                flow = float(data.get("waterFlowRate", 0.0))
+                flow = float(doc.get("waterFlowRate", 0.0))
             except:
                 flow = 0.0
 
             item = {
-                "id": doc.id,
-                "dateTime": data.get("dateTime", ""),
-                "duration": int(data.get("duration", 0)),
-                "mode": data.get("mode", "one-time"),
-                "days": data.get("days", [False]*7),
-                "interval": data.get("interval", {"unit": "day", "value": 1}),
+                "id": str(doc["_id"]),
+                "dateTime": doc.get("dateTime", ""),
+                "duration": int(doc.get("duration", 0)),
+                "mode": doc.get("mode", "one-time"),
+                "days": doc.get("days", [False]*7),
+                "interval": doc.get("interval", {"unit": "day", "value": 1}),
                 "scheduledTime": sched_seconds,
-                "skipIfRain": data.get("skipIfRain", False),
-                "notifyWatering": data.get("notifyWatering", False),
+                "skipIfRain": doc.get("skipIfRain", False),
+                "notifyWatering": doc.get("notifyWatering", False),
                 "waterFlowRate": flow,
-                "completed": data.get("completed", False),
-                "action": data.get("action", "add")
+                "completed": doc.get("completed", False),
+                "action": doc.get("action", "add")
             }
 
             if item["mode"] == "custom":
@@ -186,7 +193,7 @@ def get_schedules_for_esp32():
         })
     
 @router.post("/api/watering-schedule")
-async def handle_schedule_operation(request: Request,esp_ip: str = Depends(get_esp32_ip)):
+async def handle_schedule_operation(request: Request, esp_ip: str = Depends(get_esp32_ip)):
     try:
         body = await request.json()
 
@@ -222,12 +229,18 @@ async def handle_schedule_operation(request: Request,esp_ip: str = Depends(get_e
 
         # 🔒 Handle DELETE early to skip unnecessary logic
         if action == "delete":
-            print(f"🗑️ Deleting from Firestore: watering_schedules → {schedule.id}")
-            db = firestore.client()
-            db.collection("watering_schedules").document(schedule.id).delete()
+            print(f"🗑️ Deleting from MongoDB: watering_schedules → {schedule.id}")
+            db = await get_database()
+            collection = db["watering_schedules"]
+            
+            # Delete the schedule
+            result = await collection.delete_one({"_id": ObjectId(schedule.id)})
+            
+            if result.deleted_count == 0:
+                print(f"⚠️ Schedule {schedule.id} not found in MongoDB")
 
             # ✅ Notify ESP32 to delete the same ID from its memory
-            esp_url = "http://{esp_ip}/watering-schedule"  # <-- adjust if needed
+            esp_url = f"http://{esp_ip}/watering-schedule"  # <-- adjust if needed
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     response = await client.post(esp_url, json={
@@ -275,8 +288,23 @@ async def handle_schedule_operation(request: Request,esp_ip: str = Depends(get_e
             "action": action
         }
 
+        # Save to MongoDB if adding/updating
+        if action in ["add", "update"]:
+            db = await get_database()
+            collection = db["watering_schedules"]
+            
+            schedule_data = esp_payload.copy()
+            if schedule.id:
+                # Update existing schedule
+                schedule_data["_id"] = ObjectId(schedule.id)
+                await collection.replace_one({"_id": ObjectId(schedule.id)}, schedule_data, upsert=True)
+            else:
+                # Insert new schedule
+                result = await collection.insert_one(schedule_data)
+                esp_payload["id"] = str(result.inserted_id)
+
         # Send to ESP32
-        esp_url = "http://{esp_ip}/watering-schedule"
+        esp_url = f"http://{esp_ip}/watering-schedule"
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.post(
@@ -302,26 +330,35 @@ async def handle_schedule_operation(request: Request,esp_ip: str = Depends(get_e
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/api/watering-schedule/complete")
-def mark_schedule_complete():
+async def mark_schedule_complete():
     try:
-        db = firestore.client()
-        schedules = db.collection("watering_schedules").order_by("scheduledTime").stream()
-
-        for doc in schedules:
-            data = doc.to_dict()
-            doc_ref = db.collection("watering_schedules").document(doc.id)
-
+        db = await get_database()
+        collection = db["watering_schedules"]
+        
+        cursor = collection.find().sort("scheduledTime", 1)
+        current_time = int(time.time())
+        
+        async for doc in cursor:
+            data = doc
             scheduled_time = data.get("scheduledTime", 0)
-            scheduled_sec = int(scheduled_time / 1000) if scheduled_time > 1_000_000_000_000 else scheduled_time
+            
+            # Handle both milliseconds and seconds timestamps
+            if scheduled_time > 1_000_000_000_000:  # Likely milliseconds
+                scheduled_sec = int(scheduled_time / 1000)
+            else:  # Likely seconds
+                scheduled_sec = scheduled_time
 
-            if not data.get("completed", False) and scheduled_sec <= int(time.time()):
+            if not data.get("completed", False) and scheduled_sec <= current_time:
                 if data.get("mode") in ["one-time", "calendar-day"]:
-                    doc_ref.update({"completed": True})
-                    print(f"✅ Marked complete: {doc.id}")
-                    return {"status": "completed", "id": doc.id}
+                    await collection.update_one(
+                        {"_id": doc["_id"]},
+                        {"$set": {"completed": True}}
+                    )
+                    print(f"✅ Marked complete: {doc['_id']}")
+                    return {"status": "completed", "id": str(doc["_id"])}
                 else:
-                    print(f"🔁 Skipped recurring: {doc.id}")
-                    return {"status": "recurring", "id": doc.id}
+                    print(f"🔁 Skipped recurring: {doc['_id']}")
+                    return {"status": "recurring", "id": str(doc["_id"])}
 
         return {"status": "no-action"}
 
@@ -329,20 +366,6 @@ def mark_schedule_complete():
         print("❌ Failed to mark schedule complete:", str(e))
         return {"error": str(e)}
 
-# @router.post("/api/watering-log")
-# async def log_watering(req: Request):
-#     try:
-#         body = await req.json()
-#         log = WateringLog(**body)
-#         db = firestore.client()
-#         db.collection("watering_logs").add(log.dict())
-#         print(f"📝 Watering logged: {log.schedule_id}")
-#         return {"status": "logged"}
-
-#     except Exception as e:
-#         print("❌ Failed to log watering:", str(e))
-#         return {"error": str(e)}
-    
 @router.post("/api/schedule-status")
 async def update_schedule_status(request: Request):
     try:
@@ -353,9 +376,13 @@ async def update_schedule_status(request: Request):
         if not schedule_id:
             raise HTTPException(status_code=400, detail="Missing schedule ID")
 
-        db = firestore.client()
-        doc_ref = db.collection("watering_schedules").document(schedule_id)
-        doc_ref.update({"completed": completed_status})
+        db = await get_database()
+        collection = db["watering_schedules"]
+        
+        await collection.update_one(
+            {"_id": ObjectId(schedule_id)},
+            {"$set": {"completed": completed_status}}
+        )
 
         print(f"✅ Schedule {schedule_id} marked as completed: {completed_status}")
         return {"status": "updated", "id": schedule_id, "completed": completed_status}

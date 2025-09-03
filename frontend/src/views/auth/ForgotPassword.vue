@@ -287,9 +287,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-vue-next'
 import api from '../../api/index.js'
-import toastr from 'toastr'
 import LoadingPage from '../layout/LoadingPage.vue'
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const router = useRouter()
 const currentStep = ref(1)
@@ -309,8 +307,6 @@ let resendInterval = null
 const resetAuthType = ref('password') // 'password' or 'pin'
 const newPin = ref('')
 const confirmNewPin = ref('')
-
-const db = getFirestore();
 
 const loadingTitle = computed(() => {
   if (currentStep.value === 1) return "Sending Verification Code...";
@@ -406,110 +402,79 @@ const startResendTimer = () => {
 const handleSendResetCode = async () => {
   const trimmedPhone = phoneNumber.value.trim()
   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-    toastr.error('Please enter a valid Philippine phone number.')
+    window.showToast('Please enter a valid Philippine phone number.', 'warning')
     return
   }
 
   const formattedPhone = toE164(trimmedPhone)
   if (!formattedPhone) {
-    toastr.error('Could not format phone number.')
+    window.showToast('Could not format phone number.', 'warning')
     return
   }
 
   isLoading.value = true;
 
   try {
-    // 1. Check if phone number exists in Firebase users collection
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
+    // Call backend to send reset code
+    const response = await api.post('/auth/forgot-password', {
+      phoneNumber: formattedPhone
+    })
 
-    if (snapshot.empty) {
-      toastr.error('This phone number is not registered yet.');
-      isLoading.value = false;
-      return; // Stop execution if not registered
+    if (response.data.success) {
+      window.showToast('A password reset code has been sent to your phone.', 'success')
+      currentStep.value = 2; // Move to verification step
+      startResendTimer(); // Start the cooldown timer
+    } else {
+      window.showToast(response.data.message || 'Error sending reset code.', 'failed')
     }
 
-    // 2. Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const userDoc = snapshot.docs[0];
-
-    // 3. Update user document with OTP
-    await updateDoc(doc(db, 'users', userDoc.id), {
-      otp,
-      otpSentAt: serverTimestamp()
-    });
-
-    // 4. Call backend to send OTP
-    await api.post('/sms/send-sms', {
-      number: formattedPhone,
-      message: `PROJECT ISRAEL: Your password reset code is ${otp}`
-    });
-
-    window.showToast('A password reset code has been sent to your phone.', 'success');
-    currentStep.value = 2; // 5. Move to verification step
-    startResendTimer(); // Start the cooldown timer
-
   } catch (error) {
-    console.error("Error sending reset code:", error.response?.data || error);
-    window.showToast(error.response?.data?.detail || "Error sending reset code.", 'failed');
+    console.error("Error sending reset code:", error.response?.data || error)
+    window.showToast(error.response?.data?.detail || "Error sending reset code.", 'failed')
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const handleResendCode = async () => {
   if (resendTimer.value > 0) return;
   isLoading.value = true;
+  
   try {
     const trimmedPhone = phoneNumber.value.trim();
     if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-      toastr.error('Invalid phone number.');
+      window.showToast('Invalid phone number.', 'warning');
       isLoading.value = false;
       return;
     }
+    
     const formattedPhone = toE164(trimmedPhone);
 
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
+    // Call backend to resend reset code
+    const response = await api.post('/auth/resend-reset-code', {
+      phoneNumber: formattedPhone
+    })
 
-    if (snapshot.empty) {
-      window.showToast('This phone number is not registered.','warning');
-      isLoading.value = false;
-      return;
+    if (response.data.success) {
+      window.showToast("A new code has been sent to your phone.", 'success')
+      startResendTimer()
+    } else {
+      window.showToast(response.data.message || "Error resending code.", 'failed')
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const userDoc = snapshot.docs[0];
-
-    await updateDoc(doc(db, 'users', userDoc.id), {
-      otp,
-      otpSentAt: serverTimestamp()
-    });
-
-    await api.post('/sms/send-sms', {
-      number: formattedPhone,
-      message: `PROJECT ISRAELL: Your new password reset code is ${otp}`
-    });
-
-    window.showToast("A new code has been sent to your phone.", 'success');
-    startResendTimer();
-
   } catch (error) {
-    console.error("Error resending code:", error.response?.data || error);
-    window.showToast(error.response?.data?.detail || "Error resending code.",'failed');
+    console.error("Error resending code:", error.response?.data || error)
+    window.showToast(error.response?.data?.detail || "Error resending code.", 'failed')
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
-// ✅ Step 2: Verify the 6-digit code
 const handleVerifyCode = async () => {
   const code = verificationDigits.value.join('').trim();
 
   if (code.length !== 6) {
-    window.showToast('Please enter the 6-digit code.','warning');
+    window.showToast('Please enter the 6-digit code.', 'warning');
     return;
   }
 
@@ -517,105 +482,93 @@ const handleVerifyCode = async () => {
 
   try {
     const formattedPhone = toE164(phoneNumber.value);
-    const q = query(collection(db, 'users'), where('phoneNumber', '==', formattedPhone));
-    const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
-      window.showToast('User not found. Please start over.','failed');
-      currentStep.value = 1;
-      return;
+    // Call backend to verify reset code
+    const response = await api.post('/auth/verify-reset-code', {
+      phoneNumber: formattedPhone,
+      otp: code
+    })
+
+    if (response.data.success) {
+      window.showToast('Code verified successfully!', 'success')
+      currentStep.value = 3; // Move to password reset step
+    } else {
+      window.showToast(response.data.message || 'Invalid verification code.', 'failed')
     }
-
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
-
-    if (userData.otp !== code) {
-      window.showToast('Invalid verification code.','failed');
-      return;
-    }
-
-    await updateDoc(doc(db, 'users', userDoc.id), {
-      otp: '', // Clear OTP after successful verification
-    });
-
-    window.showToast('Code verified successfully!','success');
-    currentStep.value = 3; // Move to password reset step
 
   } catch (error) {
     console.error('Error verifying code:', error);
-    window.showToast('An error occurred during verification.','failed');
+    
+    if (error.response?.status === 400) {
+      window.showToast(error.response.data.detail || 'Invalid verification code.', 'failed')
+    } else {
+      window.showToast('An error occurred during verification.', 'failed')
+    }
   } finally {
     isLoading.value = false;
   }
-};
-
+}
 
 const handleResetPassword = async () => {
   isLoading.value = true;
 
   const formattedPhone = toE164(phoneNumber.value);
   if (!formattedPhone) {
-    window.showtoast('Invalid phone number format.','failed');
+    window.showToast('Invalid phone number format.', 'failed');
     isLoading.value = false;
     return;
   }
 
-  const updateData = {
-    authType: resetAuthType.value,
-    updatedAt: serverTimestamp()
+  // Prepare request data based on auth type
+  const requestData = {
+    phoneNumber: formattedPhone,
+    authType: resetAuthType.value
   };
 
   if (resetAuthType.value === 'password') {
     if (newPassword.value !== confirmPassword.value) {
-      window.showToast('Passwords do not match!','warning');
+      window.showToast('Passwords do not match!', 'warning');
       isLoading.value = false;
       return;
     }
     if (newPassword.value.length < 6) {
-      window.showToast('Password must be at least 6 characters long.','warning');
+      window.showToast('Password must be at least 6 characters long.', 'warning');
       isLoading.value = false;
       return;
     }
-    updateData.password = newPassword.value;
-    updateData.pin = ''; // Clear PIN when setting a password
+    requestData.newPassword = newPassword.value;
   } else { // authType is 'pin'
     if (newPin.value !== confirmNewPin.value) {
-      window.showToast('PINs do not match!','warning');
+      window.showToast('PINs do not match!', 'warning');
       isLoading.value = false;
       return;
     }
     if (!/^\d{4}$/.test(newPin.value)) {
-        window.showToast('PIN must be 4 digits.','warning');
-        isLoading.value = false;
-        return;
-    }
-    updateData.pin = newPin.value;
-    updateData.password = ''; // Clear password when setting a PIN
-  }
-
-  try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      window.showToast('Could not find an account with that phone number.','failed');
+      window.showToast('PIN must be 4 digits.', 'warning');
       isLoading.value = false;
       return;
     }
+    requestData.newPin = newPin.value;
+  }
 
-    const userDocRef = snapshot.docs[0].ref;
-    await updateDoc(userDocRef, updateData);
+  try {
+    // Call backend to reset password
+    const response = await api.post('/auth/reset-password', requestData)
 
-    window.showToast('Your credentials have been reset successfully.','success');
-    router.push('/login');
+    if (response.data.success) {
+      window.showToast('Your credentials have been reset successfully.', 'success')
+      router.push('/login')
+    } else {
+      window.showToast(response.data.message || 'Failed to reset credentials.', 'failed')
+    }
+
   } catch (error) {
     console.error("Error resetting password:", error);
-    window.showToast("An error occurred while resetting your credentials.",'failed');
+    window.showToast(error.response?.data?.detail || "An error occurred while resetting your credentials.", 'failed')
   } finally {
     isLoading.value = false;
   }
-};
+}
 
 const handleBackToLogin = () => {
   router.push('/login')

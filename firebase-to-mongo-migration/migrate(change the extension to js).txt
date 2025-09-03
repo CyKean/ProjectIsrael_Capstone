@@ -1,0 +1,184 @@
+const admin = require('firebase-admin');
+const { MongoClient } = require('mongodb');
+
+// 1. Initialize Firebase Admin SDK
+// IMPORTANT: Download your service account key from Firebase Console > Project Settings > Service Accounts
+const serviceAccount = require('./hindiItoApiKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const firestore = admin.firestore();
+
+// 2. Initialize MongoDB Client
+// Replace with your MongoDB connection string (e.g., MongoDB Atlas URI or localhost)
+// const mongoUri = 'mongodb+srv://projectisraelcapstone:KpWXU4nC5EzCauID@cluster0.jvbrvzi.mongodb.net/projectisrael_db?retryWrites=true&w=majority&appName=Cluster0';
+const mongoUri = 'mongodb://127.0.0.1:27017/projectisrael_db';
+const client = new MongoClient(mongoUri);
+
+// 3. List ALL collections to be migrated
+// Add all your collection names to this array. The name is the same in Firebase and MongoDB.
+const collectionsToMigrate = [
+  'sensor_readings',
+  'app_metrics',
+  'configurations',
+  'crop_recommendations',
+  'metric_history',
+  'motor_status',
+  'network',
+  'notifications',
+  'password_reset_codes',
+  'system_stats',
+  'users',
+  'water_level_readings',
+  'watering_schedules',
+  'weather_data'
+];
+
+// 4. Universal transformation function for a document
+function transformDocument(data) {
+  // Create a shallow copy of the data to avoid modifying the original
+  const transformedData = { ...data };
+
+  // Recursively traverse the document and transform specific fields
+  function traverse(obj) {
+    for (let key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key];
+
+        // Check if this is a Firestore Timestamp and convert to JS Date
+        if (value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+          obj[key] = value.toDate(); // Convert to native Date object
+        }
+        // Check if this is a Firestore DocumentReference and convert to path string
+        else if (value && typeof value === 'object' && 'path' in value) {
+          obj[key] = value.path; // Convert to its string path
+        }
+        // Check if this is a Firestore GeoPoint
+        else if (value && typeof value === 'object' && 'latitude' in value && 'longitude' in value) {
+          // Convert to a format MongoDB understands for geospatial queries
+          obj[key] = {
+            type: 'Point',
+            coordinates: [value.longitude, value.latitude] // MongoDB uses [long, lat]
+          };
+        }
+        // If it's a nested object or array, traverse it recursively
+        else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          traverse(value);
+        }
+        // If it's an array, check each element
+        else if (Array.isArray(value)) {
+          value.forEach(item => {
+            if (item && typeof item === 'object') {
+              traverse(item);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  traverse(transformedData);
+  return transformedData;
+}
+
+// 5. Main migration function for a single collection
+async function migrateCollection(collectionName) {
+  let mongoCollection = null;
+  console.log(`\nStarting migration for collection: ${collectionName}`);
+
+  try {
+    const firebaseCollection = firestore.collection(collectionName);
+    mongoCollection = client.db('projectisrael_db').collection(collectionName); // Use the same collection name
+
+    // Get all documents from the Firebase collection
+    const snapshot = await firebaseCollection.get();
+
+    if (snapshot.empty) {
+      console.log(`  -> Collection '${collectionName}' is empty. Skipping.`);
+      return { success: true, count: 0 };
+    }
+
+    console.log(`  -> Found ${snapshot.size} documents. Preparing for MongoDB...`);
+
+    const operations = [];
+    const batchSize = 500; // Process in batches to avoid memory overload
+    let processedCount = 0;
+
+    // Process each document
+    for (const doc of snapshot.docs) {
+      let firebaseData = doc.data();
+      
+      // Apply the universal transformation
+      const mongoData = transformDocument(firebaseData);
+
+      // Prepare the operation for bulk write
+      operations.push({
+        insertOne: {
+          document: {
+            _id: doc.id, // Preserve the original Firestore document ID
+            ...mongoData
+          }
+        }
+      });
+
+      processedCount++;
+
+      // Execute in batches
+      if (operations.length >= batchSize) {
+        const result = await mongoCollection.bulkWrite(operations, { ordered: false });
+        console.log(`  -> Inserted batch of ${operations.length} into MongoDB.`);
+        operations.length = 0; // Clear the array for the next batch
+      }
+    }
+
+    // Insert any remaining documents in the final batch
+    if (operations.length > 0) {
+      const result = await mongoCollection.bulkWrite(operations, { ordered: false });
+      console.log(`  -> Inserted final batch of ${operations.length} into MongoDB.`);
+    }
+
+    console.log(`  ✅ SUCCESS: Migrated ${processedCount} documents from '${collectionName}'.`);
+    return { success: true, count: processedCount };
+
+  } catch (error) {
+    console.error(`  ❌ ERROR migrating collection '${collectionName}':`, error.message);
+    return { success: false, error: error.message, count: 0 };
+  }
+}
+
+// 6. Master function to run the entire migration
+async function runFullMigration() {
+  const migrationResults = {};
+
+  try {
+    await client.connect();
+    console.log('Connected to MongoDB successfully.');
+
+    // Migrate each collection sequentially
+    for (const collectionName of collectionsToMigrate) {
+      migrationResults[collectionName] = await migrateCollection(collectionName);
+      // Add a small delay between collections if needed to avoid overwhelming the database
+      // await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    console.log('\n----- Migration Summary -----');
+    let totalDocs = 0;
+    for (const [collection, result] of Object.entries(migrationResults)) {
+      const status = result.success ? '✅' : '❌';
+      console.log(`${status} ${collection}: ${result.count} documents. ${result.error || ''}`);
+      totalDocs += result.count;
+    }
+    console.log(`\nTotal documents migrated: ${totalDocs}`);
+
+  } catch (error) {
+    console.error('A fatal error occurred:', error);
+  } finally {
+    await client.close();
+    console.log('MongoDB connection closed.');
+    process.exit(0); // Exit the script
+  }
+}
+
+// 7. Run the script
+runFullMigration();

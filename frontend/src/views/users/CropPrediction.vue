@@ -2,7 +2,7 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-30px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-20px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
       <!-- Content Wrapper --> 
       <div class="p-2 md:p-4 sm:p-6">
         <!-- Clean Minimalist Metrics Section - With Loading State -->
@@ -80,7 +80,7 @@
               </div>
             </div>
             <div v-if="!isStatsLoading" class="flex flex-col">
-              <div class="text-2xl text-center font-bold text-gray-900 mb-2">{{ harvestSuccessRate }}%</div>
+              <div class="text-xl md:text-2xl text-center font-bold text-gray-900 mb-2">{{ harvestSuccessRate }}%</div>
               <div class="flex items-center justify-center text-[7px] md:text-xs font-medium mt-1">
                 <template v-if="harvestRatePercentageChange > 0">
                   <component
@@ -614,13 +614,13 @@
                   </transition>
                   
                 </div>
-                <button 
-                  @click="showPrintModal = true"
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                >
-                  <PrinterIcon class="h-4 w-4" />
-                  <span class="text-xs">Print</span>
-                </button>
+                  <button 
+                    @click="printTable"
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                  >
+                    <PrinterIcon class="h-4 w-4" />
+                    <span class="text-xs">Print</span>
+                  </button>
               </div>
             </div>
 
@@ -835,10 +835,10 @@
                         <td class="px-4 py-3.5 whitespace-nowrap">
                           <div class="flex flex-col">
                             <span class="text-sm font-medium text-gray-900">
-                              {{ prediction.date.split(',')[1] }}
+                              {{ prediction.date.split(' at ')[0] }}  <!-- Date part -->
                             </span>
                             <span class="text-xs text-gray-500">
-                              {{ prediction.date.split(',')[0] }}
+                              {{ prediction.date.split(' at ')[1] }}  <!-- Time part -->
                             </span>
                           </div>
                         </td>
@@ -1437,155 +1437,6 @@
     </div>
   </div>
 
-  <!-- Print Preview Modal -->
-  <div v-if="showPrintModal" class="fixed inset-0 z-50 overflow-auto bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-      <!-- Modal Header -->
-      <div class="border-b p-4 flex justify-between items-center">
-        <h3 class="text-lg font-semibold">Print Preview ({{ previewPages.length }} pages)</h3>
-        <button @click="showPrintModal = false" class="text-gray-500 hover:text-gray-700">
-          <XIcon class="h-5 w-5" />
-        </button>
-      </div>
-      
-      <!-- Main Content - Settings on right, preview on left -->
-      <div class="flex flex-1 overflow-hidden">
-        <!-- Preview Area (Left) -->
-        <div class="flex-1 overflow-auto p-4 bg-gray-100">
-          <div class="flex flex-col items-center" style="gap: 0; padding: 0">
-            <div 
-              v-for="(page, index) in previewPages" 
-              :key="index"
-              class="bg-white shadow-sm relative" 
-              :style="{
-                width: printSettings.orientation === 'portrait' ? '210mm' : '297mm',
-                height: printSettings.orientation === 'portrait' ? '297mm' : '210mm',
-                transform: 'scale(0.6)',
-                transformOrigin: 'top center',
-                marginTop: index === 0 ? '0' : '-440px' /* This is the magic - negative margin */
-              }"
-            >
-              <!-- Page content -->
-              <div class="h-full w-full p-[10mm] flex flex-col">
-                <!-- Header -->
-                <div v-if="printSettings.includeHeader" class="text-center mb-1 border-b pb-1">
-                  <h1 class="text-lg font-bold">Crop Recommendations Report</h1>
-                  <p class="text-xs text-gray-600">Page {{ index + 1 }} of {{ previewPages.length }} • {{ new Date().toLocaleDateString() }}</p>
-                </div>
-                
-                <!-- Table -->
-                <div class="flex-1 overflow-hidden">
-                  <table class="w-full border-collapse">
-                    <thead>
-                      <tr class="bg-gray-100">
-                        <th v-for="header in printHeaders" :key="header.key" class="border p-1 text-left text-xs">
-                          {{ header.label }}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="prediction in page.data" :key="prediction.id" class="border-b">
-                        <td class="border p-1 text-xs">{{ prediction.crop }}</td>
-                        <td class="border p-1 text-xs">{{ prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0] }}</td>
-                        <td class="border p-1 text-xs">{{ prediction.successRate }}%</td>
-                        <td class="border p-1 text-xs">{{ prediction.status }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                
-                <!-- Footer -->
-                <div v-if="printSettings.includeFooter" class="text-center mt-1 border-t pt-1 text-xs text-gray-500">
-                  <p>Confidential • AgriTech Dashboard</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Settings Panel (Right) -->
-        <div class="w-80 border-l p-4 overflow-y-auto">
-          <h4 class="font-medium text-gray-700 mb-3">Print Settings</h4>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Paper Size</label>
-              <select 
-                v-model="printSettings.paperSize" 
-                class="w-full border rounded-md p-2 text-sm"
-                @change="updatePreview"
-              >
-                <option value="A4">A4 (210 × 297 mm)</option>
-                <option value="Letter">Letter (216 × 279 mm)</option>
-                <option value="Legal">Legal (216 × 356 mm)</option>
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Orientation</label>
-              <select 
-                v-model="printSettings.orientation" 
-                class="w-full border rounded-md p-2 text-sm"
-                @change="updatePreview"
-              >
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Margins</label>
-              <select 
-                v-model="printSettings.margin" 
-                class="w-full border rounded-md p-2 text-sm"
-                @change="updatePreview"
-              >
-                <option value="10mm">Normal (10mm)</option>
-                <option value="5mm">Narrow (5mm)</option>
-                <option value="15mm">Wide (15mm)</option>
-              </select>
-            </div>
-            
-            <div class="pt-2 border-t">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
-              <div class="space-y-2">
-                <div class="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    v-model="printSettings.includeHeader" 
-                    id="includeHeader" 
-                    class="h-4 w-4"
-                    @change="updatePreview"
-                  >
-                  <label for="includeHeader" class="ml-2 text-sm">Include Header</label>
-                </div>
-                <div class="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    v-model="printSettings.includeFooter" 
-                    id="includeFooter" 
-                    class="h-4 w-4"
-                    @change="updatePreview"
-                  >
-                  <label for="includeFooter" class="ml-2 text-sm">Include Footer</label>
-                </div>
-              </div>
-            </div>
-            
-            <div class="pt-4 border-t">
-              <button 
-                @click="printTable"
-                class="w-full py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-1"
-              >
-                <PrinterIcon class="h-4 w-4" />
-                Print Now
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
@@ -1630,25 +1481,6 @@ import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import 'jspdf-autotable';
-import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    doc,
-    setDoc,
-    Timestamp,
-    serverTimestamp,
-    getDoc,
-    updateDoc,
-    deleteDoc,
-    where,
-    onSnapshot,
-  } from 'firebase/firestore'
-const db = getFirestore()
 
 // Initialize all sensor data as reactive refs
 const nitrogen = ref(0)
@@ -1715,75 +1547,6 @@ const MAX_VALUES = {
   soilMoisture: 100, // percentage
   temperature: 50, // °C
   humidity: 100 // percentage
-}
-
-const showPrintModal = ref(false)
-const printContent = ref(null)
-
-const printHeaders = computed(() => {
-  return [
-    { key: 'crop', label: 'Recommended Crop' },
-    { key: 'date', label: 'Date & Time' },
-    { key: 'successRate', label: 'Success Rate' },
-    { key: 'status', label: 'Status' }
-  ];
-});
-
-const printSettings = reactive({
-  paperSize: 'A4',
-  orientation: 'portrait',
-  margin: '10mm',
-  includeHeader: true,
-  includeFooter: true,
-  fontSize: '12px'
-})
-
-const previewPages = computed(() => {
-  const pages = []
-  const rowsPerPage = calculateRowsPerPage()
-  let currentPage = []
-  
-  for (let i = 0; i < filteredPredictions.value.length; i++) {
-    currentPage.push(filteredPredictions.value[i])
-    
-    if (currentPage.length >= rowsPerPage || i === filteredPredictions.value.length - 1) {
-      pages.push({
-        pageNumber: pages.length + 1,
-        data: [...currentPage]
-      })
-      currentPage = []
-    }
-  }
-  
-  return pages
-})
-
-const calculateRowsPerPage = () => {
-  // These are approximate values based on typical row heights
-  const portraitRows = {
-    'A4': 35,
-    'Letter': 30,
-    'Legal': 45
-  }
-  
-  const landscapeRows = {
-    'A4': 25,
-    'Letter': 20,
-    'Legal': 35
-  }
-  
-  const baseRows = printSettings.orientation === 'portrait' 
-    ? portraitRows[printSettings.paperSize] 
-    : landscapeRows[printSettings.paperSize]
-  
-  // Adjust for margins
-  const marginFactor = {
-    '5mm': 1.1,
-    '10mm': 1.0,
-    '15mm': 0.9
-  }
-  
-  return Math.floor(baseRows * marginFactor[printSettings.margin])
 }
 
 // const printTable = () => {
@@ -1939,223 +1702,358 @@ const calculateRowsPerPage = () => {
 // };
 
 const printTable = () => {
-  // Get the print button element to show loading state
-  const printButtons = document.querySelectorAll('button');
-  let printButton = null;
-  
-  // Find the button by text content
-  for (const button of printButtons) {
-    if (button.textContent.includes('Print Now')) {
-      printButton = button;
-      break;
-    }
-  }
-  
-  // Store original button text and disable it
-  const originalText = printButton?.textContent || 'Print Now';
-  const originalHTML = printButton?.innerHTML || '';
-  
-  if (printButton) {
-    printButton.innerHTML = `
-      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      Printing...
-    `;
-    printButton.disabled = true;
-  }
-  
-  const headers = printHeaders.value || [
+  // Create a printable version of the table data
+  const headers = [
     { key: 'crop', label: 'Recommended Crop' },
     { key: 'date', label: 'Date & Time' },
     { key: 'successRate', label: 'Success Rate' },
     { key: 'status', label: 'Status' }
   ];
 
-  // Build the HTML content step by step to avoid template literal issues
-  let printContent = `<!DOCTYPE html><html><head>
-    <title>Crop Recommendations Report</title>
-    <style>
-      @page {
-        size: ${printSettings.paperSize} ${printSettings.orientation};
-        margin: ${printSettings.margin};
-      }
-      body {
-        font-family: Arial, sans-serif;
-        font-size: 12px;
-        margin: 0;
-        padding: 0;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .print-page {
-        width: 100%;
-        height: 100%;
-        page-break-after: always;
-        margin-bottom: 0;
-      }
-      .print-page:last-child {
-        page-break-after: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0;
-      }
-      th, td {
-        border: 1px solid #ddd;
-        padding: 4px;
-        text-align: left;
-      }
-      th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-      }
-      .header {
-        text-align: center;
-        margin-bottom: 10px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #ddd;
-      }
-      .footer {
-        text-align: center;
-        margin-top: 10px;
-        padding-top: 5px;
-        border-top: 1px solid #ddd;
-        font-size: 0.9em;
-        color: #666;
-      }
-    </style>
-    <script>
-      // Try to print directly to the default printer
-      function tryDirectPrint() {
-        try {
-          // First attempt: regular print (will show dialog)
-          window.print();
+  // Build the HTML content for printing
+  let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Crop Recommendations Report</title>
+      <meta name="robots" content="noindex">
+      <style>
+        /* Force print styles */
+        @media print {
+          @page {
+            margin: 15mm;
+            size: portrait;
+          }
           
-          // If we reach here, the print was initiated
-          setTimeout(function() {
-            window.close();
-            // Notify the parent window that printing is complete
-            try {
-              window.opener.postMessage('printingComplete', '*');
-            } catch (e) {
-              console.log('Could not notify parent window');
-            }
-          }, 1000);
-        } catch (e) {
-          console.error('Print error:', e);
-          window.close();
-          try {
-            window.opener.postMessage('printingFailed', '*');
-          } catch (e) {
-            console.log('Could not notify parent window');
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: #fff;
+            width: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #000;
+            font-size: 18pt;
+            font-weight: bold;
+          }
+          
+          .report-info {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+            font-size: 10pt;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            page-break-inside: auto;
+          }
+          
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          
+          th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            color: #000;
+            background: #fff !important;
+          }
+          
+          th {
+            background-color: #f0f0f0 !important;
+            font-weight: bold;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10pt;
+            color: #000;
           }
         }
-      }
-      
-      // Auto-trigger print when the window loads
-      window.onload = function() {
-        setTimeout(tryDirectPrint, 100);
-      };
-    <` + `/script>
-  </head><body>`;
-
-  // Add page content
-  previewPages.value.forEach((page, index) => {
-    printContent += `<div class="print-page">`;
-    
-    if (printSettings.includeHeader) {
-      printContent += `
-        <div class="header">
-          <h1>Crop Recommendations Report</h1>
-          <p>Page ${index + 1} of ${previewPages.value.length} • ${new Date().toLocaleDateString()}</p>
-        </div>`;
-    }
-    
-    printContent += `
+        
+        /* Screen styles */
+        @media screen {
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            margin: 15mm;
+            padding: 0;
+            background-color: white;
+          }
+          
+          h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2d3748;
+          }
+          
+          .report-info {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+          
+          th, td {
+            border: 1px solid #cbd5e0;
+            padding: 6px;
+            text-align: left;
+          }
+          
+          th {
+            background-color: #f7fafc;
+            font-weight: bold;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+            color: #718096;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Crop Recommendations Report</h1>
+      <div class="report-info">
+        Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+      </div>
       <table>
         <thead>
-          <tr>`;
-    
-    headers.forEach(header => {
-      printContent += `<th>${header.label}</th>`;
-    });
-    
-    printContent += `
+          <tr>
+  `;
+  
+  // Add table headers
+  headers.forEach(header => {
+    printContent += `<th>${header.label}</th>`;
+  });
+  
+  printContent += `
           </tr>
         </thead>
-        <tbody>`;
-    
-    page.data.forEach(prediction => {
-      printContent += `
+        <tbody>
+  `;
+  
+  // Add table rows
+  filteredPredictions.value.forEach(prediction => {
+    printContent += `
           <tr>
             <td>${prediction.crop}</td>
             <td>${prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0]}</td>
             <td>${prediction.successRate}%</td>
             <td>${prediction.status}</td>
-          </tr>`;
-    });
-    
-    printContent += `
-        </tbody>
-      </table>`;
-    
-    if (printSettings.includeFooter) {
-      printContent += `
-        <div class="footer">
-          Confidential • AgriTech Dashboard
-        </div>`;
-    }
-    
-    printContent += `</div>`;
+          </tr>
+    `;
   });
   
-  printContent += `</body></html>`;
+  printContent += `
+        </tbody>
+      </table>
+      <div class="footer">
+        Confidential • AgriTech Dashboard • Page 1 of 1
+      </div>
+    </body>
+    </html>
+  `;
   
-  // Add message listener to handle printing completion
-  const messageHandler = (event) => {
-    if (event.data === 'printingComplete' || event.data === 'printingFailed') {
-      // Restore the print button
-      if (printButton) {
-        printButton.innerHTML = originalHTML;
-        printButton.disabled = false;
-      }
-      // Remove the event listener
-      window.removeEventListener('message', messageHandler);
-    }
+  // Create a blob and open it as a PDF-like document
+  const blob = new Blob([printContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  
+  // Open in a new window and trigger print
+  const printWindow = window.open(url, '_blank');
+  
+  // Ensure the content is loaded before printing
+  printWindow.onload = function() {
+    // Small delay to ensure all content is rendered
+    setTimeout(() => {
+      printWindow.print();
+      
+      // Clean up after printing
+      printWindow.onafterprint = function() {
+        URL.revokeObjectURL(url);
+        printWindow.close();
+      };
+    }, 500);
   };
-  
-  window.addEventListener('message', messageHandler);
-  
-  // Open print window with specific features that might help with printing
-  const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
-  
-  if (!printWindow) {
-    alert('Please allow popups for this site to enable printing.');
-    // Restore the print button if popup was blocked
-    if (printButton) {
-      printButton.innerHTML = originalHTML;
-      printButton.disabled = false;
-    }
-    return;
-  }
-  
-  // Write content to the window
-  printWindow.document.open();
-  printWindow.document.write(printContent);
-  printWindow.document.close();
-  
-  // Fallback: Restore button after 10 seconds if no message is received
-  setTimeout(() => {
-    if (printButton && printButton.disabled) {
-      printButton.innerHTML = originalHTML;
-      printButton.disabled = false;
-    }
-    window.removeEventListener('message', messageHandler);
-  }, 10000);
 };
+
+// Alternative approach using iframe for more control
+const printWithIframe = () => {
+  // Create a hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+  
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+  
+  // Create print content
+  const headers = [
+    { key: 'crop', label: 'Recommended Crop' },
+    { key: 'date', label: 'Date & Time' },
+    { key: 'successRate', label: 'Success Rate' },
+    { key: 'status', label: 'Status' }
+  ];
+  
+  let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Crop Recommendations Report</title>
+      <style>
+        @media print {
+          @page {
+            margin: 15mm;
+            size: portrait;
+          }
+          
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: #fff;
+            width: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #000;
+            font-size: 18pt;
+            font-weight: bold;
+          }
+          
+          .report-info {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+            font-size: 10pt;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            page-break-inside: auto;
+          }
+          
+          th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            color: #000;
+            background: #fff !important;
+          }
+          
+          th {
+            background-color: #f0f0f0 !important;
+            font-weight: bold;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10pt;
+            color: #000;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Crop Recommendations Report</h1>
+      <div class="report-info">
+        Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+      </div>
+      <table>
+        <thead>
+          <tr>
+  `;
+  
+  headers.forEach(header => {
+    printContent += `<th>${header.label}</th>`;
+  });
+  
+  printContent += `
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  filteredPredictions.value.forEach(prediction => {
+    printContent += `
+          <tr>
+            <td>${prediction.crop}</td>
+            <td>${prediction.date.split(',')[1]?.trim() || prediction.date.split(',')[0]}</td>
+            <td>${prediction.successRate}%</td>
+            <td>${prediction.status}</td>
+          </tr>
+    `;
+  });
+  
+  printContent += `
+        </tbody>
+      </table>
+      <div class="footer">
+        Confidential • AgriTech Dashboard • Page 1 of 1
+      </div>
+    </body>
+    </html>
+  `;
+  
+  iframeDoc.open();
+  iframeDoc.write(printContent);
+  iframeDoc.close();
+  
+  // Wait for iframe to load and then print
+  iframe.onload = function() {
+    setTimeout(function() {
+      iframe.contentWindow.focus();
+      
+      // Try to trigger print with a slight delay
+      setTimeout(function() {
+        iframe.contentWindow.print();
+        
+        // Remove iframe after printing
+        setTimeout(function() {
+          document.body.removeChild(iframe);
+        }, 100);
+      }, 500);
+    }, 100);
+  };
+};
+
 
 // Add this helper method to your script
 const getIntensityClass = (value, max, color) => {
@@ -2371,157 +2269,44 @@ onMounted(async () => {
   isStatsLoading.value = true;
   isSensorDataLoading.value = true;
   
-  // Setup Firebase real-time listeners
-  fetchLatestSensorDataFromFirebase();
+  // Fetch initial data
+  await fetchLatestSensorData();
+  await fetchSavedRecommendations();
+  await fetchRecommendationStats();
 
-  // Start listening for SSE stream
-  /*let eventSource = new EventSource('http://localhost:8000/api/stream');
-
-  eventSource.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      
-      // Extract the actual sensor data from the "data" property
-      const sensorData = data.data || {};
-      
-      // Convert to numbers and update values from stream
-      if (sensorData.nitrogen !== undefined) nitrogen.value = Number(sensorData.nitrogen);
-      if (sensorData.phosphorus !== undefined) phosphorus.value = Number(sensorData.phosphorus);
-      if (sensorData.potassium !== undefined) potassium.value = Number(sensorData.potassium);
-      if (sensorData.soilPh !== undefined) soilpH.value = Number(sensorData.soilPh);
-      if (sensorData.temperature !== undefined) temperature.value = Number(sensorData.temperature);
-      if (sensorData.humidity !== undefined) humidity.value = Number(sensorData.humidity);
-      if (sensorData.soilMoisture !== undefined) soilMoisture.value = Number(sensorData.soilMoisture);
-      
-      // Mark stream as active
-      streamActive.value = true;
-      lastStreamUpdate.value = Date.now();
-      console.log("🔁 Processed stream data:", sensorData);
-    } catch (error) {
-      console.error("Error processing stream data:", error);
-    }
-  };
-
-  eventSource.onerror = (error) => {
-    console.log("🚨 EventSource error:", error);
-    console.log("🚨 Falling back to Firebase");
-    streamActive.value = false;
-    
-    // Trigger Firebase update immediately on stream error
-    fetchLatestSensorDataFromFirebase();
-    
-    // Attempt to reconnect after 5 seconds
-    setTimeout(() => {
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.log("⏳ Attempting to reconnect to stream...");
-        eventSource = new EventSource('http://localhost:8000/api/stream');
-      }
-    }, 5000);
-  };*/
-
-  // Set up stream health check
-  const streamCheckInterval = setInterval(() => {
-    if (lastStreamUpdate.value && (Date.now() - lastStreamUpdate.value) > 10000) {
-      console.log("🔄 No stream data for 10 seconds, switching to Firebase");
-      streamActive.value = false;
-      fetchLatestSensorDataFromFirebase();
-    }
-  }, 5000);
-
-  // Fetch other data
-  isPredictionsLoading.value = true;
-  fetchSavedRecommendations();
-  fetchRecommendationStats();
-
-  document.addEventListener('click', handleClickOutside);
+  // Set up polling for sensor data (every 10 seconds)
+  const sensorPollingInterval = setInterval(fetchLatestSensorData, 10000);
+  
   // Cleanup on unmount
-  // onUnmounted(() => {
-  //   if (eventSource) eventSource.close();
-  //   clearInterval(streamCheckInterval);
-  //   if (esp32_1_unsubscribe) esp32_1_unsubscribe();
-  //   if (esp32_2_unsubscribe) esp32_2_unsubscribe();
-  // });
+  onUnmounted(() => {
+    clearInterval(sensorPollingInterval);
+    document.removeEventListener('click', handleClickOutside);
+  });
 });
+
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-const fetchLatestSensorDataFromFirebase = () => {
+const fetchLatestSensorData = async () => {
   try {
     isSensorDataLoading.value = true;
+    const response = await api.get('/sensors/latest');
+    const sensorData = response.data;
     
-    // Clean up previous listeners if they exist
-    if (esp32_1_unsubscribe) esp32_1_unsubscribe();
-    if (esp32_2_unsubscribe) esp32_2_unsubscribe();
-
-    // For esp32-1 (NPK + pH)
-    const esp32_1_query = query(
-      collection(db, "3sensor_readings", "esp32-1", "readings"), 
-      orderBy("timestamp", "desc"), 
-      limit(1)
-    );
+    // Update sensor values
+    nitrogen.value = Number(sensorData.nitrogen);
+    phosphorus.value = Number(sensorData.phosphorus);
+    potassium.value = Number(sensorData.potassium);
+    soilpH.value = Number(sensorData.soilPh);
+    temperature.value = Number(sensorData.temperature);
+    humidity.value = Number(sensorData.humidity);
+    soilMoisture.value = Number(sensorData.soilMoisture);
     
-    esp32_1_unsubscribe = onSnapshot(esp32_1_query, (snapshot) => {
-      if (!snapshot.empty) {
-        const esp32_1_data = snapshot.docs[0].data();
-        const timestamp = esp32_1_data.timestamp;
-        
-        // Convert to Date object if it's a Firestore Timestamp
-        let dateObj;
-        if (timestamp instanceof Timestamp) {
-          dateObj = timestamp.toDate();
-        } else if (timestamp.seconds) {
-          // If it's an object with seconds and nanoseconds
-          dateObj = new Date(timestamp.seconds * 1000);
-        } else {
-          // Otherwise, try to parse as string or use current date
-          dateObj = new Date(timestamp);
-        }
-        
-        // Only update if stream is inactive
-        if (!streamActive.value) {
-          nitrogen.value = Number(esp32_1_data.nitrogen);
-          phosphorus.value = Number(esp32_1_data.phosphorus);
-          potassium.value = Number(esp32_1_data.potassium);
-          soilpH.value = Number(esp32_1_data.soilPh);
-          console.log("📥 [Firebase Realtime] ESP32-1 Data (NPK + pH):", esp32_1_data);
-        }
-      }
-    });
-
-    // For esp32-2 (Temperature, humidity, soil moisture)
-    const esp32_2_query = query(
-      collection(db, "3sensor_readings", "esp32-2", "readings"), 
-      orderBy("timestamp", "desc"), 
-      limit(1)
-    );
-    
-    esp32_2_unsubscribe = onSnapshot(esp32_2_query, (snapshot) => {
-      if (!snapshot.empty) {
-        const esp32_2_data = snapshot.docs[0].data();
-        const timestamp = esp32_2_data.timestamp;
-        let dateObj;
-        if (timestamp instanceof Timestamp) {
-          dateObj = timestamp.toDate();
-        } else if (timestamp.seconds) {
-          dateObj = new Date(timestamp.seconds * 1000);
-        } else {
-          dateObj = new Date(timestamp);
-        }
-        
-        // Only update if stream is inactive
-        if (!streamActive.value) {
-          temperature.value = Number(esp32_2_data.temperature);
-          humidity.value = Number(esp32_2_data.humidity);
-          soilMoisture.value = Number(esp32_2_data.soilMoisture);
-          console.log("📥 [Firebase Realtime] ESP32-2 Data (DHT21):", esp32_2_data);
-        }
-      }
-    });
-  } catch (err) {
-    console.error("❌ Error setting up Firebase listeners:", err);
-    window.showToast('Failed to connect to Firebase','failed');
+  } catch (error) {
+    console.error("❌ Error fetching sensor data:", error);
+    window.showToast('Failed to fetch sensor data', 'failed');
   } finally {
     isSensorDataLoading.value = false;
   }
@@ -2577,8 +2362,6 @@ const stats = ref({
     timestamp: null
   }
 })
-
-const statsDocRef = doc(db, 'system_stats', 'crop_recommendation_metrics');
 
 const fetchStatsBaseline = async () => {
   try {
@@ -2690,48 +2473,14 @@ const fetchRecommendationStats = async () => {
   try {
     isStatsLoading.value = true;
     
-    // First load the baseline from Firestore
-    await fetchStatsBaseline();
+    const response = await api.get('/recommendations/stats');
+    const statsData = response.data;
     
-    // Then set up the real-time listener for current counts
-    const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'));
+    stats.value.current = statsData.current;
+    stats.value.baseline = statsData.baseline;
     
-    return onSnapshot(q, async (snapshot) => {
-      const allDocs = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp?.seconds * 1000) || new Date()
-        };
-      });
-      
-      const counts = {
-        total: allDocs.length,
-        planted: allDocs.filter(d => d.status === 'Planted').length,
-        ongoing: allDocs.filter(d => d.status === 'Ongoing').length,
-        harvested: allDocs.filter(d => d.status === 'Harvested').length
-      };
-      
-      counts.successRate = counts.total > 0 
-        ? Math.round((counts.harvested / counts.total) * 100)
-        : 0;
-
-      await updateStats(counts);
-      
-      console.log('Stats updated:', {
-        current: stats.value.current,
-        baseline: stats.value.baseline,
-        changes: {
-          total: percentageChange.value,
-          planted: plantedPercentageChange.value,
-          ongoing: ongoingPercentageChange.value,
-          successRate: harvestRatePercentageChange.value
-        }
-      });
-
-      isStatsLoading.value = false;
-    });
-
+    console.log('Stats updated:', statsData);
+    isStatsLoading.value = false;
   } catch (error) {
     console.error('Error fetching stats:', error);
     isStatsLoading.value = false;
@@ -2741,66 +2490,6 @@ const fetchRecommendationStats = async () => {
 onMounted(() => {
   fetchRecommendationStats()
 })
-
-
-// Real-time listener version
-// const setupRealtimeListener = () => {
-//   const q = query(collection(db, 'crop_recommendations'), orderBy('timestamp', 'desc'))
-  
-//   return onSnapshot(q, (snapshot) => {
-//     const allDocs = snapshot.docs.map(doc => ({
-//       id: doc.id,
-//       ...doc.data()
-//     }))
-
-//     // Current counts
-//     const currentTotal = allDocs.length
-//     const currentPlanted = allDocs.filter(d => d.status === 'Planted').length
-//     const currentOngoing = allDocs.filter(d => d.status === 'Ongoing').length
-//     const currentHarvested = allDocs.filter(d => d.status === 'Harvested').length
-
-//     // Calculate changes
-//     const totalChanges = calculatePercentageChange(currentTotal, previousCounts.value.total)
-//     const plantedChanges = calculatePercentageChange(currentPlanted, previousCounts.value.planted)
-//     const ongoingChanges = calculatePercentageChange(currentOngoing, previousCounts.value.ongoing)
-
-//     // Calculate current success rate
-//     const currentSuccessRate = currentTotal > 0 
-//       ? Math.round((currentHarvested / currentTotal) * 100)
-//       : 0
-
-//     // Calculate success rate change
-//     const harvestRateChanges = calculatePercentageChange(currentSuccessRate, previousCounts.value.previousSuccessRate)
-
-//     // Update refs
-//     totalRecommendations.value = currentTotal
-//     percentageChange.value = totalChanges.percentage
-//     isIncrease.value = totalChanges.isIncrease
-
-//     plantedCount.value = currentPlanted
-//     plantedPercentageChange.value = plantedChanges.percentage
-//     plantedIsIncrease.value = plantedChanges.isIncrease
-
-//     ongoingCount.value = currentOngoing
-//     ongoingPercentageChange.value = ongoingChanges.percentage
-//     ongoingIsIncrease.value = ongoingChanges.isIncrease
-
-//     harvestSuccessRate.value = currentSuccessRate
-//     harvestRatePercentageChange.value = harvestRateChanges.percentage
-//     harvestRateIsIncrease.value = harvestRateChanges.isIncrease
-
-//     // Update previous counts
-//     previousCounts.value = {
-//       total: currentTotal,
-//       planted: currentPlanted,
-//       ongoing: currentOngoing,
-//       harvested: currentHarvested,
-//       previousSuccessRate: currentSuccessRate
-//     }
-//   })
-// }
-
-// Add cleanup in onUnmounted if using Composition API
 
 const selectedGreenhouse = ref(1)
 
@@ -2915,18 +2604,17 @@ const saveRecommendation = async () => {
         temperature: parseFloat(temperature.value),
         humidity: parseFloat(humidity.value)
       },
-      status: "Recommended", // Default status
-      timestamp: serverTimestamp()
+      status: "Recommended"
     };
 
-    // Save directly to Firestore
-    const docRef = await addDoc(collection(db, "crop_recommendations"), recommendationData);
+    const response = await api.post('/save', recommendationData);
     
-    console.log("Recommendation saved with ID: ", docRef.id);
+    console.log("Recommendation saved with ID: ", response.data.id);
     window.showToast('Recommendation saved successfully', 'success');
     closeModal();
     
-    // No need to manually refresh stats - the onSnapshot listener will handle it
+    fetchSavedRecommendations();
+    fetchRecommendationStats();
   } catch (error) {
     console.error('Error saving recommendation:', error);
     window.showToast('Failed to save recommendation', 'failed');
@@ -2934,7 +2622,6 @@ const saveRecommendation = async () => {
     isSavingRecommendation.value = false;
   }
 };
-
 
 const closeModal = () => {
   showModal.value = false
@@ -2956,116 +2643,60 @@ const tableHeaders = [
   { key: 'actions', label: 'Actions' }
 ]
 
-const fetchSavedRecommendations = () => {
+const fetchSavedRecommendations = async () => {
   try {
     isPredictionsLoading.value = true;
 
-    const q = query(collection(db, 'crop_recommendations'));
+    const response = await api.get('/recommendations');
+    const recommendations = response.data;
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      // Create an array of documents with normalized timestamps
-      const docsWithTimestamps = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        let dateObj;
-        let formattedDate = "N/A";
-
-        // Handle different timestamp formats
-        if (data.timestamp) {
-          // Case 1: Firestore Timestamp object
-          if (typeof data.timestamp.toDate === 'function') {
-            try {
-              dateObj = data.timestamp.toDate();
-              formattedDate = dateObj.toLocaleString();
-            } catch (e) {
-              console.warn("Error converting Firestore timestamp:", e);
-            }
-          }
-          // Case 2: Object with seconds/nanoseconds
-          else if (data.timestamp.seconds && typeof data.timestamp.seconds === 'number') {
-            dateObj = new Date(data.timestamp.seconds * 1000);
-            formattedDate = dateObj.toLocaleString();
-          }
-          // Case 3: ISO string (e.g., "2025-04-04T15:16:15.872307")
-          else if (typeof data.timestamp === 'string' && data.timestamp.includes('T')) {
-            try {
-              dateObj = new Date(data.timestamp);
-              formattedDate = dateObj.toLocaleString();
-            } catch (e) {
-              console.warn("Error parsing ISO string:", e);
-            }
-          }
-          // Case 4: Custom string format (e.g., "July 1, 2025 at 7:39:41 PM UTC+8")
-          else if (typeof data.timestamp === 'string') {
-            try {
-              // Normalize the string to ISO format
-              const normalized = data.timestamp
-                .replace(' at ', ' ')
-                .replace(' ', ' ')
-                .replace(' UTC+8', ' GMT+0800');
-              dateObj = new Date(normalized);
-              formattedDate = dateObj.toLocaleString();
-            } catch (e) {
-              console.warn("Error parsing custom timestamp:", e);
-            }
-          }
-        }
-
-        // Fallback to current date if no valid timestamp
-        if (!dateObj) {
-          dateObj = new Date();
-          formattedDate = dateObj.toLocaleString();
-          console.warn("Using fallback date for document:", doc.id);
-        }
-
-        return {
-          id: doc.id,
-          crop: data.recommendedCrop,
-          successRate: data.successRate,
-          status: data.status || 'Recommended',
-          date: formattedDate,
-          timestamp: dateObj,  // Store as Date object for sorting
-          soilCompatibility: data.soilCompatibility,
-          growthRate: data.growthRate,
-          yieldPotential: data.yieldPotential,
-          alternativeOptions: data.alternativeOptions?.map(alt => ({
-            ...alt,
-            fertilizer: alt.fertilizer || {
-              type: '',
-              name: '',
-              base_amount: 0,
-              adjusted_amount: 0,
-              unit: ''
-            }
-          })) || [],
-          fertilizer: data.fertilizer || {
-            type: '',
-            name: '',
-            base_amount: 0,
-            adjusted_amount: 0,
-            unit: ''
-          }
-        };
-      });
-
-      // Sort documents by timestamp (newest first)
-      docsWithTimestamps.sort((a, b) => b.timestamp - a.timestamp);
-
-      predictions.value = docsWithTimestamps;
-      filteredPredictionsCache.value = [...docsWithTimestamps];
+    // Process and format the data
+    const formattedRecommendations = recommendations.map(rec => {
+      // Handle date formatting - use the pre-formatted date from backend
+      let dateDisplay = rec.date || "N/A";
       
-      console.log("✅ Sorted recommendations (newest first):", predictions.value);
-      isPredictionsLoading.value = false;
-    }, (error) => {
-      console.error("❌ Error with onSnapshot listener:", error);
-      window.showToast('Failed to fetch crop recommendations in real-time','failed');
-      isPredictionsLoading.value = false;
+      // If backend didn't format it, try to format it here
+      if (dateDisplay === "N/A" && rec.timestamp) {
+        try {
+          // Handle ISO format timestamp
+          const dateObj = new Date(rec.timestamp);
+          if (!isNaN(dateObj.getTime())) {
+            dateDisplay = dateObj.toLocaleString();
+          }
+        } catch (e) {
+          console.error("Error parsing timestamp:", e);
+        }
+      }
+
+      return {
+        id: rec.id,
+        crop: rec.recommendedCrop || rec.crop || "Unknown Crop",
+        successRate: rec.successRate || 0,
+        status: rec.status || 'Recommended',
+        date: dateDisplay,
+        timestamp: rec.timestamp ? new Date(rec.timestamp) : new Date(),
+        soilCompatibility: rec.soilCompatibility || 0,
+        growthRate: rec.growthRate || 0,
+        yieldPotential: rec.yieldPotential || 0,
+        alternativeOptions: rec.alternativeOptions || [],
+        fertilizer: rec.fertilizer || {
+          type: '',
+          name: '',
+          base_amount: 0,
+          adjusted_amount: 0,
+          unit: ''
+        }
+      };
     });
 
-    return unsubscribe;
-
+    predictions.value = formattedRecommendations;
+    filteredPredictionsCache.value = [...formattedRecommendations];
+    
+    console.log("✅ Recommendations loaded:", predictions.value);
+    isPredictionsLoading.value = false;
   } catch (error) {
-    console.error("❌ Error setting up onSnapshot for predictions:", error);
-    window.showToast('Failed to set up real-time crop recommendation listener','failed');
+    console.error("❌ Error fetching recommendations:", error);
+    window.showToast('Failed to fetch crop recommendations', 'failed');
     isPredictionsLoading.value = false;
   }
 };
@@ -3153,16 +2784,32 @@ const saveChanges = async () => {
   isSavingChanges.value = true;
 
   try {
-    // Update directly in Firestore
-    await updateDoc(doc(db, "crop_recommendations", selectedPrediction.value.id), {
-      status: editedStatus.value,
-      lastUpdated: serverTimestamp()
+    console.log("🔍 Debug - Status update details:", {
+      documentId: selectedPrediction.value.id,
+      newStatus: editedStatus.value,
+      endpoint: `/api/recommendations/${selectedPrediction.value.id}/status`
     });
 
+    // Test different payload formats
+    const payload = { status: editedStatus.value };
+    console.log("🔍 Debug - Payload being sent:", JSON.stringify(payload));
+
+    const response = await api.post(
+      `/recommendations/${selectedPrediction.value.id}/status`,
+      payload,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log("✅ Status update successful:", response.data);
+    
     // Update local state
     selectedPrediction.value.status = editedStatus.value;
     
-    // Update in the main predictions array if needed
+    // Update in the main predictions array
     const index = predictions.value.findIndex(p => p.id === selectedPrediction.value.id);
     if (index !== -1) {
       predictions.value[index].status = editedStatus.value;
@@ -3171,14 +2818,21 @@ const saveChanges = async () => {
     window.showToast('Status updated successfully', 'success');
     closeDetailsModal();
     
-    // No need to manually refresh - the onSnapshot listener will handle it
+    // Refresh stats
+    fetchRecommendationStats();
   } catch (error) {
-    console.error('Error updating status:', error);
+    console.error('❌ Error updating status:', error);
+    if (error.response) {
+      console.error('❌ Error status:', error.response.status);
+      console.error('❌ Error data:', error.response.data);
+      console.error('❌ Error headers:', error.response.headers);
+    }
     window.showToast('Failed to update status', 'failed');
   } finally {
     isSavingChanges.value = false;
   }
 };
+
 </script>
 
 <style>

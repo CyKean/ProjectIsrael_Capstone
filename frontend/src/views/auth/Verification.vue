@@ -140,13 +140,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import api from '../../api/index.js'
 import { useUserStore } from '../../utils/user'
-import toastr from 'toastr'
 import LoadingPage from '../layout/LoadingPage.vue'
-// import { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber, query, where, getDocs } from "../../api/firebase.js"
-import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
-import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-const db = getFirestore();
-const auth = getAuth(); // ✅ This is required
 
 const router = useRouter()
 const route = useRoute()
@@ -225,86 +219,154 @@ const resendCode = async () => {
       ? phone
       : phone.replace(/^0/, "+63");
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 🔁 Save new OTP to Firestore
-    const q = query(collection(db, "users"), where("phoneNumber", "==", formattedPhone));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      const userDoc = snapshot.docs[0];
-      await updateDoc(doc(db, "users", userDoc.id), {
-        otp,
-        otpSentAt: serverTimestamp()
-      });
-    }
-
-    // 🔁 Send OTP via backend (Vonage)
-    await api.post("/sms/send-sms", {
-      number: formattedPhone,
-      message: `Your new OTP code is: ${otp}`
+    // Call the backend resend OTP endpoint
+    const response = await api.post("/auth/resend-otp", {
+      phoneNumber: formattedPhone
     });
 
-    window.showToast("A new OTP has been sent to your phone.",'success');
-    startResendCooldown();
+    if (response.data.success) {
+      const otp = response.data.otp; // Get OTP from backend response
+      
+      // Send OTP via SMS (if your SMS service is working)
+      try {
+        await api.post("/sms/send-sms", {
+          number: formattedPhone,
+          message: `Your new OTP code is: ${otp}`
+        });
+        window.showToast("A new OTP has been sent to your phone.", 'success');
+      } catch (smsError) {
+        console.error("SMS sending failed:", smsError);
+        // Still show success but indicate SMS might not have been delivered
+        window.showToast("New OTP generated. SMS delivery may be delayed.", 'info');
+      }
+      
+      // For development
+      if (process.env.NODE_ENV === 'development') {
+        console.log("New OTP:", otp);
+        localStorage.setItem('debug_otp', otp);
+      }
+      
+      startResendCooldown();
+    } else {
+      window.showToast(response.data.message || "Failed to resend OTP.", 'failed');
+    }
   } catch (error) {
     console.error("Resend code error:", error);
-    window.showToast("Failed to resend OTP.",'failed');
+    window.showToast("Failed to resend OTP. Please try again.", 'failed');
   } finally {
     isResendingCode.value = false;
   }
-
 };
+
+// const resendCode = async () => {
+//   if (resendTimer.value > 0 || isResendingCode.value) return;
+
+//   isResendingCode.value = true;
+
+//   try {
+//     const formattedPhone = phone.startsWith("+63")
+//       ? phone
+//       : phone.replace(/^0/, "+63");
+
+//     // 1. First try to send SMS
+//     window.showToast("Sending OTP...", 'info');
+    
+//     // Generate OTP locally first (for the message)
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+//     try {
+//       // Try to send SMS first
+//       await api.post("/sms/send-sms", {
+//         number: formattedPhone,
+//         message: `Your new OTP code is: ${otp}`
+//       });
+      
+//       // 2. If SMS is successful, then save to backend
+//       const response = await api.post("/auth/resend-otp", {
+//         phoneNumber: formattedPhone,
+//         otp: otp // Send the OTP we already used in SMS
+//       });
+
+//       if (response.data.success) {
+//         window.showToast("A new OTP has been sent to your phone.", 'success');
+        
+//         // For development
+//         if (process.env.NODE_ENV === 'development') {
+//           console.log("OTP:", otp);
+//           localStorage.setItem('debug_otp', otp);
+//         }
+        
+//         startResendCooldown();
+//       } else {
+//         window.showToast("OTP sent but failed to save. Please try again.", 'warning');
+//       }
+      
+//     } catch (smsError) {
+//       // If SMS fails, don't save to database
+//       console.error("SMS sending failed:", smsError);
+//       window.showToast("Failed to send OTP. Please check your connection.", 'failed');
+//       return; // Exit early, don't save to database
+//     }
+
+//   } catch (error) {
+//     console.error("Resend code error:", error);
+    
+//     if (error.response && error.response.data) {
+//       const errorDetail = error.response.data.detail || error.response.data.message;
+//       window.showToast(errorDetail || "Failed to resend OTP.", 'failed');
+//     } else {
+//       window.showToast("Failed to resend OTP. Please try again.", 'failed');
+//     }
+//   } finally {
+//     isResendingCode.value = false;
+//   }
+// };
 
 const handleVerification = async () => {
   const code = verificationCode.value.join("").trim();
 
   if (code.length !== 6) {
-    window.showToast("Please enter the 6-digit code.",'warning');
+    window.showToast("Please enter the 6-digit code.", 'warning');
     return;
   }
 
   isLoading.value = true;
 
   try {
-    const q = query(collection(db, "users"), where("phoneNumber", "==", phone));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      window.showToast("Phone number not found.",'warning');
-      return;
-    }
-
-    const doc = snapshot.docs[0];
-    const userData = doc.data();
-
-    if (userData.otp !== code) {
-      window.showToast("Invalid verification code.",'warning');
-      return;
-    }
-
-    await updateDoc(doc.ref, {
-      verified: true,
-      otp: ""
+    // Call the backend OTP verification endpoint
+    const response = await api.post('/auth/verify-otp', {
+      phoneNumber: phone, // This should be the phone number from your component state
+      otp: code
     });
 
-    // Clear user data - more defensive approach
-    const userStore = useUserStore();
-    if (userStore && typeof userStore.clearUser === 'function') {
-      userStore.clearUser();
-    } else {
-      console.warn("userStore.clearUser is not available");
-      userStore.user = null; // Fallback
-    }
-    
-    localStorage.removeItem('user');
-    localStorage.removeItem('otpPhone');
+    if (response.data.success) {
+      // Clear user data - more defensive approach
+      const userStore = useUserStore();
+      if (userStore && typeof userStore.clearUser === 'function') {
+        userStore.clearUser();
+      } else {
+        console.warn("userStore.clearUser is not available");
+        if (userStore) userStore.user = null; // Fallback
+      }
+      
+      localStorage.removeItem('user');
+      localStorage.removeItem('otpPhone');
 
-    window.showToast("Phone number verified! Please log in.",'success');
-    router.push("/login");
+      window.showToast("Phone number verified! Please log in.", 'success');
+      router.push("/login");
+    } else {
+      window.showToast(response.data.message || "Verification failed.", 'failed');
+    }
   } catch (error) {
     console.error("Verification error:", error);
-    window.showToast("Verification failed. Please try again.",'failed');
+    
+    // Handle different error responses
+    if (error.response && error.response.data) {
+      const errorDetail = error.response.data.detail || error.response.data.message;
+      window.showToast(errorDetail || "Verification failed. Please try again.", 'failed');
+    } else {
+      window.showToast("Verification failed. Please try again.", 'failed');
+    }
   } finally {
     isLoading.value = false;
   }

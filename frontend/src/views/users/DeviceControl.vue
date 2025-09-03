@@ -354,320 +354,401 @@
         <div class="flex flex-col md:flex-row grid grid-cols-1 md:flex overflow-y-auto">
           
           <!-- LEFT SIDE (1/4) - Filters, Search, Export -->
-          <div class="w-full h-[550px] md:w-1/4 border-r border-gray-100 bg-white p-2 mb-3 md:p-4 flex flex-col overflow-y-hidden md:overflow-y-auto">
+          <div class="w-full md:w-1/4 border-r border-gray-100 bg-white p-2 mb-3 md:p-4 flex flex-col transition-all duration-300 ease-in-out" 
+              :class="showFilters ? 'h-auto' : 'h-[50px] md:h-auto overflow-hidden'">
             
-            <!-- Search Bar -->
-            <div class="mb-2 md:mb-4">
-              <div class="relative">
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 md:h-4 md:w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search schedules..."
-                  class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs md:text-sm"
-                  v-model="searchQuery"
-                />
+            <!-- Mobile toggle button for filters - IMPROVED VISIBILITY -->
+            <button 
+              @click="showFilters = !showFilters"
+              class="md:hidden flex items-center justify-between w-full bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg border border-emerald-200 transition-colors"
+            >
+              <div class="flex items-center gap-3">
+                <Filter class="w-3 h-3 text-emerald-600" />
+                <span class="text-xs font-medium text-emerald-700">Filters & Options</span>
               </div>
-            </div>
+              <ChevronDown class="w-5 h-5 text-emerald-600 transition-transform" :class="{ 'rotate-180': showFilters }" />
+            </button>
             
-            <!-- Filters Section -->
-            <div class="space-y-2 md:space-y-4 md:mb-4">
-              <h3 class="text-xs md:text-sm font-medium text-gray-700">Filters</h3>
+            <!-- Search and Filters Container - Smooth height transition -->
+            <div class="transition-all duration-300 ease-in-out overflow-auto" 
+                :class="showFilters ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 md:max-h-none md:opacity-100'">
               
-              <!-- Date Range -->
-              <div class="space-y-2">
-                <label class="text-[10px] md:text-xs text-gray-500">Date Range</label>
-                <div class="flex flex-col space-y-2">
-                  <div class="flex items-center">
-                    <span class="text-[10px] md:text-xs text-gray-500 w-14">From:</span>
-                    <input 
-                      type="date" 
-                      v-model="historyFilters.startDate" 
-                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      :max="currentDateFormatted"
-                    />
-                  </div>
-                  <div class="flex items-center">
-                    <span class="text-[10px] md:text-xs text-gray-500 w-14">To:</span>
-                    <input 
-                      type="date" 
-                      :value="currentDateFormatted"
-                      class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-gray-100"
-                      readonly
-                    />
-                  </div>
+              <!-- Search Bar -->
+              <div class="mb-4 mt-2 md:mt-0">
+                <div class="relative">
+                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search schedules..."
+                    class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs"
+                    v-model="searchQuery"
+                  />
                 </div>
               </div>
               
-              <!-- Schedule Type -->
-              <div class="space-y-2">
-                <label class="text-[10px] md:text-xs text-gray-500">Schedule Type</label>
-                <select 
-                  v-model="historyFilters.scheduleType" 
-                  class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="all">All Types</option>
-                  <option value="one-time">One-time</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              
-              <!-- Duration -->
-              <div class="mb-2 md:space-y-2">
-                <label class="text-[10px] md:text-xs text-gray-500">Duration</label>
-                <select 
-                  v-model="historyFilters.duration" 
-                  class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="all">All Durations</option>
-                  <option value="short">Short (< 10 min)</option>
-                  <option value="medium">Medium (10-30 min)</option>
-                  <option value="long">Long (> 30 min)</option>
-                </select>
-              </div>
-              
-              <!-- Apply Filters Button -->
-              <button 
-                @click="applyHistoryFilters" 
-                class="w-full flex items-center justify-center gap-1.5 px-2 py-2 md:px-4 md:py-2 bg-emerald-500 text-white rounded-lg text-xs md:text-sm font-medium hover:bg-emerald-600 transition-colors"
-              >
-                <Filter class="h-4 w-4" />
-                Apply Filters
-              </button>
-              
-              <!-- Clear All Filters (only shown when filters are active) -->
-              <button 
-                v-if="hasActiveFilters"
-                @click="clearAllFilters" 
-                class="w-full text-[10px] md:text-xs text-gray-500 hover:text-gray-700 underline py-1 text-center"
-              >
-                Clear all filters
-              </button>
-            </div>
-            
-            <!-- Active Filters Display -->
-            <div v-if="hasActiveFilters" class="mb-4">
-              <h3 class="text-[10px] md:text-xs font-medium text-gray-500 mb-2">Active filters:</h3>
-              <div class="flex flex-wrap gap-2">
-                <!-- Date Range Filter Tag -->
-                <div v-if="historyFilters.startDate || historyFilters.endDate" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded-full">
-                  <Calendar class="w-3 h-3" />
-                  <span>{{ formatDateRange }}</span>
-                  <button @click="clearDateFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
-                    <X class="w-3 h-3" />
-                  </button>
+              <!-- Filters Section -->
+              <div class="space-y-4 mb-4">
+                <h3 class="text-sm font-medium text-gray-700">Filters</h3>
+                
+                <!-- Date Range -->
+                <div class="space-y-2">
+                  <label class="text-xs text-gray-500 font-medium">Date Range</label>
+                  <div class="flex flex-col space-y-2">
+                    <div class="flex items-center">
+                      <span class="text-xs text-gray-500 w-14">From:</span>
+                      <input 
+                        type="date" 
+                        v-model="historyFilters.startDate" 
+                        class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        :max="currentDateFormatted"
+                      />
+                    </div>
+                    <div class="flex items-center">
+                      <span class="text-xs text-gray-500 w-14">To:</span>
+                      <input 
+                        type="date" 
+                        :value="currentDateFormatted"
+                        class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-100"
+                        readonly
+                      />
+                    </div>
+                  </div>
                 </div>
                 
-                <!-- Schedule Type Filter Tag -->
-                <div v-if="historyFilters.scheduleType !== 'all'" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded-full">
-                  <CalendarClock class="w-3 h-3" />
-                  <span>{{ formatScheduleType }}</span>
-                  <button @click="clearTypeFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
-                    <X class="w-3 h-3" />
-                  </button>
+                <!-- Schedule Type -->
+                <div class="space-y-2">
+                  <label class="text-xs text-gray-500 font-medium">Schedule Type</label>
+                  <select 
+                    v-model="historyFilters.scheduleType" 
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="one-time">One-time</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="custom">Custom</option>
+                  </select>
                 </div>
                 
-                <!-- Duration Filter Tag -->
-                <div v-if="historyFilters.duration !== 'all'" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded-full">
-                  <Clock class="w-3 h-3" />
-                  <span>{{ formatDuration }}</span>
-                  <button @click="clearDurationFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
-                    <X class="w-3 h-3" />
-                  </button>
+                <!-- Duration -->
+                <div class="space-y-2">
+                  <label class="text-xs text-gray-500 font-medium">Duration</label>
+                  <select 
+                    v-model="historyFilters.duration" 
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="all">All Durations</option>
+                    <option value="short">Short (< 10 min)</option>
+                    <option value="medium">Medium (10-30 min)</option>
+                    <option value="long">Long (> 30 min)</option>
+                  </select>
                 </div>
-              </div>
-            </div>
-            
-            <!-- Export Section -->
-            <div class="mt-auto">
-              <h3 class="text-xs md:text-sm font-medium text-gray-700 mb-2">Export Data</h3>
-              <div class="relative">
+                
+                <!-- Apply Filters Button -->
                 <button 
-                  @click.stop="toggleDropdown('export')"
-                  class="w-full flex items-center justify-between gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  @click="applyHistoryFilters" 
+                  class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
                 >
-                  <div class="flex items-center gap-1.5">
-                    <Download class="h-4 w-4" />
-                    <span>Export History</span>
-                  </div>
-                  <ChevronDown class="h-3.5 w-3.5" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+                  <Filter class="h-4 w-4" />
+                  Apply Filters
                 </button>
                 
-                <div 
-                  v-show="activeDropdown === 'export'"
-                  class="absolute left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
+                <!-- Clear All Filters (only shown when filters are active) -->
+                <button 
+                  v-if="hasActiveFilters"
+                  @click="clearAllFilters" 
+                  class="w-full text-xs text-gray-500 hover:text-gray-700 underline py-2 text-center transition-colors"
                 >
-                  <div class="py-1">
-                    <button
-                      v-for="format in exportFormats"
-                      :key="format"
-                      @click="exportData(format)"
-                      class="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                    >
-                      <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-3.5 w-3.5" /></span>
-                      <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-3.5 w-3.5" /></span>
-                      {{ format.toUpperCase() }}
+                  Clear all filters
+                </button>
+              </div>
+              
+              <!-- Active Filters Display -->
+              <div v-if="hasActiveFilters" class="mb-6">
+                <h3 class="text-xs font-medium text-gray-500 mb-3">Active filters:</h3>
+                <div class="flex flex-wrap gap-2">
+                  <!-- Date Range Filter Tag -->
+                  <div v-if="historyFilters.startDate || historyFilters.endDate" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-3 py-1.5 rounded-full border border-emerald-200">
+                    <Calendar class="w-3 h-3" />
+                    <span>{{ formatDateRange }}</span>
+                    <button @click="clearDateFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
+                      <X class="w-3 h-3" />
+                    </button>
+                  </div>
+                  
+                  <!-- Schedule Type Filter Tag -->
+                  <div v-if="historyFilters.scheduleType !== 'all'" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-3 py-1.5 rounded-full border border-emerald-200">
+                    <CalendarClock class="w-3 h-3" />
+                    <span>{{ formatScheduleType }}</span>
+                    <button @click="clearTypeFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
+                      <X class="w-3 h-3" />
+                    </button>
+                  </div>
+                  
+                  <!-- Duration Filter Tag -->
+                  <div v-if="historyFilters.duration !== 'all'" class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-3 py-1.5 rounded-full border border-emerald-200">
+                    <Clock class="w-3 h-3" />
+                    <span>{{ formatDuration }}</span>
+                    <button @click="clearDurationFilter" class="ml-1 text-emerald-600 hover:text-emerald-800">
+                      <X class="w-3 h-3" />
                     </button>
                   </div>
                 </div>
+              </div>
+              
+              <!-- Export Section -->
+              <div class="mt-6">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Export Data</h3>
+                
+                <!-- Export Button with Dropdown -->
+                <div class="relative mb-3">
+                  <button 
+                    @click.stop="toggleDropdown('export', $event)"
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200 shadow-sm"
+                  >
+                    <div class="flex items-center gap-2">
+                      <Download class="h-4 w-4" />
+                      <span>Export Options</span>
+                    </div>
+                    <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': activeDropdown === 'export' }" />
+                  </button>
+                  
+                  <!-- Dropdown Menu - FIXED POSITIONING -->
+                  <div 
+                    v-show="activeDropdown === 'export'"
+                    class="fixed md:absolute left-4 right-4 md:left-0 md:right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-300 z-[1000] overflow-hidden"
+                    :style="dropdownPosition.top ? {
+                      top: dropdownPosition.top + 'px',
+                      left: dropdownPosition.left + 'px',
+                      width: dropdownPosition.width + 'px'
+                    } : ''"
+                    @click.stop
+                    ref="exportDropdown"
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="format in exportFormats"
+                        :key="format"
+                        @click="exportData(format)"
+                        class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                      >
+                        <FileText class="h-4 w-4" :class="{
+                          'text-emerald-500': format === 'csv',
+                          'text-red-500': format === 'pdf'
+                        }" />
+                        <span>Export as {{ format.toUpperCase() }}</span>
+                      </button>
+                      <!-- Print Button in Dropdown -->
+                      <button
+                        @click="printTable"
+                        class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                      >
+                        <Printer class="h-4 w-4 text-blue-500" />
+                        <span>Print Table</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                                
+                <!-- Standalone Print Button (visible on mobile) -->
+                <button 
+                  @click="printTable"
+                  class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm md:hidden"
+                >
+                  <Printer class="h-4 w-4" />
+                  <span>Print Table</span>
+                </button>
               </div>
             </div>
           </div>
           
           <!-- RIGHT SIDE (3/4) - Table Display -->
-          <div class="w-full h-[550px] md:h-[590px] md:w-3/4 flex-1 flex flex-col overflow-hidden">
-            <!-- Fixed Table Header - Will not scroll -->
-            <div class="bg-gray-50 border-b border-gray-200">
-              <table class="min-w-full">
-                <thead>
-                  <tr>
-                    <th class="w-[25%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div class="text-gray-600">Date & Time</div>
-                      <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">MMM DD, YYYY HH:MM</div>
-                    </th>
-                    <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
-                      <div class="text-blue-600">Duration</div>
-                      <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Minutes</div>
-                    </th>
-                    <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
-                      <div class="text-emerald-600">Schedule Type</div>
-                      <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Mode</div>
-                    </th>
-                    <th class="w-[15%] py-1 px-2 md:py-3 md:px-4text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
-                      <div class="text-gray-600">Status</div>
-                      <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Completion</div>
-                    </th>
-                    <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
-                      <div class="text-gray-600">Additional Info</div>
-                      <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Settings</div>
-                    </th>
-                  </tr>
-                </thead>
-              </table>
-            </div>
-            
-            <!-- Scrollable Table Body -->
-            <div class="flex-1 overflow-y-auto">
-              <table class="min-w-full">
-                <tbody>
-                  <!-- Loading state -->
-                  <tr v-if="isLoadingHistory" class="border-b border-gray-50 last:border-0">
-                    <td colspan="5" class="px-4 py-20 text-center">
-                      <div class="flex flex-col items-center justify-center">
-                        <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p class="text-gray-500">Loading schedule history...</p>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  <!-- Empty state -->
-                  <tr v-else-if="filteredPastSchedules.length === 0" class="border-b border-gray-50 last:border-0">
-                    <td colspan="5" class="px-4 py-20 text-center">
-                      <div class="flex flex-col items-center justify-center">
-                        <History class="h-16 w-16 text-gray-200 mb-4" />
-                        <p class="text-gray-400 font-medium">No schedule history found</p>
-                        <p class="text-xs text-gray-400 mt-2">Completed schedules will appear here</p>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  <!-- Data rows -->
-                  <tr 
-                    v-else
-                    v-for="(schedule, index) in paginatedPastSchedules" 
-                    :key="index"
-                    class="border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0"
-                  >
-                    <!-- Date & Time -->
-                    <td class="w-[25%] px-4 py-3 whitespace-nowrap">
-                      <div class="flex items-center gap-2">
-                        <div class="w-1 h-1 md:w-2 md:h-2 rounded-full bg-gray-400"></div>
-                        <div class="text-xs md:text-sm font-medium text-gray-700">{{ schedule.dateTime }}</div>
-                      </div>
-                    </td>
-                    
-                    <!-- Duration -->
-                    <td class="w-[20%] px-4 py-3 whitespace-nowrap">
-                      <div class="text-xs md:text-sm font-medium text-blue-600">
-                        {{ schedule.duration }} minutes
-                      </div>
-                    </td>
-                    
-                    <!-- Schedule Type -->
-                    <td class="w-[20%] px-4 py-3 whitespace-nowrap">
-                      <span class="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 capitalize">
-                        {{ schedule.mode }}
-                      </span>
-                    </td>
-                    
-                    <!-- Status -->
-                    <td class="w-[15%] px-4 py-3 whitespace-nowrap">
-                      <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Completed
-                      </span>
-                    </td>
-                    
-                    <!-- Additional Info -->
-                    <td class="w-[20%] px-4 py-3">
-                      <div class="flex flex-wrap gap-1">
-                        <div v-if="schedule.skipIfRain" class="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                          <CloudRain class="w-3 h-3" />
-                          <span>Rain skip</span>
-                        </div>
-                        <div v-if="schedule.notifyWatering" class="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                          <Bell class="w-3 h-3" />
-                          <span>Notify</span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          
-            <!-- Pagination - At the bottom of right side -->
-            <div class="border-t border-gray-100 py-3 px-6 bg-white">
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div class="text-xs md:text-sm text-gray-600 flex items-center gap-2">
-                  <span>Showing</span>
-                  <select 
-                    v-model="itemsPerPage" 
-                    class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs md:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    @change="updatePagination"
-                  >
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                  </select>
-                  <span>of {{ filteredPastSchedules.length }}</span>
+          <div class="w-full md:w-3/4 flex-1 flex flex-col overflow-hidden">
+            <!-- Mobile Card View (shown on small screens) -->
+            <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
+              <div v-for="(schedule, index) in paginatedPastSchedules" :key="index" 
+                  class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <div class="text-xs font-medium text-gray-900">{{ schedule.dateTime }}</div>
+                  </div>
+                  <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Completed
+                  </span>
                 </div>
-                
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Duration</div>
+                    <div class="text-xs font-semibold text-blue-600">{{ schedule.duration }} minutes</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Type</div>
+                    <div class="text-xs font-semibold text-emerald-600 capitalize">{{ schedule.mode }}</div>
+                  </div>
+                  <div v-if="schedule.skipIfRain || schedule.notifyWatering" class="col-span-2">
+                    <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Settings</div>
+                    <div class="flex flex-wrap gap-1">
+                      <div v-if="schedule.skipIfRain" class="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        <CloudRain class="w-3 h-3" />
+                        <span>Rain skip</span>
+                      </div>
+                      <div v-if="schedule.notifyWatering" class="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                        <Bell class="w-3 h-3" />
+                        <span>Notify</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-if="paginatedPastSchedules.length === 0 && !isLoadingHistory" 
+                  class="flex flex-col items-center justify-center py-8">
+                <History class="h-10 w-10 text-gray-300 mb-2" />
+                <p class="text-gray-500 text-xs font-medium">No schedule history found</p>
+                <p class="text-gray-400 text-[10px]">Completed schedules will appear here</p>
+              </div>
+            </div>
+
+            <!-- Desktop Table View (shown on medium screens and up) -->
+            <div class="hidden sm:flex flex-1 flex-col min-h-0">
+              <!-- Fixed Table Header - Will not scroll -->
+              <div class="bg-gray-50 border-b border-gray-200">
+                <table class="min-w-full">
+                  <thead>
+                    <tr>
+                      <th class="w-[25%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="text-gray-600">Date & Time</div>
+                        <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">MMM DD, YYYY HH:MM</div>
+                      </th>
+                      <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
+                        <div class="text-blue-600">Duration</div>
+                        <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Minutes</div>
+                      </th>
+                      <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
+                        <div class="text-emerald-600">Schedule Type</div>
+                        <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Mode</div>
+                      </th>
+                      <th class="w-[15%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
+                        <div class="text-gray-600">Status</div>
+                        <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Completion</div>
+                      </th>
+                      <th class="w-[20%] py-1 px-2 md:py-3 md:px-4 text-left text-[8px] md:text-xs font-medium uppercase tracking-wider">
+                        <div class="text-gray-600">Additional Info</div>
+                        <div class="text-gray-400 text-[5px] md:text-[10px] normal-case">Settings</div>
+                      </th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              
+              <!-- Scrollable Table Body -->
+              <div class="flex-1 overflow-y-auto">
+                <table class="min-w-full">
+                  <tbody>
+                    <!-- Loading state -->
+                    <tr v-if="isLoadingHistory" class="border-b border-gray-50 last:border-0">
+                      <td colspan="5" class="px-4 py-20 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                          <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                          <p class="text-gray-500">Loading schedule history...</p>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Empty state -->
+                    <tr v-else-if="filteredPastSchedules.length === 0" class="border-b border-gray-50 last:border-0">
+                      <td colspan="5" class="px-4 py-20 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                          <History class="h-16 w-16 text-gray-200 mb-4" />
+                          <p class="text-gray-400 font-medium">No schedule history found</p>
+                          <p class="text-xs text-gray-400 mt-2">Completed schedules will appear here</p>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Data rows -->
+                    <tr 
+                      v-else
+                      v-for="(schedule, index) in paginatedPastSchedules" 
+                      :key="index"
+                      class="border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0"
+                    >
+                      <!-- Date & Time -->
+                      <td class="w-[25%] px-4 py-3 whitespace-nowrap">
+                        <div class="flex items-center gap-2">
+                          <div class="w-1 h-1 md:w-2 md:h-2 rounded-full bg-gray-400"></div>
+                          <div class="text-xs md:text-sm font-medium text-gray-700">{{ schedule.dateTime }}</div>
+                        </div>
+                      </td>
+                      
+                      <!-- Duration -->
+                      <td class="w-[20%] px-4 py-3 whitespace-nowrap">
+                        <div class="text-xs md:text-sm font-medium text-blue-600">
+                          {{ schedule.duration }} minutes
+                        </div>
+                      </td>
+                      
+                      <!-- Schedule Type -->
+                      <td class="w-[20%] px-4 py-3 whitespace-nowrap">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 capitalize">
+                          {{ schedule.mode }}
+                        </span>
+                      </td>
+                      
+                      <!-- Status -->
+                      <td class="w-[15%] px-4 py-3 whitespace-nowrap">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          Completed
+                        </span>
+                      </td>
+                      
+                      <!-- Additional Info -->
+                      <td class="w-[20%] px-4 py-3">
+                        <div class="flex flex-wrap gap-1">
+                          <div v-if="schedule.skipIfRain" class="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                            <CloudRain class="w-3 h-3" />
+                            <span>Rain skip</span>
+                          </div>
+                          <div v-if="schedule.notifyWatering" class="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                            <Bell class="w-3 h-3" />
+                            <span>Notify</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Pagination - At the bottom of right side -->
+            <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] md:text-xs text-gray-600">
+                  Showing {{ paginationStart }} - {{ paginationEnd }} of {{ filteredPastSchedules.length }}
+                </div>
                 <div class="flex items-center gap-1">
                   <button 
                     @click="prevPage"
                     :disabled="currentPage === 1"
-                    class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
-                      disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                      enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
+                    class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
                   >
-                    <ChevronLeft class="w-4 h-4 mr-1" />
-                    Prev
+                    <ChevronLeft class="w-3.5 h-3.5" />
                   </button>
                   
-                  <div class="flex items-center">
+                  <div class="flex items-center gap-1">
                     <button
-                      v-for="page in displayedPages"
-                      :key="page"
+                      v-for="(page, index) in paginationNumbers"
+                      :key="index"
                       @click="goToPage(page)"
+                      :disabled="page === '..'"
                       :class="[
-                        'relative inline-flex items-center justify-center w-5 h-5 md:w-8 md:h-8 text-xs md:text-sm transition-colors mx-0.5 rounded-md',
-                        page === currentPage
-                          ? 'text-white bg-emerald-500 font-semibold'
-                          : page === '...'
-                            ? 'cursor-default text-gray-400'
-                            : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+                        'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
+                        page === currentPage 
+                          ? 'bg-emerald-500 text-white font-medium' 
+                          : page === '..' 
+                            ? 'text-gray-400 cursor-default' 
+                            : 'text-gray-700 hover:text-emerald-600 hover:bg-gray-100'
                       ]"
                     >
                       {{ page }}
@@ -677,12 +758,9 @@
                   <button 
                     @click="nextPage"
                     :disabled="currentPage >= totalPages"
-                    class="inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm font-medium transition-colors rounded-md
-                      disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                      enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
+                    class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
                   >
-                    Next
-                    <ChevronRight class="w-4 h-4 ml-1" />
+                    <ChevronRight class="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -877,7 +955,7 @@
                   :key="day"
                   @click="toggleWateringDay(index)"
                   :class="[
-                    'md:py-3 py-2 px-2 w-[40px] rounded-xl transition-all text-xs md:text-sm font-medium relative overflow-hidden',
+                    'md:py-3 py-2 px-2 w-[40px] md:w-[80px] rounded-xl transition-all text-xs md:text-sm font-medium relative overflow-hidden',
                     wateringDays[index] 
                       ? 'bg-green-500 text-white shadow-sm' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1056,23 +1134,6 @@
               <h3 class="text-sm font-medium text-gray-700 mb-3">Additional Settings</h3>
             
               <div class="space-y-3">
-                <!-- Weather-based Skip -->
-                <!-- <div class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <div class="flex items-center gap-3">
-                    <div class="bg-blue-100 p-1.5 rounded-full">
-                      <CloudRain class="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">Skip if rain is forecasted</p>
-                      <p class="text-xs text-gray-500 mt-0.5">Automatically skip watering if rain is expected</p>
-                    </div>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" v-model="skipIfRain" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                  </label>
-                </div> -->
-              
                 <!-- Notification -->
                 <div class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border border-gray-200">
                   <div class="flex items-center gap-3">
@@ -1134,10 +1195,7 @@
                   <Clock class="w-4 h-4 text-gray-500" />
                   <span>{{ timeDisplay }} for {{ wateringDuration }} minutes</span>
                 </div>
-                <!-- <div v-if="skipIfRain" class="flex items-center gap-2">
-                  <CloudRain class="w-4 h-4 text-gray-500" />
-                  <span>Will skip if rain is forecasted</span>
-                </div> -->
+               
               </div>
             </div>
           </div>
@@ -1258,7 +1316,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import {
   Droplet,
   Droplets,
@@ -1289,41 +1347,30 @@ import {
   FileText,
   FileSearch,
   Info,
-  XCircle
+  XCircle,
+  Printer
 } from 'lucide-vue-next'
-import Sidebar from '../layout/Sidebar.vue'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  doc,
-  setDoc,
-  Timestamp,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  where,
-  onSnapshot
-} from 'firebase/firestore'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { saveAs } from 'file-saver'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
+import api from '../../api/index'
 
-// Firestore setup
-const db = getFirestore()
 const SCHEDULE_ROOT_DOC = 'schedules_root'
 const SCHEDULE_COLLECTION = 'watering_schedules'
 const ONE_TIME_SUBCOLLECTION = 'one_time'
 const WEEKLY_SUBCOLLECTION = 'weekly'
 const DAILY_SUBCOLLECTION = 'daily'
 const HISTORY_COLLECTION = 'history'
+
+const API_ENDPOINTS = {
+  MOTOR_STATUS: '/motor-status-ph',  // Use Philippine Time endpoint
+  MOTOR_HISTORY: '/motor-history-ph', 
+  SCHEDULES: '/watering-schedules',
+  SCHEDULE_HISTORY: '/schedule-history',
+  SOIL_MOISTURE: '/soil-moisture'
+}
 
 // View state
 const currentView = ref('overview')
@@ -1346,8 +1393,29 @@ const showFilterPanel = ref(false)
 const itemsPerPage = ref(10)
 const currentPage = ref(1)
 const totalPages = computed(() => Math.ceil(filteredPastSchedules.value.length / itemsPerPage.value))
-const paginationStart = computed(() => ((currentPage.value - 1) * itemsPerPage.value) + 1)
-const paginationEnd = computed(() => Math.min(currentPage.value * itemsPerPage.value, filteredPastSchedules.value.length))
+// Add these computed properties
+const paginationStart = computed(() => {
+  return ((currentPage.value - 1) * itemsPerPage.value) + 1
+})
+
+const paginationEnd = computed(() => {
+  return Math.min(currentPage.value * itemsPerPage.value, filteredPastSchedules.value.length)
+})
+
+const paginationNumbers = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  
+  if (total <= 1) return [1]
+  
+  if (current === 1) {
+    return [1, '..', total]
+  } else if (current === total) {
+    return [1, '..', total]
+  } else {
+    return [current, '..', total]
+  }
+})
 
 // Modal control
 const showScheduleModal = ref(false)
@@ -1414,6 +1482,259 @@ let realTimeInterval
 const nextUpdateTimeout = ref(null)
 const activeScheduleEndTime = ref(null)
 
+const showFilters = ref(false)
+
+// Add this method for printing
+const printTable = () => {
+  // Close any open dropdowns
+  activeDropdown.value = null
+  
+  // Get the current date for the header
+  const now = new Date()
+  const formattedDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+  
+  // Format the data for printing
+  const tableRows = filteredPastSchedules.value.map(schedule => {
+    // Extract date and time properly - handle both string and object formats
+    let dateTime = ''
+    if (schedule.dateTime) {
+      dateTime = schedule.dateTime
+    } else if (schedule.completedAt) {
+      // If dateTime is not available, try to format completedAt
+      const completedDate = new Date(schedule.completedAt)
+      dateTime = completedDate.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+    
+    // Extract duration properly
+    const duration = schedule.duration ? `${schedule.duration} minutes` : ''
+    
+    // Extract schedule type
+    const scheduleType = schedule.mode || schedule.scheduleType || ''
+    
+    // Extract additional info
+    const additionalInfo = []
+    if (schedule.skipIfRain) additionalInfo.push('Rain skip')
+    if (schedule.notifyWatering) additionalInfo.push('Notify')
+    
+    return {
+      dateTime,
+      duration,
+      scheduleType,
+      additionalInfo: additionalInfo.join(', ')
+    }
+  })
+  
+  // Create the HTML content
+  const tableContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Schedule History</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          color: #333;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 2px solid #10b981;
+          padding-bottom: 10px;
+        }
+        .header h1 {
+          color: #10b981;
+          margin: 0;
+        }
+        .header .date {
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .filters-info {
+          margin-bottom: 15px;
+          padding: 10px;
+          background-color: #f9fafb;
+          border-radius: 5px;
+          font-size: 14px;
+        }
+        .filters-info span {
+          display: inline-block;
+          margin-right: 10px;
+          padding: 4px 8px;
+          background-color: #e5e7eb;
+          border-radius: 4px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+          font-size: 12px;
+        }
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 8px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: bold;
+        }
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        .status-completed {
+          background-color: #d1fae5;
+          color: #065f46;
+          padding: 4px 8px;
+          border-radius: 12px;
+          display: inline-block;
+        }
+        .schedule-type {
+          background-color: #dbeafe;
+          color: #1e40af;
+          padding: 4px 8px;
+          border-radius: 12px;
+          display: inline-block;
+        }
+        @media print {
+          body {
+            margin: 0;
+            padding: 15px;
+          }
+          .no-print {
+            display: none;
+          }
+          .header {
+            page-break-after: avoid;
+          }
+          table {
+            page-break-inside: auto;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+        }
+        @page {
+          size: portrait;
+          margin: 0.5in;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Schedule History</h1>
+        <div class="date">${formattedDate}</div>
+      </div>
+      
+      ${hasActiveFilters.value ? `
+      <div class="filters-info">
+        <strong>Active Filters:</strong>
+        ${historyFilters.value.startDate ? `<span>From: ${formatShortDate(historyFilters.value.startDate)}</span>` : ''}
+        ${historyFilters.value.scheduleType !== 'all' ? `<span>Type: ${formatScheduleType.value}</span>` : ''}
+        ${historyFilters.value.duration !== 'all' ? `<span>Duration: ${formatDuration.value}</span>` : ''}
+      </div>
+      ` : ''}
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Duration</th>
+            <th>Schedule Type</th>
+            <th>Status</th>
+            <th>Additional Info</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows.map(row => `
+            <tr>
+              <td>${row.dateTime}</td>
+              <td>${row.duration}</td>
+              <td><span class="schedule-type">${row.scheduleType}</span></td>
+              <td><span class="status-completed">Completed</span></td>
+              <td>${row.additionalInfo}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div style="margin-top: 20px; font-size: 12px; color: #6b7280; text-align: center;">
+        Generated on ${now.toLocaleString()}
+      </div>
+    </body>
+    </html>
+  `
+  
+  // Create a hidden iframe for printing
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'absolute'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = 'none'
+  iframe.style.left = '-9999px' // Move off-screen
+  document.body.appendChild(iframe)
+  
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+  
+  // Write content to iframe
+  iframeDoc.open()
+  iframeDoc.write(tableContent)
+  iframeDoc.close()
+  
+  // Wait for iframe to load and then trigger print
+  iframe.onload = function() {
+    try {
+      // Focus and print
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
+      
+      // Remove the iframe after printing (with a delay to ensure print dialog shows)
+      setTimeout(() => {
+        document.body.removeChild(iframe)
+      }, 100)
+    } catch (error) {
+      console.error('Print error:', error)
+      document.body.removeChild(iframe)
+      
+      // Fallback to original method if iframe approach fails
+      const printWindow = window.open('', '_blank')
+      printWindow.document.write(tableContent)
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
+    }
+  }
+}
+
+// Watch for screen size changes to auto-show filters on larger screens
+watch(() => window.innerWidth, (width) => {
+  if (width >= 768) { // md breakpoint
+    showFilters.value = true
+  } else {
+    showFilters.value = false
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+  
 
 // =============================================
 // NEW SCHEDULE DISPLAY FUNCTIONS
@@ -1695,14 +2016,18 @@ const toggleFilterPanel = () => {
   showFilterPanel.value = !showFilterPanel.value
 }
 
-const filteredMotorActivities = computed(() => {
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+// const filteredMotorActivities = computed(() => {
+//   const sevenDaysAgo = new Date()
+//   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  return motorActivities.value.filter(activity => {
-    const activityDate = parseActivityTimestamp(activity.timestamp)
-    return activityDate >= sevenDaysAgo
-  })
+//   return motorActivities.value.filter(activity => {
+//     const activityDate = parseActivityTimestamp(activity.timestamp)
+//     return activityDate >= sevenDaysAgo
+//   })
+// })
+
+const filteredMotorActivities = computed(() => {
+  return motorActivities.value
 })
 
 const isDuplicateSchedule = (newScheduleDetails) => {
@@ -1729,32 +2054,42 @@ const isDuplicateSchedule = (newScheduleDetails) => {
 
     let dayOverlap = false
 
+    // Check day overlap based on schedule types
     if (newMode === 'one-time') {
       if (existingMode === 'one-time') {
+        // Both one-time: check if same date
         dayOverlap = newDateObj.toDateString() === existingDate.toDateString()
       } else if (existingMode === 'daily') {
+        // One-time vs daily: daily runs every day
         dayOverlap = true
       } else if (existingMode === 'weekly') {
-        const dayIndex = (existingDate.getDay() + 6) % 7
+        // One-time vs weekly: check if one-time falls on a weekly day
+        const dayIndex = (existingDate.getDay() + 6) % 7 // Convert to 0=Monday
         dayOverlap = existingSchedule.days?.[dayIndex] || false
       }
     } else if (newMode === 'daily') {
+      // Daily runs every day, so always overlaps
       dayOverlap = true
     } else if (newMode === 'weekly') {
       if (existingMode === 'one-time') {
+        // Weekly vs one-time: check if one-time falls on a weekly day
         const dayIndex = (existingDate.getDay() + 6) % 7
         dayOverlap = newWeeklyDays[dayIndex]
       } else if (existingMode === 'daily') {
+        // Weekly vs daily: check if weekly has any days selected
         dayOverlap = newWeeklyDays.some(day => day)
       } else if (existingMode === 'weekly') {
+        // Weekly vs weekly: check if any days overlap
         dayOverlap = newWeeklyDays.some((day, i) => day && existingSchedule.days?.[i])
       }
     }
 
+    // If days overlap, check time overlap
     if (dayOverlap) {
       const newStartTime = newHour * 60 + newMinute
       const newEndTime = newStartTime + newDuration
       
+      // Check if time ranges overlap (considering duration)
       return (newStartTime < existingEndTime) && (newEndTime > existingStartTime)
     }
 
@@ -1834,11 +2169,49 @@ const getOriginalIndex = (scheduleId) => {
   return savedSchedules.value.findIndex(schedule => schedule.id === scheduleId)
 }
 
-const toggleDropdown = (dropdown) => {
+const exportDropdown = ref(null)
+const dropdownPosition = ref({
+  top: 0,
+  left: 0,
+  width: 0
+})
+
+// Update the toggleDropdown function to accept event parameter
+const toggleDropdown = (dropdown, event = null) => {
   if (activeDropdown.value === dropdown) {
     activeDropdown.value = null
+    dropdownPosition.value = { top: 0, left: 0, width: 0 }
   } else {
     activeDropdown.value = dropdown
+    
+    // Calculate position for dropdown - only for mobile
+    if (dropdown === 'export' && window.innerWidth < 768 && event) {
+      nextTick(() => {
+        const button = event.target.closest('button') || event.target
+        if (button && exportDropdown.value) {
+          const rect = button.getBoundingClientRect()
+          dropdownPosition.value = {
+            top: rect.bottom + window.scrollY + 5,
+            left: rect.left + window.scrollX,
+            width: rect.width
+          }
+        }
+      })
+    } else {
+      // Reset position for desktop
+      dropdownPosition.value = { top: 0, left: 0, width: 0 }
+    }
+  }
+}
+
+// Add click outside handler
+const handleClickOutside = (event) => {
+  if (activeDropdown.value && 
+      !event.target.closest('.relative') && 
+      !event.target.closest('.fixed') &&
+      !event.target.closest('button')) {
+    activeDropdown.value = null
+    dropdownPosition.value = { top: 0, left: 0, width: 0 }
   }
 }
 
@@ -1987,281 +2360,292 @@ const goToPage = (page) => {
 }
 
 const showToggleConfirmation = () => {
-  showToggleConfirmationDialog.value = true
+  if (!waterPumpActive.value) {
+    checkSoilMoistureBeforeTurningOn()
+  } else {
+    showToggleConfirmationDialog.value = true
+  }
 }
 
+const checkSoilMoistureBeforeTurningOn = async () => {
+  try {
+    const response = await api.get(API_ENDPOINTS.SOIL_MOISTURE)
+    const moisture = response.data.moisture
+    
+    if (moisture >= 50) {
+      showToggleConfirmationDialog.value = true
+    } else {
+      confirmToggleWaterPump()
+    }
+  } catch (error) {
+    console.error('Error checking soil moisture:', error)
+    showToggleConfirmationDialog.value = true
+  }
+}
+
+let motorStatusInterval = null
+const MOTOR_STATUS_POLLING_INTERVAL = 1000
+
+const startMotorStatusPolling = () => {
+  stopMotorStatusPolling()
+  motorStatusInterval = setInterval(fetchMotorStatus, MOTOR_STATUS_POLLING_INTERVAL)
+}
+
+const stopMotorStatusPolling = () => {
+  if (motorStatusInterval) {
+    clearInterval(motorStatusInterval)
+    motorStatusInterval = null
+  }
+}
+
+const fetchMotorStatus = async (retryCount = 0) => {
+  try {
+    const response = await api.get(API_ENDPOINTS.MOTOR_STATUS)
+    
+    if (response.data) {
+      if (waterPumpActive.value !== response.data.status) {
+        waterPumpActive.value = response.data.status
+        console.log('Motor status updated:', response.data.status)
+        
+        if (!response.data.status) {
+          fetchWateringSchedules()
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching motor status:', error)
+    if (retryCount === 0) {
+      window.showToast('Error fetching motor status', 'failed')
+    }
+    if (retryCount < 2) {
+      setTimeout(() => fetchMotorStatus(retryCount + 1), 1000 * (retryCount + 1))
+    }
+  }
+}
+
+const formatSimpleTimestamp = (timestamp) => {
+  if (!timestamp) return 'Recent activity'
+  
+  try {
+    let date;
+    
+    // Handle different timestamp formats
+    if (typeof timestamp === 'string') {
+      // If it's already a formatted string, return as-is
+      if (timestamp.includes('Today') || timestamp.includes('Yesterday') || timestamp.includes(',')) {
+        return timestamp;
+      }
+      date = new Date(timestamp);
+    } else if (typeof timestamp === 'object' && timestamp._seconds) {
+      // Firebase timestamp format
+      date = new Date(timestamp._seconds * 1000);
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) return 'Recent activity'
+    
+    // Convert to Philippine Time (UTC+8)
+    const phTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+    
+    // Get current Philippine time for comparison
+    const now = new Date(Date.now() + (8 * 60 * 60 * 1000));
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const activityDate = new Date(phTime.getFullYear(), phTime.getMonth(), phTime.getDate());
+    
+    // Format the time part
+    const timeStr = phTime.toLocaleTimeString('en-PH', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    
+    // Determine if it's today, yesterday, or another day
+    if (activityDate.getTime() === today.getTime()) {
+      return `Today, ${timeStr}`
+    } 
+    else if (activityDate.getTime() === yesterday.getTime()) {
+      return `Yesterday, ${timeStr}`
+    } 
+    else {
+      return phTime.toLocaleDateString('en-PH', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    }
+  } catch {
+    return 'Recent activity'
+  }
+}
+
+// FIXED: Enhanced fetchMotorActivities with better error handling
+let motorActivitiesInterval = null
+const MOTOR_ACTIVITIES_POLLING_INTERVAL = 10000 // 10 seconds
+
+const startMotorActivitiesPolling = () => {
+  stopMotorActivitiesPolling()
+  motorActivitiesInterval = setInterval(fetchMotorActivities, MOTOR_ACTIVITIES_POLLING_INTERVAL)
+}
+
+const stopMotorActivitiesPolling = () => {
+  if (motorActivitiesInterval) {
+    clearInterval(motorActivitiesInterval)
+    motorActivitiesInterval = null
+  }
+}
+
+const fetchMotorActivities = async () => {
+  isLoadingActivities.value = true
+  try {
+    const response = await api.get(`${API_ENDPOINTS.MOTOR_HISTORY}?limit=20`)
+    console.log('Motor history API response:', response.data)
+    
+    // Process the response data safely
+    const newActivities = response.data.map(activity => {
+      try {
+        // Use formattedTime if available, otherwise format the timestamp
+        let displayTime = activity.formattedTime;
+        
+        // If formattedTime is not available, try to format the timestamp
+        if (!displayTime && activity.timestamp) {
+          displayTime = formatSimpleTimestamp(activity.timestamp);
+        }
+        
+        // Fallback if both are missing
+        if (!displayTime) {
+          displayTime = 'Recent activity';
+        }
+        
+        return {
+          status: activity.status,
+          timestamp: displayTime,
+          source: activity.source || 'manual',
+          // Add unique identifier for comparison
+          uniqueId: activity.timestamp || activity.formattedTime || Math.random().toString()
+        }
+      } catch (error) {
+        console.error('Error processing activity:', error, activity)
+        return {
+          status: activity.status,
+          timestamp: 'Recent activity',
+          source: activity.source || 'manual',
+          uniqueId: Math.random().toString()
+        }
+      }
+    })
+    
+    // Only update if activities actually changed to avoid unnecessary re-renders
+    if (JSON.stringify(motorActivities.value) !== JSON.stringify(newActivities)) {
+      motorActivities.value = newActivities
+      console.log('Motor activities updated')
+    }
+    
+  } catch (error) {
+    console.error('Error fetching motor activities:', error)
+    // Don't clear existing activities on error, just keep showing the last good data
+  } finally {
+    isLoadingActivities.value = false
+  }
+}
+
+// Enhanced version with timestamp-based comparison for better performance
+const fetchMotorActivitiesEnhanced = async () => {
+  isLoadingActivities.value = true
+  try {
+    const response = await api.get(`${API_ENDPOINTS.MOTOR_HISTORY}?limit=20`)
+    
+    // Get the timestamp of the most recent activity we currently have
+    const currentLatestTimestamp = motorActivities.value[0]?.timestamp || ''
+    
+    // Process new activities
+    const newActivities = response.data.map(activity => {
+      try {
+        let displayTime = activity.formattedTime;
+        if (!displayTime && activity.timestamp) {
+          displayTime = formatSimpleTimestamp(activity.timestamp);
+        }
+        if (!displayTime) {
+          displayTime = 'Recent activity';
+        }
+        
+        return {
+          status: activity.status,
+          timestamp: displayTime,
+          source: activity.source || 'manual',
+          rawTimestamp: activity.timestamp || activity.formattedTime
+        }
+      } catch (error) {
+        return {
+          status: activity.status,
+          timestamp: 'Recent activity',
+          source: activity.source || 'manual',
+          rawTimestamp: ''
+        }
+      }
+    })
+    
+    // Check if we have new activities by comparing the latest timestamp
+    const newLatestTimestamp = newActivities[0]?.timestamp || ''
+    
+    if (newLatestTimestamp !== currentLatestTimestamp) {
+      motorActivities.value = newActivities
+      console.log('New motor activities detected, updating list')
+    }
+    
+  } catch (error) {
+    console.error('Error fetching motor activities:', error)
+  } finally {
+    isLoadingActivities.value = false
+  }
+}
+
+// FIXED: Manual toggle with Philippine Time
 const confirmToggleWaterPump = async () => {
   try {
     isTogglingMotor.value = true
-    waterPumpActive.value = !waterPumpActive.value
-    console.log('Toggling water pump to:', waterPumpActive.value ? 'ON' : 'OFF')
-
-    const now = new Date()
-    const formattedTime = now.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+    const newStatus = !waterPumpActive.value
+    
+    const response = await api.post(API_ENDPOINTS.MOTOR_STATUS, {
+      status: newStatus,
+      source: 'manual'
     })
-
-    const statusData = {
-      status: waterPumpActive.value,
-      timestamp: serverTimestamp(),
-      device_id: 'main_motor',
-      user: 'system',
-      formattedTime: formattedTime
-    }
-
-    await setDoc(doc(db, 'motor_status', 'current'), statusData)
-    console.log('✅ Motor status updated in current')
-
-    const historyRef = collection(db, 'motor_status', 'history', 'logs')
-    await addDoc(historyRef, statusData)
-    console.log('📖 Added motor status to history logs')
-
+    
+    waterPumpActive.value = newStatus
+    window.showToast(`Motor turned ${newStatus ? 'ON' : 'OFF'} successfully`, 'success')
+    
+    // Add to local activities using the formatted time from response
     const newActivity = {
-      status: waterPumpActive.value,
-      timestamp: `Today, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      status: newStatus,
+      timestamp: response.data.formattedTime || 'Recent activity',
+      source: 'manual'
     }
+    
     motorActivities.value.unshift(newActivity)
-
-    if (!waterPumpActive.value) {
-      const schedulesRef = collection(db, 'watering_schedules')
-      const q = query(
-        schedulesRef,
-        where('completed', '==', false)
-      )
-
-      const snapshot = await getDocs(q)
-      let foundOngoing = false
-
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data()
-        const scheduleId = docSnap.id
-
-        let start
-        if (data.scheduledTime instanceof Timestamp) {
-          start = data.scheduledTime.toDate()
-        } else {
-          start = new Date(data.scheduledTime)
-        }
-
-        const duration = data.duration || 0
-        const end = new Date(start.getTime() + duration * 60 * 1000)
-
-        if (now >= start && now <= end) {
-          await updateDoc(doc(db, 'watering_schedules', scheduleId), {
-            completed: true,
-            cancellationReason: 'Cancelled manually via motor toggle'
-          })
-          console.log(`⛔ Schedule ${scheduleId} marked as cancelled`)
-          
-          try {
-            const response = await fetch("http://127.0.0.1:8000/api/watering-schedule/complete", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: scheduleId })
-            })
-            
-            if (response.ok) {
-              console.log(`📢 Schedule completion sent to backend for ${scheduleId}`)
-            } else {
-              console.error(`❌ Failed to notify backend about schedule completion: ${response.status}`)
-            }
-          } catch (error) {
-            console.error('❌ Error notifying backend about schedule completion:', error)
-          }
-          
-          foundOngoing = true
-        }
-      }
-
-      if (foundOngoing) {
-        window.showToast('Ongoing watering canceled due to motor toggle.','warning')
-      } else {
-        console.log('✅ No matching ongoing watering schedule found to cancel.')
-      }
-    }
-
-    window.showToast(`Motor turned ${waterPumpActive.value ? 'ON' : 'OFF'} successfully`,'success')
-    isTogglingMotor.value = false
-    showToggleConfirmationDialog.value = false
-
-    try {
-      // const response = await axios.post('http://localhost:8000/api/motor_status/', {
-      const response = await axios.post('https://project-israel-backend.onrender.com/api/motor_status/', {
-        status: waterPumpActive.value,
-        device_id: 'main_motor',
-        user: 'system',
-        timestamp: now.toISOString(),
-        formatted_time: formattedTime,
-        source: 'manual'
-      })
-      console.log('📡 Motor status sent to FastAPI:', response.data)
-    } catch (error) {
-      console.error('❌ Error sending motor status to FastAPI:', error)
-    }
-
+    
+    // Refresh data
+    setTimeout(() => {
+      fetchMotorStatus()
+      fetchMotorActivities()
+      if (!newStatus) fetchWateringSchedules()
+    }, 1000)
+    
   } catch (error) {
-    console.error('❌ Error toggling motor:', error)
-    waterPumpActive.value = !waterPumpActive.value
-    window.showToast('Error saving motor status. Please check console for details.','failed')
-    showToggleConfirmationDialog.value = false
+    console.error('Error toggling motor:', error)
+    waterPumpActive.value = !newStatus
+    window.showToast('Error toggling motor status', 'failed')
+  } finally {
     isTogglingMotor.value = false
+    showToggleConfirmationDialog.value = false
   }
 }
 
-const fetchMotorStatus = () => {
-  console.log('Setting up real-time motor status listeners...')
-  isLoadingActivities.value = true
-
-  const currentStatusUnsub = onSnapshot(
-    doc(db, 'motor_status', 'current'),
-    async (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data()
-        waterPumpActive.value = data.status
-        console.log('📡 Real-time motor status:', data.status)
-
-        if (data.status === false) {
-          const now = Date.now()
-
-          try {
-            const schedulesRef = collection(db, 'watering_schedules')
-            const q = query(
-              schedulesRef,
-              where('completed', '==', false),
-              where('scheduledTime', '<=', now)
-            )
-            const snapshot = await getDocs(q)
-
-            if (!snapshot.empty) {
-              for (const docSnap of snapshot.docs) {
-                const scheduleData = docSnap.data()
-                const endTime = scheduleData.scheduledTime + (scheduleData.duration || 0) * 60000
-
-                if (now <= endTime) {
-                  await updateDoc(doc(db, 'watering_schedules', docSnap.id), {
-                    completed: true,
-                    cancellationReason: 'Cancelled due to manual motor OFF',
-                    updatedAt: serverTimestamp()
-                  })
-
-                  window.showToast(`Watering schedule cancelled due to motor OFF`, 'warning')
-
-                  const notification = {
-                    title: 'Watering Cancelled',
-                    message: `A watering schedule has been cancelled due to manual motor OFF.`,
-                    type: 'warning',
-                    timestamp: serverTimestamp(),
-                    scheduleId: docSnap.id
-                  }
-
-                  await addDoc(collection(db, 'notifications'), notification)
-                  console.log(`📬 Cancellation notification saved for schedule ${docSnap.id}`)
-                }
-              }
-            } else {
-              console.log('✅ No ongoing watering schedule to cancel.')
-            }
-          } catch (err) {
-            console.error('❌ Error checking/canceling watering schedules after motor OFF:', err)
-          }
-        }
-      } else {
-        console.warn('⚠️ No current motor status found in Firestore.')
-      }
-    },
-    (error) => {
-      console.error('❌ Error listening to current motor status:', error)
-    }
-  )
-
-  const historyRef = collection(db, 'motor_status', 'history', 'logs')
-  const activitiesQuery = query(historyRef, orderBy('timestamp', 'desc'))
-
-  const historyUnsub = onSnapshot(activitiesQuery, (querySnapshot) => {
-    const activities = []
-
-    querySnapshot.forEach(doc => {
-      const data = doc.data()
-
-      let formattedTimestamp
-      if (data.timestamp) {
-        const timestampDate = data.timestamp.toDate()
-        formattedTimestamp = formatFirebaseTimestamp(timestampDate)
-      } else {
-        formattedTimestamp = data.formattedTime || 'Unknown time'
-      }
-
-      activities.push({
-        id: doc.id,
-        status: data.status,
-        timestamp: formattedTimestamp
-      })
-    })
-
-    motorActivities.value = activities
-    isLoadingActivities.value = false
-    console.log('📡 Real-time motor activity logs updated:', activities.length)
-  }, (error) => {
-    console.error('❌ Error listening to motor history logs:', error)
-    isLoadingActivities.value = false
-  })
-
-  return {
-    unsubscribeCurrent: currentStatusUnsub,
-    unsubscribeHistory: historyUnsub
-  }
-}
-
-const formatFirebaseTimestamp = (date) => {
-  if (!date || !(date instanceof Date)) {
-    return 'Invalid date'
-  }
-
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-
-  const timeStr = date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  })
-
-  if (dateOnly > today) {
-    return date.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
-
-  if (dateOnly.getTime() === today.getTime()) {
-    return `Today, ${timeStr}`
-  }
-
-  if (dateOnly.getTime() === yesterday.getTime()) {
-    return `Yesterday, ${timeStr}`
-  }
-
-  return date.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  })
-}
 
 const currentMonthName = computed(() => {
   return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(currentDate.value)
@@ -2803,44 +3187,18 @@ const upcomingSchedules = computed(() => {
 
 let unsubscribeFunctions = []
 
-const fetchWateringSchedules = () => {
+const fetchWateringSchedules = async () => {
   isLoadingSchedules.value = true
-  savedSchedules.value = []
-
-  unsubscribeFunctions.forEach(unsub => unsub())
-  unsubscribeFunctions = []
-
-  const processSubcollection = (subcollection, mode) => {
-    const q = query(
-      getSubcollectionRef(subcollection),
-      orderBy('scheduledTime', 'asc')
-    )
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      savedSchedules.value = savedSchedules.value.filter(s => s.mode !== mode)
-      
-      querySnapshot.forEach(doc => {
-        savedSchedules.value.push({
-          id: doc.id,
-          mode: mode,
-          ...doc.data()
-        })
-      })
-      
-      savedSchedules.value.sort((a, b) => a.scheduledTime - b.scheduledTime)
-      calculateNextWateringTime()
-      isLoadingSchedules.value = false
-    }, (error) => {
-      console.error(`Error listening to ${subcollection}:`, error)
-      isLoadingSchedules.value = false
-    })
-    
-    unsubscribeFunctions.push(unsubscribe)
+  try {
+    const response = await api.get(API_ENDPOINTS.SCHEDULES)
+    savedSchedules.value = response.data
+    calculateNextWateringTime()
+  } catch (error) {
+    console.error('Error fetching watering schedules:', error)
+    savedSchedules.value = []
+  } finally {
+    isLoadingSchedules.value = false
   }
-
-  processSubcollection(ONE_TIME_SUBCOLLECTION, 'one-time')
-  processSubcollection(WEEKLY_SUBCOLLECTION, 'weekly')
-  processSubcollection(DAILY_SUBCOLLECTION, 'daily')
 }
 
 const nextWateringTime = computed(() => {
@@ -2932,36 +3290,26 @@ const calculateNextWateringTime = () => {
 
 const confirmDeleteSchedule = async () => {
   if (scheduleToDeleteIndex.value === null) return
-
+  
   isDeletingSchedule.value = true
   try {
+    // Get the schedule ID from the index
     const schedule = savedSchedules.value[scheduleToDeleteIndex.value]
+    const scheduleId = schedule.id
     
-    let targetSubcollection
-    switch (schedule.mode) {
-      case 'one-time': targetSubcollection = ONE_TIME_SUBCOLLECTION; break
-      case 'weekly': targetSubcollection = WEEKLY_SUBCOLLECTION; break
-      case 'daily': targetSubcollection = DAILY_SUBCOLLECTION; break
-    }
-
-    await deleteDoc(
-      doc(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, targetSubcollection, schedule.id)
-    )
-
-    await fetch("http://127.0.0.1:8000/api/watering-schedule", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "delete",
-        id: schedule.id,
-        mode: schedule.mode
-      }),
-    })
-
-    window.showToast('Schedule deleted successfully','success')
+    await api.delete(`${API_ENDPOINTS.SCHEDULES}/${scheduleId}`)
+    window.showToast('Schedule deleted successfully', 'success')
+    
+    // Refresh schedules
+    await fetchWateringSchedules()
   } catch (error) {
     console.error('Error deleting schedule:', error)
-    window.showToast('Error deleting schedule', 'failed')
+    
+    if (error.response?.status === 404) {
+      window.showToast('Schedule not found or already deleted', 'warning')
+    } else {
+      window.showToast('Error deleting schedule', 'failed')
+    }
   } finally {
     showDeleteConfirmation.value = false
     scheduleToDeleteIndex.value = null
@@ -2973,16 +3321,26 @@ const saveWateringSchedule = async () => {
   isLoading.value = true
   
   try {
-    const q = query(
-      collection(db, "3sensor_readings", "esp32-2", "readings"),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    )
-    const querySnapshot = await getDocs(q)
-    
-    if (!querySnapshot.empty) {
-      soilMoistureForSchedule.value = querySnapshot.docs[0].data().soilMoisture
+    // Check for duplicate schedule first
+    const scheduledTime = calculateScheduledTime()
+    const newScheduleDetails = {
+      mode: wateringMode.value,
+      hour: wateringHour.value,
+      minute: wateringMinute.value,
+      duration: wateringDuration.value,
+      date: selectedDate.value,
+      days: wateringMode.value === 'weekly' ? [...wateringDays.value] : []
     }
+
+    if (isDuplicateSchedule(newScheduleDetails)) {
+      window.showToast('A schedule already exists at this time. Please choose a different time.', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    // Then check soil moisture
+    const moistureResponse = await api.get(API_ENDPOINTS.SOIL_MOISTURE)
+    soilMoistureForSchedule.value = moistureResponse.data.moisture
 
     if (soilMoistureForSchedule.value !== null && soilMoistureForSchedule.value >= 50) {
       showScheduleConfirmationDialog.value = true
@@ -2991,9 +3349,9 @@ const saveWateringSchedule = async () => {
     
     await actuallySaveSchedule()
   } catch (error) {
-    console.error("Error checking soil moisture:", error)
+    console.error("Error in saveWateringSchedule:", error)
     const action = editingScheduleId.value ? 'update' : 'add'
-    window.showToast(`Failed to check soil conditions for schedule ${action}. Please try again.`, 'failed')
+    window.showToast(`Failed to ${action} schedule. Please try again.`, 'failed')
     isLoading.value = false
   }
 }
@@ -3010,190 +3368,98 @@ const proceedWithScheduleSave = async () => {
   await actuallySaveSchedule()
 }
 
+const calculateScheduledTime = () => {
+  if (wateringMode.value === 'one-time') {
+    // For one-time schedules, create a specific datetime
+    const selectedDateTime = new Date(
+      selectedDate.value.getFullYear(),
+      selectedDate.value.getMonth(),
+      selectedDate.value.getDate(),
+      wateringHour.value,
+      wateringMinute.value,
+      0,
+      0
+    )
+    return selectedDateTime.getTime() // Return timestamp in milliseconds
+  } else {
+    // For daily and weekly schedules, calculate milliseconds since midnight
+    return (wateringHour.value * 60 * 60 * 1000) + (wateringMinute.value * 60 * 1000)
+  }
+}
+
 const actuallySaveSchedule = async () => {
   try {
-    let scheduledTime = new Date()
-    const current24Hour = wateringHour.value
-    const currentMinute = wateringMinute.value
-
-    const timeToMilliseconds = (hours, minutes) => {
-      return (hours * 60 * 60 * 1000) + (minutes * 60 * 1000)
-    }
-
+    const scheduledTime = calculateScheduledTime()
+    
+    // Format dateTime for display
+    let dateTimeDisplay = ''
     if (wateringMode.value === 'one-time') {
-      scheduledTime.setFullYear(
-        selectedDate.value.getFullYear(),
-        selectedDate.value.getMonth(),
-        selectedDate.value.getDate()
-      )
-      scheduledTime.setHours(current24Hour, currentMinute, 0, 0)
-    } else {
-      const timeOnly = new Date()
-      timeOnly.setHours(current24Hour, currentMinute, 0, 0)
-      scheduledTime = timeOnly
-    }
-
-    const isDuplicate = isDuplicateSchedule({
-      mode: wateringMode.value,
-      hour: current24Hour,
-      minute: currentMinute,
-      duration: wateringDuration.value,
-      date: scheduledTime,
-      days: wateringDays.value
-    })
-
-    if (isDuplicate) {
-      window.showToast('A conflicting schedule already exists at this time', 'warning')
-      return
-    }
-
-    let formattedDateTime
-    if (wateringMode.value === 'daily' || wateringMode.value === 'weekly') {
-      formattedDateTime = scheduledTime.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    } else {
-      formattedDateTime = scheduledTime.toLocaleString('en-US', {
+      const date = new Date(selectedDate.value)
+      dateTimeDisplay = date.toLocaleString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true,
+        hour12: true
       })
+    } else {
+      // For daily/weekly: format time only (HH:MM AM/PM)
+      let displayHour = wateringHour.value % 12
+      if (displayHour === 0) displayHour = 12
+      const amPm = wateringHour.value >= 12 ? 'PM' : 'AM'
+      dateTimeDisplay = `${displayHour.toString().padStart(2, '0')}:${wateringMinute.value.toString().padStart(2, '0')} ${amPm}`
     }
-
-    const firebaseData = {
-      dateTime: formattedDateTime,
+    
+    const scheduleData = {
+      mode: wateringMode.value,
+      hour: wateringHour.value,
+      minute: wateringMinute.value,
       duration: wateringDuration.value,
       days: wateringMode.value === 'weekly' ? [...wateringDays.value] : [],
       skipIfRain: skipIfRain.value,
       notifyWatering: notifyWatering.value,
       waterFlowRate: waterFlowRate.value,
-      interval: wateringMode.value === 'custom' ? {
-        value: wateringInterval.value,
-        unit: wateringIntervalUnit.value,
-      } : null,
-      scheduledTime: (wateringMode.value === 'daily' || wateringMode.value === 'weekly') 
-        ? timeToMilliseconds(current24Hour, currentMinute)
-        : scheduledTime.getTime(),
-      completed: false,
-      updatedAt: serverTimestamp(),
+      scheduledTime: scheduledTime,
+      dateTime: dateTimeDisplay
     }
-
-    let targetSubcollection
-    switch (wateringMode.value) {
-      case 'one-time': targetSubcollection = ONE_TIME_SUBCOLLECTION; break
-      case 'weekly': targetSubcollection = WEEKLY_SUBCOLLECTION; break
-      case 'daily': targetSubcollection = DAILY_SUBCOLLECTION; break
-      default: throw new Error(`Unknown watering mode: ${wateringMode.value}`)
-    }
-
-    const ensureSubcollectionExists = async () => {
-      try {
-        const parentRef = doc(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC)
-        const parentSnap = await getDoc(parentRef)
-        
-        if (!parentSnap.exists()) {
-          await setDoc(parentRef, {
-            createdAt: serverTimestamp(),
-            description: 'Root document for watering schedules'
-          })
-        }
-
-        const testQuery = query(
-          collection(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, targetSubcollection),
-          limit(1)
-        )
-        await getDocs(testQuery)
-      } catch (error) {
-        console.error('Error verifying subcollection:', error)
-        throw error
-      }
-    }
-
-    await ensureSubcollectionExists()
 
     if (editingScheduleId.value) {
-      firebaseData.updatedAt = serverTimestamp()
-      
-      if (editingScheduleMode.value && editingScheduleMode.value !== wateringMode.value) {
-        let oldSubcollection
-        switch (editingScheduleMode.value) {
-          case 'one-time': oldSubcollection = ONE_TIME_SUBCOLLECTION; break
-          case 'weekly': oldSubcollection = WEEKLY_SUBCOLLECTION; break
-          case 'daily': oldSubcollection = DAILY_SUBCOLLECTION; break
-        }
-        
-        await deleteDoc(
-          doc(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, oldSubcollection, editingScheduleId.value)
-        )
-        const docRef = await addDoc(
-          collection(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, targetSubcollection),
-          firebaseData
-        )
-        
-        await fetch("http://127.0.0.1:8000/api/watering-schedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...firebaseData,
-            id: docRef.id,
-            mode: wateringMode.value,
-            action: 'update'
-          }),
-        })
-      } else {
-        await updateDoc(
-          doc(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, targetSubcollection, editingScheduleId.value),
-          firebaseData
-        )
-        
-        await fetch("http://127.0.0.1:8000/api/watering-schedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...firebaseData,
-            id: editingScheduleId.value,
-            mode: wateringMode.value,
-            action: 'update'
-          }),
-        })
-      }
-      
+      // Use PUT for updates
+      await api.put(`${API_ENDPOINTS.SCHEDULES}/${editingScheduleId.value}`, scheduleData)
       window.showToast('Schedule updated successfully', 'success')
     } else {
-      firebaseData.createdAt = serverTimestamp()
-      const docRef = await addDoc(
-        collection(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, targetSubcollection),
-        firebaseData
-      )
-      
-      await fetch("http://127.0.0.1:8000/api/watering-schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...firebaseData,
-          id: docRef.id,
-          mode: wateringMode.value,
-          action: 'add'
-        }),
-      })
-      
+      // Use POST for new schedules
+      await api.post(API_ENDPOINTS.SCHEDULES, scheduleData)
       window.showToast('New schedule saved successfully', 'success')
     }
 
     closeScheduleModal()
     editingScheduleId.value = null
-    editingScheduleMode.value = null
+    await fetchWateringSchedules()
   } catch (error) {
     console.error('Error saving schedule:', error)
     const action = editingScheduleId.value ? 'update' : 'add'
-    window.showToast(`Failed to ${action} schedule. Please try again.`, 'failed')
+    
+    if (error.response?.status === 400 && error.response?.data?.detail?.includes('conflicting')) {
+      window.showToast('A conflicting schedule already exists at this time', 'warning')
+    } else {
+      window.showToast(`Failed to ${action} schedule. Please try again.`, 'failed')
+    }
   } finally {
     isLoading.value = false
+  }
+}
+
+const testBackendConnection = async () => {
+  try {
+    const response = await api.get('/health')
+    console.log('Backend connection successful:', response.data)
+    return true
+  } catch (error) {
+    console.error('Backend connection failed:', error)
+    window.showToast('Cannot connect to server. Please check if the backend is running.', 'failed')
+    return false
   }
 }
 
@@ -3208,27 +3474,17 @@ watch(() => isAm.value, () => {
 })
 
 const fetchHistory = async () => {
-  isLoadingHistory.value = true;
+  isLoadingHistory.value = true
   try {
-    const historyRef = collection(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, HISTORY_COLLECTION);
-    const q = query(
-      historyRef,
-      orderBy('completedAt', 'desc'),
-      limit(100) // Adjust limit as needed
-    );
-    
-    const snapshot = await getDocs(q);
-    pastSchedules.value = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const response = await api.get(API_ENDPOINTS.SCHEDULE_HISTORY)
+    pastSchedules.value = response.data
   } catch (error) {
-    console.error('Error fetching history:', error);
-    window.showToast('Failed to load history', 'failed');
+    console.error('Error fetching schedule history:', error)
+    pastSchedules.value = []
   } finally {
-    isLoadingHistory.value = false;
+    isLoadingHistory.value = false
   }
-};
+}
 
 const formatHistoryItem = (schedule) => {
   // Add dependency on forceUpdateCount to trigger recalculations
@@ -3266,51 +3522,54 @@ const formatHistoryItem = (schedule) => {
     flowRateText: schedule.waterFlowRate?.toUpperCase() || 'MEDIUM'
   };
 };
-
-onMounted(() => {
-  fetchMotorStatus()
-  fetchWateringSchedules()
+onMounted(async () => {
+  // Test backend connection first
+  const isConnected = await testBackendConnection()
   
+  if (isConnected) {
+    // Load all data
+    await Promise.all([
+      fetchMotorStatus(),
+      fetchMotorActivities(),
+      fetchWateringSchedules(),
+      fetchHistory()
+    ])
+
+    setInterval(() => {
+      fetchWateringSchedules()
+    }, 1000)
+    
+    // Start real-time polling for motor status
+    startMotorStatusPolling()
+    startMotorActivitiesPolling()
+    
+    // Set up polling for other data (less frequent)
+    setInterval(() => {
+      fetchWateringSchedules()
+    }, 30000)
+  }
+  
+  // Set up history filters
   const today = new Date()
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(today.getDate() - 30)
   
   historyFilters.value = {
     startDate: thirtyDaysAgo.toISOString().split('T')[0],
-    endDate: currentDateFormatted.value, // Use computed current date
+    endDate: today.toISOString().split('T')[0],
     scheduleType: 'all',
     duration: 'all'
   }
   
   resetScheduleForm()
-  fetchHistory()
-  
-  // Set up real-time listener for history updates
-  const historyRef = collection(db, SCHEDULE_COLLECTION, SCHEDULE_ROOT_DOC, HISTORY_COLLECTION)
-  const historyQuery = query(historyRef, orderBy('completedAt', 'desc'))
-  
-  const unsubscribe = onSnapshot(historyQuery, (snapshot) => {
-    pastSchedules.value = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-  })
-  
-  unsubscribeFunctions.push(unsubscribe)
-  
-  // Start real-time updates
-  startRealTimeUpdates()
-   watch(savedSchedules, () => {
-    startRealTimeUpdates()
-  }, { deep: true })
 })
 
+// Clean up polling on unmount
 onUnmounted(() => {
-  if (toastTimeout.value) clearTimeout(toastTimeout.value)
-  unsubscribeFunctions.forEach(unsub => unsub())
-  unsubscribeFunctions = []
-  stopRealTimeUpdates()
+  stopMotorStatusPolling()
+  stopMotorActivitiesPolling()
 })
+
 </script>
 
 <style>
@@ -3400,6 +3659,12 @@ onUnmounted(() => {
   }
   100% {
     opacity: 0;
+  }
+}
+@media (max-width: 767px) {
+  .filters-section {
+    transition: all 0.3s ease;
+    overflow: hidden;
   }
 }
 </style>

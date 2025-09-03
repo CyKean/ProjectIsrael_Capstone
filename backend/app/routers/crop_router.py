@@ -4,24 +4,14 @@ from pydantic import BaseModel
 from typing import List
 from app.ml.integrated_prediction import get_integrated_recommendation
 from datetime import datetime
+from app.services.database import get_database
+from bson import ObjectId
 import os
 from dotenv import load_dotenv
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 router = APIRouter()
 
 load_dotenv()
-
-FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
-if not FIREBASE_CREDENTIALS:
-    raise ValueError("Firebase credentials not found. Set FIREBASE_CREDENTIALS in .env")
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 class CropInput(BaseModel):
     nitrogen: float
@@ -139,9 +129,14 @@ async def recommend_crop(data: CropInput):
 @router.post("/save")
 async def save_crop_recommendation(data: CropRecommendationSave):
     try:
+        db = await get_database()
+        collection = db["crop_recommendations"]
+        
         doc_data = data.dict()
-        doc_data["timestamp"] = datetime.utcnow().isoformat()
+        doc_data["timestamp"] = datetime.utcnow()
+        doc_data["status"] = "Recommended"
 
+        # Convert alternativeOptions and fertilizer to dictionaries
         doc_data["alternativeOptions"] = [
             {
                 "crop": alt.crop,
@@ -152,31 +147,27 @@ async def save_crop_recommendation(data: CropRecommendationSave):
         ]
 
         doc_data["fertilizer"] = data.fertilizer.dict()
-        doc_data["status"] = "Recommended"
 
-        doc_data["soilReadingId"] = data.soilReadingId
-        doc_data["soilData"] = data.soilData
-
-        db.collection("crop_recommendations").add(doc_data)
-
-        return {"message": "Crop recommendation saved to Firebase"}
+        # Insert into MongoDB
+        result = await collection.insert_one(doc_data)
+        
+        return {"message": "Crop recommendation saved to MongoDB", "id": str(result.inserted_id)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 @router.get("/recommendations")
 async def get_saved_recommendations():
     try:
-        docs = db.collection("crop_recommendations") \
-                 .order_by("timestamp", direction=firestore.Query.DESCENDING) \
-                 .stream()
-
+        db = await get_database()
+        collection = db["crop_recommendations"]
+        
+        # Get recommendations sorted by timestamp descending
+        cursor = collection.find().sort("timestamp", -1)
         recommendations = []
-        for doc in docs:
-            data = doc.to_dict()
-            timestamp = data.get("timestamp")
-
+        
+        async for doc in cursor:
+            timestamp = doc.get("timestamp")
+            
             if timestamp:
                 try:
                     formatted_date = timestamp.strftime("%b %d, %Y, %I:%M %p")
@@ -186,16 +177,16 @@ async def get_saved_recommendations():
                 formatted_date = "N/A"
 
             recommendations.append({
-                "id": doc.id,
-                "crop": data.get("recommendedCrop", ""),
-                "successRate": data.get("successRate", 0.0),
-                "status": data.get("status", "Planted"),
+                "id": str(doc["_id"]),
+                "crop": doc.get("recommendedCrop", ""),
+                "successRate": doc.get("successRate", 0.0),
+                "status": doc.get("status", "Planted"),
                 "date": formatted_date,
-                "alternativeOptions": data.get("alternativeOptions", []),
-                "growthRate": data.get("growthRate"),
-                "soilCompatibility": data.get("soilCompatibility"),
-                "yieldPotential": data.get("yieldPotential"),
-                "fertilizer": data.get("fertilizer", {})
+                "alternativeOptions": doc.get("alternativeOptions", []),
+                "growthRate": doc.get("growthRate"),
+                "soilCompatibility": doc.get("soilCompatibility"),
+                "yieldPotential": doc.get("yieldPotential"),
+                "fertilizer": doc.get("fertilizer", {})
             })
 
         return recommendations
@@ -205,13 +196,21 @@ async def get_saved_recommendations():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/recommendations/{doc_id}/status")
 async def update_recommendation_status(doc_id: str, status: str):
     try:
-        db.collection("crop_recommendations").document(doc_id).update({
-            "status": status
-        })
+        db = await get_database()
+        collection = db["crop_recommendations"]
+        
+        # Update the status of the recommendation
+        result = await collection.update_one(
+            {"_id": ObjectId(doc_id)},
+            {"$set": {"status": status}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Recommendation not found")
+            
         return {"message": "Status updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

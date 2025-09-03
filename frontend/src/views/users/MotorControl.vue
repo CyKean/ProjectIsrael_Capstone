@@ -16,142 +16,135 @@
           </div>
           
           <!-- Controls aligned horizontally with improved styling -->
-          <div class="flex flex-col sm:flex-row items-stretch gap-2">
-            <!-- Search bar - full width on mobile, fixed width on desktop -->
-            <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
-              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search motor control logs..."
-                class="w-full pl-10 pr-3 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
-                v-model="searchQuery"
-                @input="performSearch"
-              />
-            </div>
-
-            <!-- Button group - wraps on mobile, nowrap on desktop -->
-            <div class="flex flex-wrap sm:flex-nowrap gap-2">
+          <div class="flex md:block flex-row gap-2">
+            <!-- Button group - wraps on mobile, nowrap on larger screens -->
+            <div class="flex flex-col md:flex-row flex-wrap sm:flex-nowrap gap-2">
+              <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search NPK measurements..."
+                  class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
+                  v-model="searchQuery"
+                  @input="performSearch"
+                />
+              </div>
               <!-- Filter Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[100px]">
-                <button 
-                  @click.stop="toggleDropdown('filter')"
-                  class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                >
-                  <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
-                  <span>Filter</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'filter'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
-                    <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
-                      <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
-                      <div class="flex items-center gap-2">
-                        <select
-                          v-if="field.key === 'status'"
-                          v-model="statusFilter"
-                          class="w-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                        >
-                          <option value="">All</option>
-                          <option value="ON">ON</option>
-                          <option value="OFF">OFF</option>
-                        </select>
-                        <input
-                          v-else-if="field.key === 'deviceId' || field.key === 'user'"
-                          v-model="textFilters[field.key]"
-                          type="text"
-                          :placeholder="`Filter by ${field.label}`"
-                          class="w-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                        />
-                        <template v-else>
+              <div class="flex flex-row gap-2">
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('filter')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <Filter class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Filter</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'filter' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'filter'"
+                    class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                      <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
+                        <div class="flex items-center gap-2">
                           <input
                             v-model="filters[field.key].min"
                             type="number"
                             placeholder="Min"
-                            class="w-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
                           />
                           <span class="text-gray-400">-</span>
                           <input
                             v-model="filters[field.key].max"
                             type="number"
                             placeholder="Max"
-                            class="w-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                            class="w-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
                           />
-                        </template>
+                        </div>
                       </div>
+                      <button 
+                        @click="applyFilters"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                      >
+                        Apply Filters
+                      </button>
                     </div>
-                    <button 
-                      @click="applyFilters"
-                      class="w-full px-3 sm:px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors"
-                    >
-                      Apply Filters
-                    </button>
                   </div>
                 </div>
-              </div>
 
-              <!-- Sort Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[90px]">
-                <button 
-                  @click.stop="toggleDropdown('sort')"
-                  class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-emerald-600 transition-colors shadow-sm"
-                >
-                  <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
-                  <span>Sort</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'sort'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="header in headers"
-                      :key="header.key"
-                      @click="setSortKey(header.key)"
-                      class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      {{ header.label }}
-                      <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-emerald-500" />
-                    </button>
+                <!-- Sort Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('sort')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <ArrowUpDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Sort</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4 text-gray-400" :class="{ 'transform rotate-180': activeDropdown === 'sort' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'sort'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="header in headers"
+                        :key="header.key"
+                        @click="setSortKey(header.key)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                      >
+                        {{ header.label }}
+                        <ArrowUpDown v-if="sortKey === header.key" class="h-3 w-3 text-green-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Export Button -->
-              <div class="relative flex-1 sm:flex-none min-w-[90px]">
-                <button 
-                  @click.stop="toggleDropdown('export')"
-                  class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-500 text-white text-xs sm:text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
-                >
-                  <Download class="h-3 sm:h-4 w-3 sm:w-4" />
-                  <span>Export</span>
-                  <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
-                </button>
-                
-                <div 
-                  v-show="activeDropdown === 'export'"
-                  class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 mt-2 w-auto sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
-                  @click.stop
-                >
-                  <div class="py-1">
-                    <button
-                      v-for="format in exportFormats"
-                      :key="format"
-                      @click="exportData(format)"
-                      class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                    >
-                      <span v-if="format === 'csv'" class="mr-2 text-emerald-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
-                      <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
-                      Export as {{ format.toUpperCase() }}
-                    </button>
+                <!-- Export Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click.stop="toggleDropdown('export')"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-green-500 text-white text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
+                  >
+                    <Download class="h-3 sm:h-4 w-3 sm:w-4" />
+                    <span class="hidden md:block">Export</span>
+                    <ChevronDown class="h-3 sm:h-4 w-3 sm:w-4" :class="{ 'transform rotate-180': activeDropdown === 'export' }" />
+                  </button>
+                  
+                  <div 
+                    v-show="activeDropdown === 'export'"
+                    class="fixed sm:absolute left-2 sm:left-auto right-2 sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+                    @click.stop
+                  >
+                    <div class="py-1">
+                      <button
+                        v-for="format in exportFormats"
+                        :key="format"
+                        @click="exportData(format)"
+                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      >
+                        <span v-if="format === 'csv'" class="mr-2 text-green-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        <span v-else-if="format === 'pdf'" class="mr-2 text-red-500"><FileText class="h-3 sm:h-4 w-3 sm:w-4" /></span>
+                        Export as {{ format.toUpperCase() }}
+                      </button>
+                    </div>
                   </div>
+                </div>
+
+                <!-- Print Button -->
+                <div class="relative flex-1 sm:flex-none">
+                  <button 
+                    @click="printTable"
+                    class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
+                  >
+                    <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
+                    <span class="hidden md:block">Print</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -252,193 +245,180 @@
         
         <!-- Table Container - Larger width -->
         <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
-          <!-- Fixed Header with enhanced styling -->
-          <div class="w-full border-b border-gray-200 sticky top-0 z-10 bg-gray-50">
-            <table class="hidden md:table min-w-full">
-              <thead>
-                <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider border-b">
-                    ID
-                  </th>
-                  <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
-                    <div class="text-teal-600">Device ID</div>
-                    <div class="text-gray-400 text-[10px]">IDENTIFIER</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
-                    <div class="text-purple-600">Motor Status</div>
-                    <div class="text-gray-400 text-[10px]">ON/OFF</div>
-                  </th>
-                  <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
-                    <div class="text-blue-600">User</div>
-                    <div class="text-gray-400 text-[10px]">CONTROLLER</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Date</div>
-                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Time</div>
-                    <div class="text-gray-400 text-[10px]">HH:MM:SS AM/PM</div>
-                  </th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-          
-          <!-- Scrollable Body with enhanced styling -->
-          <div class="flex-1 overflow-y-auto">
-            <table class="min-w-full w-[600px]">
-              <thead class=md:hidden>
-                <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    ID
-                  </th>
-                  <th class="w-[15%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-teal-600">Device ID</div>
-                    <div class="text-gray-400 text-[10px]">IDENTIFIER</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-purple-600">Motor Status</div>
-                    <div class="text-gray-400 text-[10px]">ON/OFF</div>
-                  </th>
-                  <th class="w-[15%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-blue-600">User</div>
-                    <div class="text-gray-400 text-[10px]">CONTROLLER</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Date</div>
-                    <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
-                  </th>
-                  <th class="w-[20%] py-3.5 px-4 text-left text-xs font-medium uppercase tracking-wider border-b">
-                    <div class="text-gray-600">Time</div>
-                    <div class="text-gray-400 text-[10px]">HH:MM:SS AM/PM</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr 
-                  v-for="(row, index) in paginatedData" 
-                  :key="index"
-                  class="border-b border-gray-50 last:border-0"
+          <!-- Mobile Card View (shown on small screens) -->
+          <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
+            <div v-for="(row, index) in paginatedData" :key="index" 
+                class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
+                  <div class="text-[10px] text-gray-500">{{ row.time }}</div>
+                </div>
+                <span 
+                  :class="[
+                    'px-2 py-0.5 rounded-full text-[10px] font-medium',
+                    row.status === 'ON' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                  ]"
                 >
-                  <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                  </td>
-                  <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-teal-600">{{ row.deviceId || '--' }}</div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                    <span 
-                      :class="[
-                        'px-3 py-1 rounded-full text-sm font-medium',
-                        row.status === 'ON' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                      ]"
-                    >
-                      {{ row.status }}
-                    </span>
-                  </td>
-                  <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-blue-600">{{ row.user || '--' }}</div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
-                  </td>
-                </tr>
-                <!-- Empty state when no data - Enhanced styling -->
-                <tr v-if="paginatedData.length === 0 && !isLoading">
-                  <td colspan="6" class="px-6 py-16 text-center">
-                    <div class="flex flex-col items-center justify-center">
-                      <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
-                      <p class="text-gray-500 text-lg font-medium">No motor control data found</p>
-                      <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fixed Pagination Section with enhanced styling -->
-      <div class="border-t border-gray-100 py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-white to-emerald-50 rounded-b-lg">
-        <!-- Enhanced Pagination -->
-        <div class="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          <!-- Entries per page selector and info -->
-          <div class="text-xs sm:text-sm text-gray-600 flex flex-col md:flex-row items-center gap-2">
-            <div class="flex items-center gap-2">
-              <span class="hidden sm:inline">Showing</span>
-              <select 
-                v-model="itemsPerPage" 
-                class="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs sm:text-sm font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
-                @change="updatePagination"
-              >
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-              </select>
-              <span class="hidden sm:inline">entries per page</span>
+                  {{ row.status }}
+                </span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Device ID</div>
+                  <div class="text-xs font-semibold text-teal-600">{{ row.deviceId || '--' }}</div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">User</div>
+                  <div class="text-xs font-semibold text-blue-600">{{ row.user || '--' }}</div>
+                </div>
+          
+              </div>
             </div>
-            <span class="hidden xs:inline text-gray-400 mx-2">|</span>
-            <span class="text-center xs:text-left whitespace-nowrap">
-              {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-              <span class="text-gray-400">of</span>
-              {{ sortedData.length }}
-            </span>
+            
+            <div v-if="paginatedData.length === 0 && !isLoading" 
+                class="flex flex-col items-center justify-center py-8">
+              <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
+              <p class="text-gray-500 text-xs font-medium">No motor control data found</p>
+              <p class="text-gray-400 text-[10px]">Try adjusting your search or filters</p>
+            </div>
           </div>
 
-          <!-- Page navigation buttons -->
-          <div class="flex items-center gap-1">
-            <button 
-              @click="prevPage"
-              :disabled="currentPage === 1"
-              class="inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-            >
-              <ChevronLeft class="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-0.5 sm:mr-1" />
-              <span class="sr-only sm:not-sr-only">Prev</span>
-            </button>
-
-            <div class="flex items-center overflow-x-auto touch-pan-x" style="-webkit-overflow-scrolling: touch;">
-              <button
-                v-for="page in displayedPages"
-                :key="page"
-                @click="goToPage(page)"
-                :class="[
-                  'relative inline-flex items-center justify-center min-w-[32px] h-8 text-xs sm:text-sm transition-colors mx-0.5 rounded-md flex-shrink-0',
-                  page === currentPage
-                    ? 'text-white bg-emerald-500 font-semibold'
-                    : page === '...'
-                      ? 'cursor-default text-gray-400'
-                      : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
-                ]"
-              >
-                {{ page }}
-              </button>
+          <!-- Desktop Table View (shown on medium screens and up) -->
+          <div class="hidden sm:flex flex-1 flex-col min-h-0">
+            <!-- Fixed Header with enhanced styling -->
+            <div class="w-full border-b border-gray-200 sticky top-0 z-10 bg-gray-50">
+              <table class="min-w-full">
+                <thead>
+                  <tr>
+                    <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider border-b">
+                      ID
+                    </th>
+                    <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                      <div class="text-teal-600">Device ID</div>
+                      <div class="text-gray-400 text-[10px]">IDENTIFIER</div>
+                    </th>
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                      <div class="text-purple-600">Motor Status</div>
+                      <div class="text-gray-400 text-[10px]">ON/OFF</div>
+                    </th>
+                    <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                      <div class="text-blue-600">User</div>
+                      <div class="text-gray-400 text-[10px]">CONTROLLER</div>
+                    </th>
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                      <div class="text-gray-600">Date</div>
+                      <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
+                    </th>
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                      <div class="text-gray-600">Time</div>
+                      <div class="text-gray-400 text-[10px]">HH:MM:SS AM/PM</div>
+                    </th>
+                  </tr>
+                </thead>
+              </table>
             </div>
+            
+            <!-- Scrollable Body with enhanced styling -->
+            <div class="flex-1 overflow-y-auto">
+              <table class="min-w-full w-[600px]">
+                <tbody>
+                  <tr 
+                    v-for="(row, index) in paginatedData" 
+                    :key="index"
+                    class="border-b border-gray-50 last:border-0"
+                  >
+                    <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
+                    </td>
+                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-teal-600">{{ row.deviceId || '--' }}</div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                      <span 
+                        :class="[
+                          'px-3 py-1 rounded-full text-sm font-medium',
+                          row.status === 'ON' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                        ]"
+                      >
+                        {{ row.status }}
+                      </span>
+                    </td>
+                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-blue-600">{{ row.user || '--' }}</div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
+                    </td>
+                  </tr>
+                  <!-- Empty state when no data - Enhanced styling -->
+                  <tr v-if="paginatedData.length === 0 && !isLoading">
+                    <td colspan="6" class="px-6 py-16 text-center">
+                      <div class="flex flex-col items-center justify-center">
+                        <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
+                        <p class="text-gray-500 text-lg font-medium">No motor control data found</p>
+                        <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-            <button 
-              @click="nextPage"
-              :disabled="currentPage >= totalPages"
-              class="inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-md
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400
-                enabled:text-gray-700 enabled:hover:text-emerald-600 enabled:hover:bg-emerald-50"
-            >
-              <span class="sr-only sm:not-sr-only">Next</span>
-              <ChevronRight class="w-3.5 sm:w-4 h-3.5 sm:h-4 ml-0.5 sm:ml-1" />
-            </button>
+          <!-- Mobile Pagination -->
+          <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="text-[10px] md:text-xs text-gray-600">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
+                of {{ sortedData.length }}
+              </div>
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="prevPage"
+                  :disabled="currentPage === 1"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
+                >
+                  <ChevronLeft class="w-3.5 h-3.5" />
+                </button>
+                
+                <div class="flex items-center gap-1">
+                  <button
+                    v-for="(page, index) in paginationNumbers"
+                    :key="index"
+                    @click="goToPage(page)"
+                    :disabled="page === '...'"
+                    :class="[
+                      'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
+                      page === currentPage 
+                        ? 'bg-green-500 text-white font-medium' 
+                        : page === '...' 
+                          ? 'text-gray-400 cursor-default' 
+                          : 'text-gray-700 hover:text-green-600 hover:bg-gray-100'
+                    ]"
+                  >
+                    {{ page }}
+                  </button>
+                </div>
+                
+                <button 
+                  @click="nextPage"
+                  :disabled="currentPage >= totalPages"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
+                >
+                  <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Loading Page Component -->
   <LoadingPage 
     :isVisible="isLoading" 
     title="Loading Motor Control Data" 
@@ -448,41 +428,24 @@
   
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, FileText, FileSearch} from 'lucide-vue-next'
-import Sidebar from '../layout/Sidebar.vue'
+import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, FileText, FileSearch, Printer, MoreHorizontal } from 'lucide-vue-next'
 import LoadingPage from '../layout/LoadingPage.vue'
-import Settings from '../layout/Settings.vue'
-import {
-  getFirestore,
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  where,
-  Timestamp,
-  onSnapshot,
-  limit
-} from 'firebase/firestore'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
+import api from '../../api/index'
 
-// Chart.js import
 import Chart from 'chart.js/auto'
 
-const db = getFirestore()
 const motorData = ref([])
 const isLoading = ref(false)
 
-// Chart references - SIMPLIFIED
 const chartCanvas = ref(null)
 const chart = ref(null)
 
-// Chart data
 const chartData = ref([])
 
-// Current values and stats
 const currentStatus = ref('--')
 const currentDeviceId = ref('--')
 const currentUser = ref('--')
@@ -493,32 +456,506 @@ const statusStats = ref({
   switches: 0
 })
 
-// Fetch motor control data
+let PRINT_CHART_DATA_LIMIT = 0 
+
+const printTable = async () => {
+  activeDropdown.value = null;
+  
+  const tempContainer = document.createElement('div');
+  tempContainer.style.width = '800px';
+  tempContainer.style.height = '400px';
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.left = '-9999px';
+  tempContainer.style.backgroundColor = 'white';
+  tempContainer.style.padding = '20px';
+  
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 800;
+  tempCanvas.height = 400;
+  tempContainer.appendChild(tempCanvas);
+  document.body.appendChild(tempContainer);
+  
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  const tempMotorRows = sortedData.value.map(row => ({
+    id: row.id,
+    deviceId: row.deviceId,
+    status: row.status,
+    user: row.user,
+    date: row.date,
+    time: row.time
+  }));
+  
+  const printChartData = chartData.value
+    .slice(-PRINT_CHART_DATA_LIMIT)
+    .map(item => ({
+      timestamp: item.timestamp,
+      status: item.status,
+      value: item.status === 'ON' ? 1 : 0
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp); 
+  
+  console.log(`📊 Print chart will show ${printChartData.length} motor status records`);
+  
+  const onCount = printChartData.filter(item => item.status === 'ON').length;
+  const offCount = printChartData.filter(item => item.status === 'OFF').length;
+  const totalCount = printChartData.length;
+  const onPercentage = totalCount > 0 ? ((onCount / totalCount) * 100).toFixed(1) : 0;
+  
+  let chartImage = '';
+  
+  try {
+    const ctx = tempCanvas.getContext('2d');
+    
+    const motorChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: printChartData.map(item => {
+          return item.timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })
+        }),
+        datasets: [
+          {
+            label: 'Motor Status',
+            data: printChartData.map(item => item.value),
+            borderColor: '#a855f7', 
+            backgroundColor: 'rgba(168, 85, 247, 0.15)',
+            borderWidth: 3,
+            tension: 0.1,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#a855f7',
+            pointBorderWidth: 2,
+            stepped: true
+          }
+        ]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        animation: false, 
+        plugins: {
+          legend: { 
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.raw === 1 ? 'ON' : 'OFF';
+                return `Status: ${value}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            title: {
+              display: true,
+              text: 'Status (ON/OFF)',
+              color: '#a855f7',
+              font: {
+                size: 14,
+                weight: '600'
+              }
+            },
+            min: -0.2,
+            max: 1.2,
+            ticks: {
+              font: { size: 12 },
+              color: '#a855f7',
+              padding: 10,
+              stepSize: 1,
+              callback: function(value) {
+                return value === 0 ? 'OFF' : value === 1 ? 'ON' : '';
+              }
+            },
+            grid: {
+              color: 'rgba(168, 85, 247, 0.1)',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 10 },
+              color: '#64748b',
+              maxTicksLimit: 10,
+              maxRotation: 45
+            },
+            grid: {
+              display: false,
+              drawBorder: false
+            }
+          }
+        }
+      }
+    });
+    
+    setTimeout(async () => {
+      try {
+        chartImage = tempCanvas.toDataURL('image/png', 1.0);
+        
+        motorChart.destroy();
+        document.body.removeChild(tempContainer);
+        
+        generatePrintHTML(chartImage, tempMotorRows, formattedDate, now, 
+                         printChartData.length, onCount, offCount, onPercentage);
+      } catch (error) {
+        console.error('Error capturing chart:', error);
+        document.body.removeChild(tempContainer);
+        generatePrintHTML('', tempMotorRows, formattedDate, now, 0, 0, 0, 0);
+      }
+    }, 500);
+    
+  } catch (error) {
+    console.error('Error creating chart:', error);
+    document.body.removeChild(tempContainer);
+    generatePrintHTML('', tempMotorRows, formattedDate, now, 0, 0, 0, 0);
+  }
+};
+
+const generatePrintHTML = (chartImage, tempMotorRows, formattedDate, now, 
+                          chartRecordCount, onCount, offCount, onPercentage) => {
+  const tableContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Motor Control Data Report</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          color: #333;
+          line-height: 1.4;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #10b981;
+        }
+        .header h1 {
+          color: #065f46;
+          margin: 0 0 8px 0;
+          font-size: 24px;
+        }
+        .header .date {
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .section-header {
+          margin: 30px 0 18px 0;
+          padding: 12px 15px;
+          background-color: #f9fafb;
+          border-left: 4px solid #10b981;
+          border-radius: 4px;
+          font-size: 17px;
+          font-weight: bold;
+          color: #065f46;
+        }
+        .chart-info {
+          text-align: center;
+          margin-bottom: 10px;
+          font-size: 12px;
+          color: #6b7280;
+          font-style: italic;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0 25px 0;
+          font-size: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 2px solid #d1d5db;
+          font-size: 12px;
+        }
+        td {
+          color: #4b5563;
+          border-color: #e5e7eb;
+        }
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        .status-on { color: #059669; font-weight: 500; }
+        .status-off { color: #dc2626; font-weight: 500; }
+        .device-id { color: #0891b2; }
+        .user { color: #7c3aed; }
+        .summary {
+          margin: 25px 0;
+          padding: 20px;
+          background-color: #f0fdf4;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .summary h3 {
+          margin-top: 0;
+          color: #065f46;
+          font-size: 18px;
+          border-bottom: 1px solid #bbf7d0;
+          padding-bottom: 10px;
+        }
+        .summary-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 8px 0;
+        }
+        .summary-label {
+          font-weight: 600;
+          color: #374151;
+        }
+        .summary-value {
+          color: #059669;
+          font-weight: 500;
+        }
+        .chart-image {
+          width: 100%;
+          max-width: 800px;
+          margin: 15px auto;
+          display: block;
+          page-break-inside: avoid;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 15px;
+          background: white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .chart-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 15px;
+          text-align: center;
+          padding: 10px;
+          background-color: #f9fafb;
+          border-radius: 4px;
+        }
+        .stats-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+          margin: 20px 0;
+          text-align: center;
+        }
+        .stat-item {
+          padding: 15px;
+          background-color: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .stat-item.on { border-left: 4px solid #059669; }
+        .stat-item.off { border-left: 4px solid #dc2626; }
+        .stat-item.percentage { border-left: 4px solid #7c3aed; }
+        .stat-item h4 {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .stat-item.on h4 { color: #059669; }
+        .stat-item.off h4 { color: #dc2626; }
+        .stat-item.percentage h4 { color: #7c3aed; }
+        .stat-values {
+          font-size: 18px;
+          font-weight: bold;
+          color: #374151;
+        }
+        .footer {
+          margin-top: 30px;
+          font-size: 12px;
+          color: #9ca3af;
+          text-align: center;
+          padding-top: 15px;
+          border-top: 1px solid #e5e7eb;
+        }
+        @media print {
+          body { margin: 0.5in; padding: 0; }
+          .no-print { display: none; }
+          .header { page-break-after: avoid; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          .chart-image { page-break-inside: avoid; }
+        }
+        @page { size: portrait; margin: 0.5in; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Motor Control Data Report</h1>
+        <div class="date">${formattedDate}</div>
+      </div>
+      
+      <div class="summary">
+        <h3>Report Summary</h3>
+        <div class="summary-item">
+          <span class="summary-label">Total Records:</span>
+          <span class="summary-value">${tempMotorRows.length}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Chart Data Points:</span>
+          <span class="summary-value">${chartRecordCount}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Date Range:</span>
+          <span class="summary-value">${tempMotorRows.length > 0 ? tempMotorRows[tempMotorRows.length-1].date + ' to ' + tempMotorRows[0].date : 'N/A'}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Report Generated:</span>
+          <span class="summary-value">${now.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      <div class="section-header">Motor Status Trend Analysis</div>
+      ${chartImage ? `
+        <div class="chart-title">Motor Status Over Time</div>
+        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
+        <img src="${chartImage}" class="chart-image" alt="Motor Status Chart" />
+        
+        <div class="stats-summary">
+          <div class="stat-item on">
+            <h4>ON Count</h4>
+            <div class="stat-values">${onCount}</div>
+          </div>
+          <div class="stat-item off">
+            <h4>OFF Count</h4>
+            <div class="stat-values">${offCount}</div>
+          </div>
+          <div class="stat-item percentage">
+            <h4>ON Percentage</h4>
+            <div class="stat-values">${onPercentage}%</div>
+          </div>
+        </div>
+      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
+      
+      <div class="section-header">Detailed Motor Control Logs</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 8%">ID</th>
+            <th style="width: 15%">Device ID</th>
+            <th style="width: 12%">Status</th>
+            <th style="width: 15%">User</th>
+            <th style="width: 15%">Date</th>
+            <th style="width: 15%">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tempMotorRows.map(row => `
+            <tr>
+              <td>${row.id}</td>
+              <td><span class="device-id">${row.deviceId || '--'}</span></td>
+              <td><span class="status-${row.status.toLowerCase()}">${row.status}</span></td>
+              <td><span class="user">${row.user || '--'}</span></td>
+              <td>${row.date}</td>
+              <td>${row.time}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        Generated by Motor Control Monitoring System • ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
+      </div>
+    </body>
+    </html>
+  `;
+  
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  iframe.style.left = '-9999px';
+  document.body.appendChild(iframe);
+  
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+  
+  iframeDoc.open();
+  iframeDoc.write(tableContent);
+  iframeDoc.close();
+  
+  iframe.onload = function() {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 100);
+    } catch (error) {
+      console.error('Print error:', error);
+      document.body.removeChild(iframe);
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(tableContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  };
+};
+
+const paginationNumbers = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  
+  if (total <= 1) return [1]
+  
+  if (current === 1) {
+    return [1, '..', total]
+  } else if (current === total) {
+    return [1, '..', total]
+  } else {
+    return [current, '...', total]
+  }
+})
+
 const fetchMotorControlData = async (showLoading = false) => {
   try {
     if (showLoading) {
       isLoading.value = true
     }
     
-    const motorQuery = query(
-      collection(db, "motor_status", "history", "logs"),
-      orderBy("timestamp", "desc"),
-      limit(50)
-    )
-    const motorSnapshot = await getDocs(motorQuery)
+    // Replace Firebase query with API call
+    const response = await api.get('/motor-control/history')
+    const motorDataFromApi = response.data
     
-    const processedData = motorSnapshot.docs.map((doc, index) => {
-      const data = doc.data()
-      
+    const processedData = motorDataFromApi.map((data, index) => {
       let formattedDate = '--'
       let formattedTime = '--'
       let timestampSeconds = 0
       
       try {
-        const timestamp = data.timestamp instanceof Timestamp 
-          ? new Date(data.timestamp.toMillis())
-          : data.timestamp?.toDate?.() || 
-            (data.timestamp?.seconds ? new Date(data.timestamp.seconds * 1000) : new Date())
+        // Handle timestamp from MongoDB
+        const timestamp = data.timestamp ? new Date(data.timestamp) : new Date()
         
         formattedDate = timestamp.toLocaleDateString('en-US', {
           year: 'numeric',
@@ -533,7 +970,7 @@ const fetchMotorControlData = async (showLoading = false) => {
           hour12: true
         });
         
-        timestampSeconds = data.timestamp?.seconds || timestamp.getTime() / 1000
+        timestampSeconds = timestamp.getTime() / 1000
       } catch (e) {
         console.error("Error formatting date:", e)
       }
@@ -573,6 +1010,8 @@ const fetchMotorControlData = async (showLoading = false) => {
     if (showLoading) {
       isLoading.value = false
     }
+
+    PRINT_CHART_DATA_LIMIT = motorData.value.length
     
   } catch (error) {
     console.error("❌ Error fetching motor control data:", error)
@@ -580,124 +1019,171 @@ const fetchMotorControlData = async (showLoading = false) => {
   }
 }
 
-// Setup real-time listener for chart data
-const setupRealtimeListener = () => {
-  const realtimeQuery = query(
-    collection(db, "motor_status", "history", "logs"),
-    orderBy("timestamp", "desc")
-  )
+const pollingInterval = ref(null)
+
+const setupDataPolling = () => {
+  // Clear any existing interval first
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+  }
   
-  return onSnapshot(realtimeQuery, (snapshot) => {
-    const newData = snapshot.docs
-      .map(doc => {
-        const data = doc.data()
-        const timestamp = data.timestamp instanceof Timestamp 
-          ? new Date(data.timestamp.toMillis())
-          : data.timestamp?.toDate?.() || 
-            (data.timestamp?.seconds ? new Date(data.timestamp.seconds * 1000) : new Date())
+  // Poll every 5 seconds for updates
+  pollingInterval.value = setInterval(async () => {
+    try {
+      const response = await api.get('/motor-control/latest')
+      const latestData = response.data
+      
+      if (latestData && latestData.length > 0) {
+        const newEntry = latestData[0]
         
-        let status = 'OFF';
-        if (data.status !== undefined && data.status !== null) {
-          if (typeof data.status === 'boolean') {
-            status = data.status ? 'ON' : 'OFF';
-          } else if (typeof data.status === 'number') {
-            status = data.status === 1 ? 'ON' : 'OFF';
+        // Handle timestamp properly
+        let timestamp
+        if (newEntry.timestamp instanceof Date) {
+          timestamp = newEntry.timestamp
+        } else if (typeof newEntry.timestamp === 'string') {
+          timestamp = new Date(newEntry.timestamp)
+        } else if (newEntry.timestamp && newEntry.timestamp._seconds) {
+          timestamp = new Date(newEntry.timestamp._seconds * 1000)
+        } else {
+          timestamp = new Date()
+        }
+        
+        let status = 'OFF'
+        if (newEntry.status !== undefined && newEntry.status !== null) {
+          if (typeof newEntry.status === 'boolean') {
+            status = newEntry.status ? 'ON' : 'OFF'
+          } else if (typeof newEntry.status === 'number') {
+            status = newEntry.status === 1 ? 'ON' : 'OFF'
           } else {
-            const statusStr = String(data.status).trim().toUpperCase();
+            const statusStr = String(newEntry.status).trim().toUpperCase()
             if (['ON', 'OFF', '1', '0', 'TRUE', 'FALSE'].includes(statusStr)) {
-              status = ['ON', '1', 'TRUE'].includes(statusStr) ? 'ON' : 'OFF';
+              status = ['ON', '1', 'TRUE'].includes(statusStr) ? 'ON' : 'OFF'
             }
           }
         }
         
-        const deviceId = data.device_id || data.deviceId || 'main_motor'
-        const user = data.user || data.controller || 'system'
+        const deviceId = newEntry.device_id || newEntry.deviceId || 'main_motor'
+        const user = newEntry.user || newEntry.controller || 'system'
         
-        return {
-          timestamp,
-          status,
-          deviceId,
-          user
+        // Create a new array instead of pushing to prevent reactivity issues
+        const newChartData = [
+          ...chartData.value,
+          {
+            timestamp,
+            status,
+            deviceId,
+            user
+          }
+        ]
+        
+        // Keep only the last 50 data points to prevent memory issues
+        if (newChartData.length > 50) {
+          newChartData.splice(0, newChartData.length - 50)
         }
-      })
-      .sort((a, b) => a.timestamp - b.timestamp)
-    
-    chartData.value = newData
-    
-    if (newData.length > 0) {
-      const latestReading = newData[newData.length - 1]
-      currentStatus.value = latestReading.status
-      currentDeviceId.value = latestReading.deviceId
-      currentUser.value = latestReading.user
-      
-      const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      })
-      lastUpdated.value = formattedTime
-      
-      const onCount = newData.filter(item => item.status === 'ON').length
-      const offCount = newData.filter(item => item.status === 'OFF').length
-      
-      let switches = 0
-      for (let i = 1; i < newData.length; i++) {
-        if (newData[i].status !== newData[i-1].status) {
-          switches++
+        
+        // Update the chart data reactively
+        chartData.value = newChartData
+        
+        // Update current values
+        currentStatus.value = status
+        currentDeviceId.value = deviceId
+        currentUser.value = user
+        
+        const formattedTime = timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        })
+        lastUpdated.value = formattedTime
+        
+        // Update stats
+        const onCount = newChartData.filter(item => item.status === 'ON').length
+        const offCount = newChartData.filter(item => item.status === 'OFF').length
+        
+        let switches = 0
+        for (let i = 1; i < newChartData.length; i++) {
+          if (newChartData[i].status !== newChartData[i-1].status) {
+            switches++
+          }
+        }
+        
+        statusStats.value = {
+          onCount,
+          offCount,
+          switches
+        }
+        
+        // Safely update the chart if it exists
+        if (chart.value) {
+          updateChart()
         }
       }
-      
-      statusStats.value = {
-        onCount,
-        offCount,
-        switches
-      }
+    } catch (error) {
+      console.error("Error in data polling:", error)
     }
-    
-    updateChart()
-  }, (error) => {
-    console.error("Error in realtime listener:", error)
-  })
+  }, 5000) // Poll every 5 seconds
+  
+  return pollingInterval.value
 }
 
-// Initialize chart data from fetched data
 const initializeChartData = (data) => {
   const initialChartData = data.slice(0, 20)
-    .map(item => ({
-      timestamp: item.rawTimestamp instanceof Timestamp 
-        ? new Date(item.rawTimestamp.toMillis())
-        : item.rawTimestamp?.toDate?.() || 
-          (item.rawTimestamp?.seconds ? new Date(item.rawTimestamp.seconds * 1000) : new Date()),
-      status: item.status,
-      deviceId: item.deviceId,
-      user: item.user
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(item => {
+      // Handle timestamp from MongoDB data structure
+      let timestamp;
+      
+      // Check if rawTimestamp exists and handle different formats
+      if (item.rawTimestamp) {
+        if (item.rawTimestamp instanceof Date) {
+          timestamp = item.rawTimestamp;
+        } else if (typeof item.rawTimestamp === 'string') {
+          // If it's an ISO string
+          timestamp = new Date(item.rawTimestamp);
+        } else if (item.rawTimestamp._seconds) {
+          // If it's a Firebase-like timestamp object from MongoDB
+          timestamp = new Date(item.rawTimestamp._seconds * 1000);
+        } else {
+          // Fallback to current date
+          timestamp = new Date();
+        }
+      } else {
+        // If no timestamp, use current date
+        timestamp = new Date();
+      }
+      
+      return {
+        timestamp: timestamp,
+        status: item.status,
+        deviceId: item.deviceId,
+        user: item.user
+      }
+    })
+    .sort((a, b) => a.timestamp - b.timestamp);
 
-  chartData.value = initialChartData
+  chartData.value = initialChartData;
 
   if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1]
-    currentStatus.value = latestReading.status
-    currentDeviceId.value = latestReading.deviceId
-    currentUser.value = latestReading.user
+    const latestReading = initialChartData[initialChartData.length - 1];
+    currentStatus.value = latestReading.status;
+    currentDeviceId.value = latestReading.deviceId;
+    currentUser.value = latestReading.user;
     
     const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
       hour12: true
-    })
-    lastUpdated.value = formattedTime
+    });
+    lastUpdated.value = formattedTime;
     
-    const onCount = initialChartData.filter(item => item.status === 'ON').length
-    const offCount = initialChartData.filter(item => item.status === 'OFF').length
+    const onCount = initialChartData.filter(item => item.status === 'ON').length;
+    const offCount = initialChartData.filter(item => item.status === 'OFF').length;
     
-    let switches = 0
+    let switches = 0;
     for (let i = 1; i < initialChartData.length; i++) {
       if (initialChartData[i].status !== initialChartData[i-1].status) {
-        switches++
+        switches++;
       }
     }
     
@@ -705,48 +1191,57 @@ const initializeChartData = (data) => {
       onCount,
       offCount,
       switches
-    }
+    };
   }
   
   // Wait for DOM to be ready, then initialize chart
   nextTick(() => {
     setTimeout(() => {
-      initializeChart()
-    }, 100)
-  })
-}
+      initializeChart();
+    }, 100);
+  });
+};
 
 const initializeChart = () => {
   if (!chartCanvas.value) {
-    console.warn('Chart canvas not available')
-    return
+    console.warn('Chart canvas not available');
+    return;
   }
   
   // Destroy existing chart
   if (chart.value) {
-    chart.value.destroy()
-    chart.value = null
+    chart.value.destroy();
+    chart.value = null;
   }
   
   try {
-    const ctx = chartCanvas.value.getContext('2d')
+    const ctx = chartCanvas.value.getContext('2d');
     if (!ctx) {
-      console.error('Could not get canvas context')
-      return
+      console.error('Could not get canvas context');
+      return;
     }
     
-    const statusValues = chartData.value.map(item => item.status === 'ON' ? 1 : 0)
+    // Ensure chartData has valid values
+    const statusValues = chartData.value.map(item => {
+      return item.status === 'ON' ? 1 : 0;
+    });
+    
+    // Ensure we have valid labels
+    const labels = chartData.value.map(item => {
+      if (!item.timestamp || !(item.timestamp instanceof Date) || isNaN(item.timestamp)) {
+        return '--:--';
+      }
+      return item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    });
     
     chart.value = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: chartData.value.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
+        labels: labels,
         datasets: [
           {
             label: 'Motor Status',
@@ -768,7 +1263,6 @@ const initializeChart = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        aspectRatio: 1.5,
         interaction: {
           mode: 'index',
           intersect: false,
@@ -867,33 +1361,43 @@ const initializeChart = () => {
           }
         }
       }
-    })
+    });
     
-    console.log('Chart initialized successfully')
   } catch (error) {
-    console.error('Error initializing chart:', error)
+    console.error('Error initializing chart:', error);
   }
-}
+};
 
-// Update the chart with new data
 const updateChart = () => {
-  if (chart.value && chartData.value.length > 0) {
-    chart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+  if (chart.value && chartData.value.length > 0 && chartCanvas.value) {
+    try {
+      // Update labels safely
+      const labels = chartData.value.map(item => {
+        if (!item.timestamp || !(item.timestamp instanceof Date) || isNaN(item.timestamp)) {
+          return '--:--'
+        }
+        return item.timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
       })
-    })
-    
-    const statusValues = chartData.value.map(item => item.status === 'ON' ? 1 : 0)
-    chart.value.data.datasets[0].data = statusValues
-    
-    chart.value.update('none')
+      
+      // Update data values
+      const statusValues = chartData.value.map(item => item.status === 'ON' ? 1 : 0)
+      
+      // Update chart data
+      chart.value.data.labels = labels
+      chart.value.data.datasets[0].data = statusValues
+      
+      // Update the chart without animation to prevent performance issues
+      chart.value.update('none')
+    } catch (error) {
+      console.error('Error updating chart:', error)
+    }
   }
 }
 
-// Handle window resize - SIMPLIFIED
 const handleResize = () => {
   if (chart.value) {
     // Just resize the existing chart, don't recreate
@@ -901,9 +1405,13 @@ const handleResize = () => {
   }
 }
 
-// Initialize filters object
 const filters = ref({
-  id: { min: '', max: '' }
+  id: { min: '', max: '' },
+  deviceId: { min: '', max: '' },
+  status: { min: '', max: '' },
+  user: { min: '', max: '' },
+  date: { min: '', max: '' },
+  time: { min: '', max: '' }
 })
 
 const statusFilter = ref('')
@@ -912,7 +1420,6 @@ const textFilters = ref({
   user: ''
 })
 
-// Reactive state
 const searchQuery = ref('')
 const itemsPerPage = ref(20)
 const currentPage = ref(1)
@@ -926,7 +1433,9 @@ const filterFields = [
   { key: 'id', label: 'ID' },
   { key: 'deviceId', label: 'Device ID' },
   { key: 'status', label: 'Motor Status' },
-  { key: 'user', label: 'User' }
+  { key: 'user', label: 'User' },
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' }
 ]
 
 const headers = [
@@ -940,7 +1449,6 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
-// Computed properties
 const filteredData = computed(() => {
   let result = [...motorData.value]
 
@@ -1036,7 +1544,6 @@ const displayedPages = computed(() => {
   return pages
 })
 
-// Methods
 const toggleDropdown = (dropdownName) => {
   if (activeDropdown.value === dropdownName) {
     activeDropdown.value = null
@@ -1133,17 +1640,14 @@ const exportData = async (format) => {
     saveAs(blob, 'motor_control_data.csv')
     window.showToast('Motor Control exported as CSV', 'success')
   } else if (format === 'pdf') {
-    // PDF Export with graph
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm'
     });
     
-    // Add title
     doc.setFontSize(16);
     doc.text('Motor Control Report', 105, 15, { align: 'center' });
     
-    // Add current date
     doc.setFontSize(10);
     const dateStr = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -1152,7 +1656,6 @@ const exportData = async (format) => {
     });
     doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' });
     
-    // Add summary stats
     doc.setFontSize(12);
     doc.text('Current Status:', 15, 30);
     doc.text(`Motor: ${currentStatus.value}`, 15, 36);
@@ -1160,26 +1663,21 @@ const exportData = async (format) => {
     doc.text(`Controller: ${currentUser.value}`, 15, 48);
     doc.text(`Last Updated: ${lastUpdated.value}`, 15, 54);
     
-    // Add the chart image if available
     if (chartCanvas.value) {
       try {
-        // Convert canvas to image data URL
         const canvas = chartCanvas.value;
         const chartImage = canvas.toDataURL('image/png');
         
-        // Add chart image to PDF (centered, with some margin)
-        const imgWidth = 180; // mm
+        const imgWidth = 180; 
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 60, imgWidth, imgHeight);
         
-        // Add stats below the chart
         doc.setFontSize(10);
         doc.text('Motor Activity Statistics:', 15, 60 + imgHeight + 10);
         doc.text(`ON Count: ${statusStats.value.onCount}`, 15, 60 + imgHeight + 16);
         doc.text(`OFF Count: ${statusStats.value.offCount}`, 15, 60 + imgHeight + 22);
         doc.text(`Status Switches: ${statusStats.value.switches}`, 15, 60 + imgHeight + 28);
         
-        // Add the data table on a new page
         doc.addPage();
         doc.setFontSize(14);
         doc.text('Motor Control Data Table', 105, 15, { align: 'center' });
@@ -1193,25 +1691,24 @@ const exportData = async (format) => {
             overflow: 'linebreak'
           },
           headStyles: {
-            fillColor: [139, 92, 246], // purple-500
-            textColor: 255 // white
+            fillColor: [139, 92, 246], 
+            textColor: 255 
           },
           alternateRowStyles: {
-            fillColor: [245, 243, 255] // purple-50
+            fillColor: [245, 243, 255] 
           },
           margin: { top: 20 },
           columnStyles: {
-            0: { cellWidth: 15 }, // ID column
-            1: { cellWidth: 25 }, // Device ID column
-            2: { cellWidth: 20 }, // Status column
-            3: { cellWidth: 20 }, // User column
-            4: { cellWidth: 20 }, // Date column
-            5: { cellWidth: 20 }  // Time column
+            0: { cellWidth: 15 }, 
+            1: { cellWidth: 25 }, 
+            2: { cellWidth: 20 }, 
+            3: { cellWidth: 20 }, 
+            4: { cellWidth: 20 },
+            5: { cellWidth: 20 }  
           }
         });
       } catch (error) {
         console.error('Error adding chart to PDF:', error);
-        // Fallback to just the table if chart fails
         doc.text('Motor Status Chart Not Available', 105, 60, { align: 'center' });
         autoTable(doc, {
           head: [exportHeaders],
@@ -1221,7 +1718,6 @@ const exportData = async (format) => {
         });
       }
     } else {
-      // Fallback if chart isn't available
       doc.text('Motor Status Chart Not Available', 105, 60, { align: 'center' });
       autoTable(doc, {
         head: [exportHeaders],
@@ -1238,19 +1734,16 @@ const exportData = async (format) => {
   activeDropdown.value = null
 }
 
-// Watch for changes that should reset pagination
 watch([searchQuery, activeFilters, activeTextFilters, statusFilter, itemsPerPage], () => {
   currentPage.value = 1
 })
 
-// Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   
   fetchMotorControlData(true)
-  setupRealtimeListener()
+  const pollingInterval = setupDataPolling() 
   
-  // SIMPLIFIED resize handler
   window.addEventListener('resize', handleResize)
 })
 
@@ -1262,8 +1755,14 @@ onUnmounted(() => {
     chart.value = null
   }
   
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+  
   window.removeEventListener('resize', handleResize)
 })
+
 </script>
   
 <style>

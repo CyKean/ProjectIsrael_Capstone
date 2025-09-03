@@ -470,36 +470,10 @@ import {
   X,
   CloudLightning
 } from 'lucide-vue-next'
-import axios from 'axios'
-import { eventBus } from '../../eventBus'
-import { sendPushNotification } from '../../utils/notify.js'
-import { initWaterStream, onWaterLevelUpdate } from '../../utils/water.js'
 import { getWeatherData, mapWeatherCode } from '../../utils/weather.js'
 import api from '../../api/index.js'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  doc,
-  setDoc,
-  Timestamp,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  where,
-  getDocsFromServer,
-  onSnapshot
-} from 'firebase/firestore'
 import { useUserStore } from '../../utils/user.js'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../../api/firebase.js'
 
-const db = getFirestore()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore();
@@ -540,6 +514,10 @@ const activeWateringSchedules = ref({});
 const lastNotificationDates = ref({});
 const notificationHistory = ref({}); // Tracks notifications by day
 const notificationCooldowns = ref(new Map()); 
+const toastMessagesShown = ref({});
+
+const toastHistory = ref({});
+
 
 // Reactive state
 const isMobileMenuOpen = ref(false);
@@ -548,6 +526,44 @@ const isMobile = ref(window.innerWidth < 768);
 // Add these near your other refs
 const sentNotifications = ref(new Set());
 const processingNotifications = ref(new Set());
+
+const latestSensorData = ref(null);
+const sensorDataPollingInterval = ref(null);
+const isFetchingSensorData = ref(false);
+
+// Create a function to fetch and store sensor data
+const fetchAndStoreSensorData = async () => {
+  if (isFetchingSensorData.value) return;
+  
+  isFetchingSensorData.value = true;
+  try {
+    console.log('📡 Fetching latest sensor data...');
+    const data = await getLatestSensorDataForContext();
+    latestSensorData.value = data;
+    console.log('✅ Sensor data stored:', data);
+  } catch (error) {
+    console.error('❌ Error fetching sensor data:', error);
+  } finally {
+    isFetchingSensorData.value = false;
+  }
+};
+
+// Start polling for sensor data
+const startSensorDataPolling = () => {
+  // Fetch immediately
+  fetchAndStoreSensorData();
+  
+  // Then poll every 30 seconds
+  sensorDataPollingInterval.value = setInterval(fetchAndStoreSensorData, 30000);
+};
+
+// Stop polling
+const stopSensorDataPolling = () => {
+  if (sensorDataPollingInterval.value) {
+    clearInterval(sensorDataPollingInterval.value);
+    sensorDataPollingInterval.value = null;
+  }
+};
 
 // Methods
 const toggleMobileMenu = () => {
@@ -588,7 +604,6 @@ const getSignalStrengthClass = (strength) => {
 const isCurrentRoute = (path) => route.path === path
 const isInSensorRoutes = computed(() => sensorTypes.some(sensor => route.path === sensor.href))
 const isOnProfilePage = computed(() => route.name === 'UserProfile' || route.path === '/profile' || route.path.includes('/user-profile'))
-const unreadNotificationCount = computed(() => notifications.value.filter(n => n && !n.read).length);
 
 // UI Functions
 const closeDropdown = (e) => {
@@ -634,21 +649,19 @@ const notificationTracker = {
   async wasSavedToday(notificationKey) {
     const todayKey = new Date().toISOString().split('T')[0];
     const fullKey = `notification-${notificationKey}-${todayKey}`;
-    return localStorage.getItem(fullKey) === 'saved' || await this.checkFirestore(notificationKey);
+    return localStorage.getItem(fullKey) === 'saved' || await this.checkMongoDB(notificationKey);
   },
 
-  // Check Firestore as fallback
-  async checkFirestore(notificationKey) {
+  // Check MongoDB as fallback
+  async checkMongoDB(notificationKey) {
     try {
-      const q = query(
-        collection(db, 'notifications'),
-        where('uniqueKey', '==', notificationKey),
-        where('timestamp', '>=', startOfToday())
-      );
-      const snapshot = await getDocs(q);
-      return !snapshot.empty;
+      // Call the API to check if notification exists today
+      const response = await api.get('/notifications/check-today', {
+        params: { uniqueKey: notificationKey }
+      });
+      return response.data.exists;
     } catch (error) {
-      console.error('Error checking notification:', error);
+      console.error('Error checking notification in MongoDB:', error);
       return false;
     }
   },
@@ -658,9 +671,20 @@ const notificationTracker = {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('notification-')) {
-        const timestamp = parseInt(key.split('-').pop());
-        if (timestamp && timestamp < oneDayAgo) {
-          localStorage.removeItem(key);
+        // Extract timestamp from key format: notification-{key}-{date}
+        const parts = key.split('-');
+        if (parts.length >= 3) {
+          const datePart = parts[parts.length - 1];
+          // Try to parse the date
+          try {
+            const keyDate = new Date(datePart);
+            if (keyDate.getTime() < oneDayAgo) {
+              localStorage.removeItem(key);
+            }
+          } catch (e) {
+            // If date parsing fails, remove the key
+            localStorage.removeItem(key);
+          }
         }
       }
     });
@@ -685,17 +709,14 @@ const wasNotificationSavedToday = async (notificationKey) => {
     return true;
   }
   
-  // Fallback to Firestore check
+  // Fallback to MongoDB check via API
   try {
-    const q = query(
-      collection(db, 'notifications'),
-      where('uniqueKey', '==', notificationKey),
-      where('timestamp', '>=', startOfToday())
-    );
-    const snapshot = await getDocs(q);
-    return !snapshot.empty;
+    const response = await api.get('/notifications/check-today', {
+      params: { uniqueKey: notificationKey }
+    });
+    return response.data.exists;
   } catch (error) {
-    console.error('Error checking notification:', error);
+    console.error('Error checking notification in MongoDB:', error);
     return false;
   }
 };
@@ -709,6 +730,252 @@ const markNotificationSaved = (notificationKey) => {
 const startOfToday = () => {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const formatNotificationContextWithLatestData = async (type, additionalData = {}) => {
+  // Get latest sensor and weather data
+  const sensorData = await getLatestSensorDataForContext();
+  const weatherData = await getLatestWeatherDataForContext();
+  
+  // Base context with type identifier
+  const baseContext = {
+    type: type,
+    timestamp: new Date().toISOString(),
+    source: 'system',
+    sensorData: sensorData,
+    weatherData: weatherData,
+    ...additionalData
+  };
+
+  switch (type) {
+    case 'water-level':
+      const currentWaterLevel = sensorData.waterData?.waterLevel || additionalData.waterLevel || 0;
+      return {
+        ...baseContext,
+        waterLevel: currentWaterLevel,
+        status: currentWaterLevel <= 15 ? 'Critical' : 
+                currentWaterLevel <= 30 ? 'Warning' : 'Normal',
+        priority: currentWaterLevel <= 15 ? 'High' : 
+                 currentWaterLevel <= 30 ? 'Medium' : 'Low',
+        recommendation: currentWaterLevel <= 15 ? 
+          'Immediate water refill required' :
+          currentWaterLevel <= 30 ? 
+          'Schedule water refill within 24 hours' :
+          'Water level adequate'
+      };
+
+    case 'humidity-temperature':
+      const currentHumidity = sensorData.sensor2Data?.humidity || additionalData.humidity || 0;
+      const currentTemperature = sensorData.sensor2Data?.temperature || additionalData.temperature || 0;
+      const currentSoilMoisture = sensorData.sensor2Data?.soilMoisture || additionalData.soilMoisture || 0;
+      
+      return {
+        ...baseContext,
+        humidity: currentHumidity,
+        temperature: currentTemperature,
+        soilMoisture: currentSoilMoisture,
+        recommendation: currentHumidity > 70 ? 
+          'High humidity - fungal disease risk' :
+          currentTemperature > 30 ? 
+          'High temperature - plant stress risk' :
+          currentTemperature < 18 ?
+          'Low temperature - growth may slow' :
+          'Conditions optimal'
+      };
+
+    case 'soil-moisture':
+      const moistureLevel = sensorData.sensor2Data?.soilMoisture || additionalData.soilMoisture || 0;
+      const waterLevelValue = sensorData.waterData?.waterLevel || additionalData.waterLevel || 0;
+      
+      return {
+        ...baseContext,
+        soilMoisture: moistureLevel,
+        motorStatus: additionalData.motorStatus || 'Unknown',
+        lastActivation: additionalData.lastActivation || 'N/A',
+        waterLevel: waterLevelValue,
+        recommendation: moistureLevel <= 20 ? 
+          'Soil is dry - irrigation required' :
+          moistureLevel > 55 ?
+          'Soil is oversaturated - reduce watering' :
+          'Soil moisture optimal'
+      };
+
+    case 'npk-ph':
+      const sensor1Data = sensorData.sensor1Data || {};
+      return {
+        ...baseContext,
+        nitrogen: {
+          value: sensor1Data.nitrogen || 0,
+          level: (sensor1Data.nitrogen || 0) < 51 ? 'Low' :
+                 (sensor1Data.nitrogen || 0) > 200 ? 'High' : 'Optimal'
+        },
+        phosphorus: {
+          value: sensor1Data.phosphorus || 0,
+          level: (sensor1Data.phosphorus || 0) < 21 ? 'Low' :
+                 (sensor1Data.phosphorus || 0) > 60 ? 'High' : 'Optimal'
+        },
+        potassium: {
+          value: sensor1Data.potassium || 0,
+          level: (sensor1Data.potassium || 0) < 101 ? 'Low' :
+                 (sensor1Data.potassium || 0) > 250 ? 'High' : 'Optimal'
+        },
+        soilPh: {
+          value: sensor1Data.soilPh || 0,
+          condition: (sensor1Data.soilPh || 0) < 5.5 ? 'Acidic' :
+                    (sensor1Data.soilPh || 0) > 7.5 ? 'Alkaline' : 'Neutral'
+        },
+        recommendation: getNutrientRecommendation(sensor1Data)
+      };
+
+    case 'watering-schedule':
+      return {
+        ...baseContext,
+        scheduleDate: additionalData.scheduleDate || new Date().toLocaleDateString(),
+        startTime: additionalData.startTime || new Date().toLocaleTimeString(),
+        endTime: additionalData.endTime || 'N/A',
+        duration: additionalData.duration || 0,
+        waterLevelAtStart: sensorData.waterData?.waterLevel || 0,
+        zone: additionalData.zone || 'Greenhouse 1',
+        mode: additionalData.mode || 'auto',
+        motorActivationSuccess: additionalData.motorSuccess || false,
+        remarks: additionalData.motorSuccess ? 
+          'Motor activated successfully' : 'Motor activation failed'
+      };
+
+    case 'weather-alert':
+      return {
+        ...baseContext,
+        forecast: additionalData.forecast || {},
+        currentWeather: additionalData.currentWeather || {},
+        recommendation: additionalData.condition?.includes('Rain') ?
+          'Rain expected - consider delaying watering' :
+          additionalData.condition?.includes('Thunderstorm') ?
+          'Thunderstorm warning - secure equipment' :
+          'Normal weather conditions'
+      };
+
+    default:
+      return baseContext;
+  }
+};
+
+// Function to build context data using the stored sensor data
+const buildContextData = (type, additionalData = {}) => {
+  const sensorData = latestSensorData.value || {};
+  const now = new Date();
+  
+  const baseContext = {
+    type: type,
+    timestamp: now.toISOString(),
+    source: 'system',
+    ...additionalData
+  };
+
+  switch (type) {
+    case 'water-level':
+      const waterLevel = sensorData.waterData?.waterLevel || additionalData.waterLevel || 0;
+      return {
+        ...baseContext,
+        waterLevel: waterLevel,
+        status: waterLevel <= 15 ? 'Critical' : waterLevel <= 30 ? 'Warning' : 'Normal',
+        priority: waterLevel <= 15 ? 'High' : waterLevel <= 30 ? 'Medium' : 'Low',
+        recommendation: waterLevel <= 15 ? 
+          'Immediate water refill required' :
+          waterLevel <= 30 ? 
+          'Schedule water refill within 24 hours' :
+          'Water level adequate'
+      };
+
+    case 'humidity-temperature':
+      const humidity = sensorData.sensor2Data?.humidity || additionalData.humidity || 0;
+      const temperature = sensorData.sensor2Data?.temperature || additionalData.temperature || 0;
+      const soilMoisture = sensorData.sensor2Data?.soilMoisture || additionalData.soilMoisture || 0;
+      
+      return {
+        ...baseContext,
+        humidity: humidity,
+        temperature: temperature,
+        soilMoisture: soilMoisture,
+        recommendation: humidity > 70 ? 
+          'High humidity - fungal disease risk' :
+          temperature > 30 ? 
+          'High temperature - plant stress risk' :
+          temperature < 18 ?
+          'Low temperature - growth may slow' :
+          'Conditions optimal'
+      };
+
+    case 'low-soil':
+      return {
+        ...baseContext,
+        soilMoisture: sensorData.sensor2Data?.soilMoisture || 0,
+        temperature: sensorData.sensor2Data?.temperature || 0,
+        humidity: sensorData.sensor2Data?.humidity || 0,
+        nitrogen: sensorData.sensor1Data?.nitrogen || 0,
+        phosphorus: sensorData.sensor1Data?.phosphorus || 0,
+        potassium: sensorData.sensor1Data?.potassium || 0,
+        soilPh: sensorData.sensor1Data?.soilPh || 0,
+        recommendation: getNutrientRecommendation(sensorData.sensor1Data || {})
+      };
+
+    case 'npk-ph':
+      return {
+        ...baseContext,
+        nitrogen: {
+          value: sensorData.sensor1Data?.nitrogen || 0,
+          level: (sensorData.sensor1Data?.nitrogen || 0) < 51 ? 'Low' :
+                 (sensorData.sensor1Data?.nitrogen || 0) > 200 ? 'High' : 'Optimal'
+        },
+        phosphorus: {
+          value: sensorData.sensor1Data?.phosphorus || 0,
+          level: (sensorData.sensor1Data?.phosphorus || 0) < 21 ? 'Low' :
+                 (sensorData.sensor1Data?.phosphorus || 0) > 60 ? 'High' : 'Optimal'
+        },
+        potassium: {
+          value: sensorData.sensor1Data?.potassium || 0,
+          level: (sensorData.sensor1Data?.potassium || 0) < 101 ? 'Low' :
+                 (sensorData.sensor1Data?.potassium || 0) > 250 ? 'High' : 'Optimal'
+        },
+        soilPh: {
+          value: sensorData.sensor1Data?.soilPh || 0,
+          condition: (sensorData.sensor1Data?.soilPh || 0) < 5.5 ? 'Acidic' :
+                    (sensorData.sensor1Data?.soilPh || 0) > 7.5 ? 'Alkaline' : 'Neutral'
+        },
+        recommendation: getNutrientRecommendation(sensorData.sensor1Data || {})
+      };
+
+    case 'soil-moisture':
+      return {
+        ...baseContext,
+        soilMoisture: sensorData.sensor2Data?.soilMoisture || 0,
+        motorStatus: additionalData.motorStatus || 'Unknown',
+        lastActivation: additionalData.lastActivation || 'N/A',
+        waterLevel: sensorData.waterData?.waterLevel || 0,
+        recommendation: (sensorData.sensor2Data?.soilMoisture || 0) <= 20 ? 
+          'Soil is dry - irrigation required' :
+          (sensorData.sensor2Data?.soilMoisture || 0) > 55 ?
+          'Soil is oversaturated - reduce watering' :
+          'Soil moisture optimal'
+      };
+
+    case 'watering-schedule':
+      return {
+        ...baseContext,
+        scheduleDate: additionalData.scheduleDate || now.toLocaleDateString(),
+        startTime: additionalData.startTime || now.toLocaleTimeString(),
+        endTime: additionalData.endTime || 'N/A',
+        duration: additionalData.duration || 0,
+        waterLevelAtStart: sensorData.waterData?.waterLevel || 0,
+        zone: additionalData.zone || 'Greenhouse 1',
+        mode: additionalData.mode || 'auto',
+        motorActivationSuccess: additionalData.motorSuccess || false,
+        remarks: additionalData.motorSuccess ? 
+          'Motor activated successfully' : 'Motor activation failed'
+      };
+
+    default:
+      return baseContext;
+  }
 };
 
 const formatDate = (date) => {
@@ -834,6 +1101,7 @@ const processToastQueue = () => {
 };
 
 const showToastMessage = (message, severity = 'info', persistKey = null) => {
+  
   window.showToast(message, severity)
 }
 
@@ -886,170 +1154,111 @@ notificationStorage.cleanExpired = function() {
 };
 
 // Notification Functions
-const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}) => {
-  // Generate consistent notification ID
-  const notificationId = uniqueKey || `${severity}-${title}-${message}`.replace(/\s+/g, '-').toLowerCase();
-  const todayKey = new Date().toISOString().split('T')[0];
-  const storageKey = `${notificationId}-${todayKey}`;
-
-  // Check if we've already processed this notification today
-  const notificationState = notificationStorage.get(storageKey);
-  
-  // If already fully processed, skip everything
-  if (notificationState === 'complete') {
-    return;
-  }
-
-  // Show toast only if not shown today
-  if (!notificationState) {
-    showToastMessage(message, severity);
-    notificationStorage.set(storageKey, 'toast-shown');
-  }
-
-  // Skip Firestore if already saved today
-  if (notificationState === 'toast-shown' || notificationState === 'complete' || await wasNotificationSavedToday(notificationId)) {
-    if (notificationState === 'toast-shown') {
-      notificationStorage.set(storageKey, 'complete');
-    }
-    return;
-  }
-
+const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}, includeSensorData = true) => {
   try {
-    // Determine notification type and format data accordingly
-    let formattedData = {};
-    const now = new Date();
-    
-    if (title.includes('Water') || message.includes('water level')) {
-      // Water Level Alert (Type 1)
-      formattedData = {
-        type: 'water-level',
-        level: contextData.waterLevel || 'Unknown',
-        status: contextData.waterLevel <= 15 ? 'Critical' : 
-               contextData.waterLevel <= 30 ? 'Warning' : 'Normal',
-        priority: contextData.waterLevel <= 15 ? 'High Priority' : 
-                 contextData.waterLevel <= 30 ? 'Warning' : 'Info',
-        recommendation: contextData.waterLevel <= 15 ? 
-          'Immediate water refill required' : 
-          'Schedule water refill within 24 hours',
-        timestamp: serverTimestamp()
-      };
-    } 
-    else if (title.includes('Temperature') || title.includes('Humidity')) {
-      // Humidity/Temperature Alert (Type 2)
-      formattedData = {
-        type: 'climate',
-        temperature: contextData.temperature ? `${contextData.temperature}°C` : 'Unknown',
-        humidity: contextData.humidity ? `${contextData.humidity}%` : 'Unknown',
-        soilMoisture: contextData.soilMoisture ? `${contextData.soilMoisture}%` : 'Unknown',
-        recommendation: contextData.humidity > 70 ? 
-          'High humidity - fungal disease risk' :
-          contextData.temperature > 30 ?
-          'High temperature - plant stress likely' :
-          'Normal conditions',
-        timestamp: serverTimestamp()
-      };
-    }
-    else if (title.includes('Soil') && !title.includes('pH')) {
-      // Soil Moisture Alert (Type 3 & 5)
-      formattedData = {
-        type: 'soil-moisture',
-        moisture: contextData.soilMoisture ? `${contextData.soilMoisture}%` : 'Unknown',
-        temperature: contextData.temperature ? `${contextData.temperature}°C` : 'Unknown',
-        humidity: contextData.humidity ? `${contextData.humidity}%` : 'Unknown',
-        waterLevel: contextData.waterLevel ? `${contextData.waterLevel}%` : 'Unknown',
-        recommendation: contextData.soilMoisture < 20 ? 
-          'Soil is dry - irrigation required' :
-          contextData.soilMoisture > 55 ?
-          'Soil is oversaturated - risk of root rot' :
-          'Soil moisture is optimal',
-        timestamp: serverTimestamp()
-      };
-    }
-    else if (title.includes('NPK') || title.includes('pH')) {
-      // NPK/Soil pH Alert (Type 4)
-      formattedData = {
-        type: 'nutrients',
-        nitrogen: contextData.nitrogen ? {
-          value: contextData.nitrogen,
-          level: contextData.nitrogen < 51 ? 'Low' : 
-                contextData.nitrogen > 200 ? 'High' : 'Optimal'
-        } : null,
-        phosphorus: contextData.phosphorus ? {
-          value: contextData.phosphorus,
-          level: contextData.phosphorus < 21 ? 'Low' : 
-                contextData.phosphorus > 60 ? 'High' : 'Optimal'
-        } : null,
-        potassium: contextData.potassium ? {
-          value: contextData.potassium,
-          level: contextData.potassium < 101 ? 'Low' : 
-                contextData.potassium > 250 ? 'High' : 'Optimal'
-        } : null,
-        soilPh: contextData.soilPh ? {
-          value: contextData.soilPh,
-          condition: contextData.soilPh < 5.5 ? 'Acidic' : 
-                    contextData.soilPh > 7.5 ? 'Alkaline' : 'Neutral'
-        } : null,
-        recommendation: getNutrientRecommendation(contextData),
-        timestamp: serverTimestamp()
-      };
-    }
-    else if (title.includes('Watering') && (title.includes('Started') || title.includes('Completed'))) {
-      // Water Scheduling Alert (Type 6)
-      formattedData = {
-        type: 'schedule',
-        date: contextData.date || formatDate(now),
-        startTime: contextData.startTime || now.toLocaleTimeString(),
-        endTime: contextData.endTime || (contextData.duration ? 
-          new Date(now.getTime() + contextData.duration * 60000).toLocaleTimeString() : 'Unknown'),
-        duration: contextData.duration ? `${contextData.duration} minutes` : 'Unknown',
-        waterLevelAtStart: contextData.waterLevel ? `${contextData.waterLevel}%` : 'Unknown',
-        zone: contextData.zone || 'Greenhouse 1',
-        mode: contextData.mode || 'auto',
-        motorStatus: contextData.motorStatus || 'unknown',
-        remarks: contextData.remarks || 'No remarks',
-        timestamp: serverTimestamp()
-      };
-    }
-    else {
-      // Default format for other notifications
-      formattedData = {
-        type: 'general',
-        ...cleanFirestoreData(contextData),
-        timestamp: serverTimestamp()
+    // Validate context data
+    if (!contextData || Object.keys(contextData).length === 0) {
+      console.error('❌ Notification rejected: Missing context data');
+      showToastMessage('Notification failed: Missing context data', 'error');
+      return { 
+        success: false, 
+        error: 'Missing context data',
+        skipped: true
       };
     }
 
-    // Prepare notification data
-    const notificationData = {
-      message,
-      title,
-      type: 'system',
-      severity,
-      read: false,
-      timestamp: serverTimestamp(),
-      formattedDate: formatDate(now),
-      context: formattedData,
-      uniqueKey: notificationId
+    // Create a reliable unique key
+    const notificationId = uniqueKey || `ntf-${severity}-${title}-${message}`
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .toLowerCase();
+    
+    // Check if we've already processed this notification
+    const existingState = notificationStorage.get(notificationId);
+    
+    if (existingState === 'completed') {
+      console.log('⏩ Notification already completed:', notificationId);
+      return { success: true, skipped: true, reason: 'already_completed' };
+    }
+
+    // Show toast only if not shown recently
+    if (existingState !== 'toast_shown') {
+      showToastMessage(message, severity);
+      notificationStorage.set(notificationId, 'toast_shown', 60000);
+    }
+
+    // ✅ Enhanced context data - ensure it's properly structured
+    let enhancedContextData = {
+      ...contextData,
+      notificationId: notificationId,
+      processedAt: new Date().toISOString(),
+      timestamp: Date.now()
     };
 
-    // Save to Firestore
-    await addDoc(collection(db, 'notifications'), notificationData);
+    // Add sensor data if requested
+    if (includeSensorData) {
+      try {
+        const sensorData = await getLatestSensorDataForContext();
+        enhancedContextData.sensorData = sensorData;
+      } catch (sensorError) {
+        console.warn('Could not fetch sensor data for notification context:', sensorError);
+        enhancedContextData.sensorDataError = 'Failed to fetch sensor data';
+      }
+    }
+
+    console.log('📤 Sending notification with context:', enhancedContextData);
+
+    // Save notification to database
+    const response = await api.post('/notifications', {
+      message,
+      title,
+      severity,
+      uniqueKey: uniqueKey,
+      contextData: enhancedContextData,  // ✅ Now properly passed
+      context: enhancedContextData,
+      type: 'system'
+    });
     
-    // Mark as complete in storage
-    notificationStorage.set(storageKey, 'complete');
+    console.log('✅ Notification saved successfully:', response.data);
     
-    // Send SMS if configured and critical
+    // Mark as completed in storage
+    notificationStorage.set(notificationId, 'completed', 24 * 60 * 60 * 1000);
+    
+    // Send SMS if configured
     if (user.value?.phoneNumber) {
-      await sendSMS(
-        user.value.phoneNumber,
-        `[${title}] ${message}`
-      );
+      try {
+        await sendSMS(
+          user.value.phoneNumber,
+          `[${title}] ${message}`
+        );
+        console.log('✅ SMS sent successfully');
+      } catch (smsError) {
+        console.error('❌ Failed to send SMS:', smsError);
+      }
     }
+    
+    return { 
+      success: true, 
+      id: response.data.id,
+      alreadyShown: existingState === 'toast_shown'
+    };
+    
   } catch (error) {
-    console.error('Failed to save notification:', error);
-    if (notificationStorage.get(storageKey)) {
-      notificationStorage.set(storageKey, 'toast-shown');
+    console.error('❌ Failed to save notification:', error);
+    
+    if (error.response?.status === 400) {
+      showToastMessage(`Notification failed: ${error.response.data.detail}`, 'error');
     }
+    
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    
+    return { 
+      success: false, 
+      error: error.message 
+    };
   }
 };
 
@@ -1095,53 +1304,41 @@ const getNutrientRecommendation = (data) => {
 const unsubscribeWaterLevel = ref(null);
 
 const setupWaterLevelListener = () => {
-  // Clear any existing listener
-  if (unsubscribeWaterLevel.value) {
-    unsubscribeWaterLevel.value();
-  }
-
-  const waterLevelQuery = query(
-    collection(db, "water_level_readings"),
-    orderBy("timestamp", "desc"),
-    limit(1)
-  );
-  
-  unsubscribeWaterLevel.value = onSnapshot(waterLevelQuery, (snapshot) => {
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      const waterData = doc.data();
-      console.log("Water level data:", waterData); // Debug log
-      
-      // Make sure we're getting the waterLevel field
-      if (waterData && typeof waterData.waterLevel === 'number') {
-        const level = waterData.waterLevel;
-        console.log("Current water level:", level); // Debug log
-        waterLevel.value = level;
-        evaluateWaterLevel(level);
-      } else {
-        console.warn("Water level data missing or invalid:", waterData);
+  const pollWaterLevel = async () => {
+    try {
+      const response = await api.get('/sensors/water-level/latest')
+      if (response.data && typeof response.data.waterLevel === 'number') {
+        waterLevel.value = response.data.waterLevel
+        evaluateWaterLevel(response.data.waterLevel)
       }
-    } else {
-      console.log("No water level documents found");
+    } catch (error) {
+      console.error('Water level fetch error:', error)
     }
-  }, (error) => {
-    console.error("Water level listener error:", error);
-  });
-};
+  }
+  
+  const waterLevelInterval = setInterval(pollWaterLevel, 30000)
+  pollWaterLevel()
+  unsubscribeFunctions.push(() => clearInterval(waterLevelInterval))
+}
 
 // Helper function to get latest sensor data
-const getLatestSensorData = async () => {
+const getLatestSensorDataForContext = async () => {
   try {
-    const sensorSnapshot = await getDocs(
-      query(
-        collection(db, "3sensor_readings", "esp32-2", "readings"),
-        orderBy("timestamp", "desc"),
-        limit(1)
-      )
-    );
-    return sensorSnapshot.empty ? {} : sensorSnapshot.docs[0].data();
+    const response = await api.get('/sensors/combined/latest');
+    return response.data;
+
   } catch (error) {
-    console.error("Error fetching sensor data:", error);
+    console.error("Error fetching sensor data for context:", error);
+    return {};
+  }
+};
+
+const getLatestWeatherDataForContext = async () => {
+  try {
+    const weatherData = await getWeatherData();
+    return weatherData;
+  } catch (error) {
+    console.error("Error fetching weather data for context:", error);
     return {};
   }
 };
@@ -1153,14 +1350,22 @@ const evaluateWaterLevel = async (level) => {
   }
 
   try {
-    const dateKey = new Date().toISOString().split('T')[0];
-    const formattedDate = formatDate(new Date());
-    const sensorData = await getLatestSensorData();
+    const now = new Date();
+    const dateKey = now.toISOString().split('T')[0];
+    const formattedDate = formatDate(now);
 
     const context = {
+      type: 'water-level',
+      source: 'water-sensor',
       date: formattedDate,
       waterLevel: level,
-      timestamp: serverTimestamp()
+      status: level <= 15 ? 'Critical' : level <= 30 ? 'Warning' : 'Normal',
+      priority: level <= 15 ? 'High' : level <= 30 ? 'Medium' : 'Low',
+      recommendation: level <= 15 ? 
+        'Immediate water refill required' :
+        level <= 30 ? 
+        'Schedule water refill within 24 hours' :
+        'Water level adequate'
     };
 
     if (level <= 15) {
@@ -1169,7 +1374,8 @@ const evaluateWaterLevel = async (level) => {
         '🚨 Water Emergency',
         'critical',
         `water-critical-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
     } 
     else if (level <= 30) {
@@ -1178,16 +1384,8 @@ const evaluateWaterLevel = async (level) => {
         'Low Water Warning',
         'warning',
         `water-warning-${dateKey}`,
-        context
-      );
-    }
-    else if (level >= 45 && level <= 55) {
-      await sendNotification(
-        `Water level is at ${Math.round(level)}%`,
-        'Water Level Update',
-        'info',
-        `water-info-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
   } catch (error) {
@@ -1261,8 +1459,8 @@ const checkWeatherForecastForAlerts = async () => {
       const dayDate = new Date(day.date);
       const dayFormattedDate = formatDate(dayDate);
 
-      // Prepare the context with detailed temperature data
       const context = {
+        type: 'weather-alert',
         forecast: {
           date: dayFormattedDate,
           condition,
@@ -1282,18 +1480,22 @@ const checkWeatherForecastForAlerts = async () => {
           windSpeed: weatherData.current?.wind_speed,
           uvIndex: weatherData.current?.uv_index
         },
-        recordedAt: serverTimestamp()
+        recommendation: condition.includes('Rain') ?
+          'Rain expected - consider delaying watering' :
+          condition.includes('Thunderstorm') ?
+          'Thunderstorm warning - secure equipment' :
+          'Normal weather conditions'
       };
 
-      // Prepare the clean toast message (without min/max temps)
       const toastMessage = `${condition} expected on ${dayFormattedDate}`;
 
       await sendNotification(
-        toastMessage, // Clean message for toast
+        toastMessage,
         'Severe Weather Alert',
         'warning',
         `weather-${condition}-${dateKey}`,
-        context      // Detailed data saved in context
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
   } catch (error) {
@@ -1325,61 +1527,38 @@ const cleanFirestoreData = (data) => {
 const unsubscribeCombinedListener = ref(null);
 
 const setupCombinedRealtimeListener = () => {
-  // Clean up previous listener
-  if (unsubscribeCombinedListener.value) unsubscribeCombinedListener.value();
+  const pollSensorData = async () => {
+    try {
+      const response = await api.get('/sensors/combined/latest')
+      await evaluateSensorRangesAndNotify(response.data)
+      await contextDataDebug(response.data)
+      console.log(response.data.waterData.waterLevel)
+      
+      console.log(response.data.sensor1Data.nitrogen) 
+      console.log(response.data.sensor2Data.temperature) 
+      
+    } catch (error) {
+      console.error('Sensor data fetch error:', error)
+    }
+  }
+  
+  const sensorInterval = setInterval(pollSensorData, 60000)
+  pollSensorData()
+  unsubscribeFunctions.push(() => clearInterval(sensorInterval))
+}
 
-  // Queries for latest readings
-  const waterQuery = query(
-    collection(db, "water_level_readings"),
-    orderBy("timestamp", "desc"),
-    limit(1)
-  );
-  const sensor1Query = query(
-    collection(db, "3sensor_readings", "esp32-1", "readings"),
-    orderBy("timestamp", "desc"),
-    limit(1)
-  );
-  const sensor2Query = query(
-    collection(db, "3sensor_readings", "esp32-2", "readings"),
-    orderBy("timestamp", "desc"),
-    limit(1)
-  );
+const contextDataDebug = async (sensor) => {
+  const { waterData, sensor1Data, sensor2Data } = sensor;
+  // const sensorData = { waterData, sensor1Data, sensor2Data }
+  console.log(`this is the latest data fromdatabase: ${waterData.waterLevel}`)
+}
 
-  // Helper to fetch latest data from all sources
-  const fetchLatestCombinedData = async () => {
-    const [waterSnap, sensor1Snap, sensor2Snap] = await Promise.all([
-      getDocs(waterQuery),
-      getDocs(sensor1Query),
-      getDocs(sensor2Query)
-    ]);
-    const waterData = !waterSnap.empty ? waterSnap.docs[0].data() : {};
-    const sensor1Data = !sensor1Snap.empty ? sensor1Snap.docs[0].data() : {};
-    const sensor2Data = !sensor2Snap.empty ? sensor2Snap.docs[0].data() : {};
-    return { waterData, sensor1Data, sensor2Data };
-  };
+// Complete evaluateSensorRangesAndNotify function with all notification types
+const evaluateSensorRangesAndNotify = async (sensorDataResponse) => {
+  const { waterData, sensor1Data, sensor2Data } = sensorDataResponse;
+  const source = "esp32-2";
 
-  // Listener callback
-  const onAnyChange = async () => {
-    const { waterData, sensor1Data, sensor2Data } = await fetchLatestCombinedData();
-    await evaluateSensorRangesAndNotify({ waterData, sensor1Data, sensor2Data });
-  };
-
-  // Set up listeners for all three sources
-  const unsubWater = onSnapshot(waterQuery, onAnyChange);
-  const unsubSensor1 = onSnapshot(sensor1Query, onAnyChange);
-  const unsubSensor2 = onSnapshot(sensor2Query, onAnyChange);
-
-  // Store cleanup function
-  unsubscribeCombinedListener.value = () => {
-    unsubWater();
-    unsubSensor1();
-    unsubSensor2();
-  };
-};
-
-// Unified evaluation function for all ranges and sources
-const evaluateSensorRangesAndNotify = async ({ waterData, sensorData, source }) => {
-  if (!sensorData) {
+  if (!sensorDataResponse) {
     console.warn('No sensor data provided');
     return;
   }
@@ -1388,210 +1567,290 @@ const evaluateSensorRangesAndNotify = async ({ waterData, sensorData, source }) 
   const dateKey = now.toISOString().split('T')[0];
   const formattedDate = formatDate(now);
 
-  // Prepare base context data
-  const context = {
-    source,
-    date: formattedDate,
-    timestamp: serverTimestamp(),
-    waterLevel: typeof waterData?.waterLevel === 'number' ? waterData.waterLevel : null,
-    ...sensorData
-  };
+  // 1. Water Level Alerts (Low Water Alert)
+  if (waterData && typeof waterData.waterLevel === 'number') {
+    const context = {
+      type: 'water-level',
+      source: 'water-sensor',
+      date: formattedDate,
+      waterLevel: waterData.waterLevel,
+      status: waterData.waterLevel <= 15 ? 'Critical' : waterData.waterLevel <= 30 ? 'Warning' : 'Normal',
+      priority: waterData.waterLevel <= 15 ? 'High' : waterData.waterLevel <= 30 ? 'Medium' : 'Low',
+      recommendation: waterData.waterLevel <= 15 ? 
+        'Immediate water refill required' :
+        waterData.waterLevel <= 30 ? 
+        'Schedule water refill within 24 hours' :
+        'Water level adequate'
+    };
 
-  // Temperature Alerts
-  if (typeof sensorData.temperature === 'number') {
-    if (sensorData.temperature > 30) {
+    if (waterData.waterLevel <= 15) {
       await sendNotification(
-        `High temperature (${sensorData.temperature}°C) detected`,
+        `Water level is CRITICALLY LOW (${waterData.waterLevel}%)! Immediate action required.`,
+        '🚨 Water Emergency',
+        'critical',
+        `water-critical-${dateKey}`,
+        context,
+        false // ← DON'T include additional sensor data
+      );
+    } else if (waterData.waterLevel <= 30) {
+      await sendNotification(
+        `Water level is low (${waterData.waterLevel}%). Consider refilling soon.`,
+        'Low Water Warning',
+        'warning',
+        `water-warning-${dateKey}`,
+        context,
+        false // ← DON'T include additional sensor data
+      );
+    }
+  }
+
+  // 2. Temperature & Humidity Alerts (Humidity/Temperature Alert)
+  if (typeof sensor2Data?.temperature === 'number' || typeof sensor2Data?.humidity === 'number') {
+    const context = {
+      type: 'humidity-temperature',
+      source: source,
+      date: formattedDate,
+      humidity: sensor2Data?.humidity || 0,
+      temperature: sensor2Data?.temperature || 0,
+      soilMoisture: sensor2Data?.soilMoisture || 0,
+      recommendation: (sensor2Data?.humidity || 0) > 70 ? 
+        'High humidity - fungal disease risk' :
+        (sensor2Data?.temperature || 0) > 30 ? 
+        'High temperature - plant stress risk' :
+        (sensor2Data?.temperature || 0) < 18 ?
+        'Low temperature - growth may slow' :
+        'Conditions optimal'
+    };
+
+    // Temperature alerts
+    if (sensor2Data?.temperature > 30) {
+      await sendNotification(
+        `High temperature (${sensor2Data.temperature}°C) detected`,
         'Temperature Alert',
         'warning',
         `temp-high-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
-    } else if (sensorData.temperature < 18) {
+    } else if (sensor2Data?.temperature < 18) {
       await sendNotification(
-        `Low temperature (${sensorData.temperature}°C) detected`,
+        `Low temperature (${sensor2Data.temperature}°C) detected`,
         'Temperature Alert',
         'warning',
         `temp-low-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
-  }
 
-  // Humidity Alerts
-  if (typeof sensorData.humidity === 'number') {
-    if (sensorData.humidity > 70) {
+    // Humidity alerts
+    if (sensor2Data?.humidity > 70) {
       await sendNotification(
-        `High humidity (${sensorData.humidity}%) detected`,
+        `High humidity (${sensor2Data.humidity}%) detected`,
         'Humidity Alert',
         'warning',
         `humidity-high-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
-    } else if (sensorData.humidity < 40) {
+    } else if (sensor2Data?.humidity < 40) {
       await sendNotification(
-        `Low humidity (${sensorData.humidity}%) detected`,
+        `Low humidity (${sensor2Data.humidity}%) detected`,
         'Humidity Alert',
         'warning',
         `humidity-low-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
   }
 
-  // Soil Moisture Alerts
-  if (typeof sensorData.soilMoisture === 'number') {
-    if (sensorData.soilMoisture <= 10) {
+  // 3. Soil Moisture Alerts (Low Soil Alert - includes all data)
+  if (typeof sensor2Data?.soilMoisture === 'number') {
+    const context = {
+      type: 'low-soil',
+      source: source,
+      date: formattedDate,
+      soilMoisture: sensor2Data.soilMoisture,
+      temperature: sensor2Data?.temperature || 0,
+      humidity: sensor2Data?.humidity || 0,
+      nitrogen: sensor1Data?.nitrogen || 0,
+      phosphorus: sensor1Data?.phosphorus || 0,
+      potassium: sensor1Data?.potassium || 0,
+      soilPh: sensor1Data?.soilPh || 0,
+      recommendation: getNutrientRecommendation(sensor1Data || {})
+    };
+
+    if (sensor2Data.soilMoisture <= 10) {
       await sendNotification(
-        `CRITICALLY LOW soil moisture (${sensorData.soilMoisture}%)`,
+        `CRITICALLY LOW soil moisture (${sensor2Data.soilMoisture}%)`,
         '🚨 Soil Emergency',
         'critical',
         `soil-critical-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
-    } else if (sensorData.soilMoisture <= 20) {
+    } else if (sensor2Data.soilMoisture <= 20) {
       await sendNotification(
-        `Low soil moisture (${sensorData.soilMoisture}%)`,
+        `Low soil moisture (${sensor2Data.soilMoisture}%)`,
         'Soil Moisture Alert',
         'warning',
         `soil-low-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
-    } else if (sensorData.soilMoisture > 55) {
+    } else if (sensor2Data.soilMoisture > 55) {
       await sendNotification(
-        `High soil moisture (${sensorData.soilMoisture}%)`,
+        `High soil moisture (${sensor2Data.soilMoisture}%) - Oversaturated`,
         'Soil Moisture Alert',
         'warning',
         `soil-high-${source}-${dateKey}`,
-        context
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
   }
 
-  // Soil pH Alerts
-  if (typeof sensorData.soilPh === 'number') {
-    if (sensorData.soilPh < 5.5) {
+  // 4. NPK & Soil pH Alerts (NPK / Soil pH Alert)
+  if (sensor1Data) {
+    const context = {
+      type: 'npk-ph',
+      source: 'esp32-1',
+      date: formattedDate,
+      nitrogen: {
+        value: sensor1Data.nitrogen || 0,
+        level: (sensor1Data.nitrogen || 0) < 51 ? 'Low' :
+               (sensor1Data.nitrogen || 0) > 200 ? 'High' : 'Optimal'
+      },
+      phosphorus: {
+        value: sensor1Data.phosphorus || 0,
+        level: (sensor1Data.phosphorus || 0) < 21 ? 'Low' :
+               (sensor1Data.phosphorus || 0) > 60 ? 'High' : 'Optimal'
+      },
+      potassium: {
+        value: sensor1Data.potassium || 0,
+        level: (sensor1Data.potassium || 0) < 101 ? 'Low' :
+               (sensor1Data.potassium || 0) > 250 ? 'High' : 'Optimal'
+      },
+      soilPh: {
+        value: sensor1Data.soilPh || 0,
+        condition: (sensor1Data.soilPh || 0) < 5.5 ? 'Acidic' :
+                  (sensor1Data.soilPh || 0) > 7.5 ? 'Alkaline' : 'Neutral'
+      },
+      recommendation: getNutrientRecommendation(sensor1Data || {})
+    };
+
+    // Soil pH alerts
+    if (sensor1Data.soilPh < 5.5) {
       await sendNotification(
-        `Low soil pH (${sensorData.soilPh}) - Acidic conditions`,
+        `Low soil pH (${sensor1Data.soilPh}) - Acidic conditions`,
         'Soil pH Alert',
         'warning',
-        `ph-low-${source}-${dateKey}`,
-        context
+        `ph-low-esp32-1-${dateKey}`,
+        context,
+        false // ← DON'T include additional sensor data
       );
-    } else if (sensorData.soilPh > 7.5) {
+    } else if (sensor1Data.soilPh > 7.5) {
       await sendNotification(
-        `High soil pH (${sensorData.soilPh}) - Alkaline conditions`,
+        `High soil pH (${sensor1Data.soilPh}) - Alkaline conditions`,
         'Soil pH Alert',
         'warning',
-        `ph-high-${source}-${dateKey}`,
-        context
+        `ph-high-esp32-1-${dateKey}`,
+        context,
+        false // ← DON'T include additional sensor data
+      );
+    }
+
+    // NPK nutrient alerts
+    const nutrientChecks = [
+      { name: 'nitrogen', low: 51, high: 200 },
+      { name: 'phosphorus', low: 21, high: 60 },
+      { name: 'potassium', low: 101, high: 250 }
+    ];
+
+    for (const nutrient of nutrientChecks) {
+      const value = sensor1Data[nutrient.name];
+      if (typeof value !== 'number') continue;
+
+      if (value < nutrient.low) {
+        await sendNotification(
+          `Low ${nutrient.name} (${value}ppm) detected`,
+          `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
+          'warning',
+          `${nutrient.name}-low-esp32-1-${dateKey}`,
+          context,
+          false // ← DON'T include additional sensor data
+        );
+      } else if (value > nutrient.high) {
+        await sendNotification(
+          `High ${nutrient.name} (${value}ppm) detected`,
+          `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
+          'warning',
+          `${nutrient.name}-high-esp32-1-${dateKey}`,
+          context,
+          false // ← DON'T include additional sensor data
+        );
+      }
+    }
+  }
+
+  // 5. Normal Soil Moisture Notification (Soil Moisture Notification)
+  if (typeof sensor2Data?.soilMoisture === 'number') {
+    if (sensor2Data.soilMoisture > 20 && sensor2Data.soilMoisture <= 55) {
+      // Get motor status for context
+      let motorStatus = 'Unknown';
+      let lastActivation = 'N/A';
+      try {
+        const motorResponse = await api.get('/devices/motor/status');
+        motorStatus = motorResponse.data.status ? 'ON' : 'OFF';
+        lastActivation = motorResponse.data.formattedTime || 'N/A';
+      } catch (error) {
+        console.error('Error fetching motor status:', error);
+      }
+
+      const context = {
+        type: 'soil-moisture',
+        source: source,
+        date: formattedDate,
+        soilMoisture: sensor2Data.soilMoisture,
+        motorStatus: motorStatus,
+        lastActivation: lastActivation,
+        waterLevel: waterData?.waterLevel || 0,
+        recommendation: sensor2Data.soilMoisture <= 20 ? 
+          'Soil is dry - irrigation required' :
+          sensor2Data.soilMoisture > 55 ?
+          'Soil is oversaturated - reduce watering' :
+          'Soil moisture optimal'
+      };
+
+      await sendNotification(
+        `Soil moisture at ${sensor2Data.soilMoisture}% - Conditions optimal`,
+        'Soil Status',
+        'info',
+        `soil-status-${source}-${dateKey}-${Math.floor(sensor2Data.soilMoisture)}`,
+        context,
+        false // ← DON'T include additional sensor data
       );
     }
   }
 
-  // NPK Nutrient Alerts
-  const nutrientChecks = [
-    { name: 'nitrogen', low: 51, high: 200 },
-    { name: 'phosphorus', low: 21, high: 60 },
-    { name: 'potassium', low: 101, high: 250 }
-  ];
-
-  for (const nutrient of nutrientChecks) {
-    const value = sensorData[nutrient.name];
-    if (typeof value !== 'number') continue;
-
-    if (value < nutrient.low) {
-      await sendNotification(
-        `Low ${nutrient.name} (${value}ppm) detected`,
-        `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
-        'warning',
-        `${nutrient.name}-low-${source}-${dateKey}`,
-        context
-      );
-    } else if (value > nutrient.high) {
-      await sendNotification(
-        `High ${nutrient.name} (${value}ppm) detected`,
-        `${nutrient.name.charAt(0).toUpperCase() + nutrient.name.slice(1)} Alert`,
-        'warning',
-        `${nutrient.name}-high-${source}-${dateKey}`,
-        context
-      );
-    }
-  }
+  console.log('✅ Sensor range evaluation completed');
 };
 
-// UPDATED SCHEDULE FUNCTIONS WITH PRECISE TIMING
 const setupScheduleListener = () => {
-  console.log('[DEBUG] Setting up schedule listeners...');
-  
-  // Clean up any existing listeners
-  if (unsubscribeSchedules.value) {
-    unsubscribeSchedules.value();
+  const pollSchedules = async () => {
+    try {
+      const response = await api.get('/schedules/active')
+      processScheduleUpdates(response.data, 'all', [])
+    } catch (error) {
+      console.error('Schedule fetch error:', error)
+    }
   }
-
-  const unsubscribers = [];
   
-  const setupSubcollectionListener = (subcollection, mode) => {
-    console.log(`[DEBUG] Setting up ${mode} schedule listener...`);
-    
-    const q = query(
-      collection(db, 'watering_schedules', 'schedules_root', subcollection),
-      orderBy('scheduledTime', 'asc')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log(`[DEBUG] ${mode} schedules updated: ${snapshot.docs.length} schedules`);
-      
-      const updatedSchedules = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const schedule = {
-          id: doc.id,
-          mode: mode,
-          ...data,
-          daysArray: convertDaysFormat(data.days)
-        };
-        
-        // Convert scheduledTime to milliseconds
-        if (mode === 'one-time') {
-          // One-time schedules: convert to timestamp
-          schedule.scheduledTime = data.scheduledTime < 1e12 ? data.scheduledTime * 1000 : data.scheduledTime;
-        } else {
-          // Daily/Weekly schedules: convert to milliseconds since midnight
-          if (data.scheduledTime >= 86400000) {
-            // If it's a full timestamp, extract time of day
-            const date = new Date(data.scheduledTime);
-            schedule.scheduledTime = date.getHours() * 3600000 + 
-                                   date.getMinutes() * 60000 + 
-                                   date.getSeconds() * 1000;
-          } else {
-            // Already in milliseconds since midnight format
-            schedule.scheduledTime = data.scheduledTime;
-          }
-        }
-        
-        return schedule;
-      });
-
-      processScheduleUpdates(updatedSchedules, mode, snapshot.docChanges());
-    }, (error) => {
-      console.error(`Error in ${mode} schedule listener:`, error);
-      showToastMessage(`Error loading ${mode} schedules`, 'error');
-    });
-    
-    unsubscribers.push(unsubscribe);
-  };
-
-  setupSubcollectionListener('one_time', 'one-time');
-  setupSubcollectionListener('weekly', 'weekly');
-  setupSubcollectionListener('daily', 'daily');
-
-  unsubscribeSchedules.value = () => {
-    console.log('[DEBUG] Cleaning up schedule listeners...');
-    unsubscribers.forEach(unsub => unsub());
-  };
-  
-  console.log('[DEBUG] Schedule listeners set up successfully');
-};
+  const scheduleInterval = setInterval(pollSchedules, 30000)
+  pollSchedules()
+  unsubscribeFunctions.push(() => clearInterval(scheduleInterval))
+}
 
 const processScheduleUpdates = (updatedSchedules, mode, changes) => {
   schedulesCache.value = schedulesCache.value.filter(s => s.mode !== mode);
@@ -1633,317 +1892,560 @@ const processScheduleUpdates = (updatedSchedules, mode, changes) => {
   }
 };
 
-// Add caching for sensor data to avoid frequent Firestore reads
+const scheduleProcessingStatus = ref({});
+
 let sensorDataCache = {
   data: null,
   lastFetch: 0,
-  cacheDuration: 60000 // Cache for 1 minute
+  cacheDuration: 60000
 };
+
+const lastWateringNotifications = ref(new Map());
 
 const getCachedSensorData = async () => {
   const now = Date.now();
-  
-  // Return cached data if it's still fresh
   if (sensorDataCache.data && (now - sensorDataCache.lastFetch) < sensorDataCache.cacheDuration) {
-    console.log('[DEBUG] Using cached sensor data');
     return sensorDataCache.data;
   }
   
-  // Fetch fresh data if cache is expired or empty
   try {
-    console.log('[DEBUG] Fetching fresh sensor data');
-    const freshData = await fetchSensorData();
-    sensorDataCache.data = freshData;
+    const response = await api.get('/sensors/combined/latest');
+    sensorDataCache.data = response.data;
     sensorDataCache.lastFetch = now;
-    return freshData;
+    return response.data;
   } catch (error) {
     console.error('Error fetching sensor data:', error);
-    // Return cached data if available, even if expired
     return sensorDataCache.data || {};
   }
 };
 
 const checkSchedules = async () => {
-  const now = new Date();
-  const currentDay = (now.getDay() + 6) % 7; // 0=Monday to 6=Sunday
-  const currentTimeMs = now.getHours() * 3600000 + 
-                       now.getMinutes() * 60000 + 
-                       now.getSeconds() * 1000 + 
-                       now.getMilliseconds();
-
-  // console.log(`[DEBUG] Checking schedules at ${now.toLocaleTimeString()}, Day: ${currentDay}`);
-
-  // Only fetch sensor data when we actually need to start a schedule
-  let contextData = null;
-
   try {
+    const now = new Date();
+    const currentDay = (now.getDay() + 6) % 7; 
+    const currentTime = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
+    
     for (const schedule of schedulesCache.value) {
       if (!schedule.notifyWatering || schedule.completed) continue;
-
+      
       const scheduleKey = `${schedule.id}-${currentDay}`;
       
-      // Skip if we already processed this schedule today
+      if (processingSchedules.value.has(scheduleKey)) {
+        continue;
+      }
+      
       if (lastProcessedScheduleTimes.value[scheduleKey]) {
         const lastProcessed = new Date(lastProcessedScheduleTimes.value[scheduleKey]);
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
         
         if (lastProcessed >= todayStart) {
-          continue; // Already processed today
+          continue;
         }
       }
-
-      let shouldRunToday = false;
-      let isTimeMatch = false;
-
+      
+      let shouldRun = false;
+      let timeMatch = false;
+      
       if (schedule.mode === 'daily') {
-        shouldRunToday = true;
-        // For daily schedules, check if the current time matches exactly
-        isTimeMatch = Math.abs(currentTimeMs - schedule.scheduledTime) < 1000; // 1-second window
-        
-        // console.log(`[DEBUG] Daily schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, scheduledTime=${formatTimeDebug(schedule.scheduledTime, 'daily')}, currentTime=${formatTimeDebug(currentTimeMs, 'daily')}`);
-        
+        shouldRun = true;
+        timeMatch = Math.abs(currentTime - schedule.scheduledTime) < 2000;
       } else if (schedule.mode === 'weekly') {
-        shouldRunToday = schedule.daysArray?.includes(currentDay) ?? false;
-        // For weekly schedules, check if today is the right day AND time matches exactly
-        isTimeMatch = shouldRunToday && Math.abs(currentTimeMs - schedule.scheduledTime) < 1000; // 1-second window
-        
-        // console.log(`[DEBUG] Weekly schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, days=${schedule.daysArray}, currentDay=${currentDay}, scheduledTime=${formatTimeDebug(schedule.scheduledTime, 'weekly')}, currentTime=${formatTimeDebug(currentTimeMs, 'weekly')}`);
-        
+        shouldRun = schedule.daysArray?.includes(currentDay) ?? false;
+        timeMatch = shouldRun && Math.abs(currentTime - schedule.scheduledTime) < 2000;
       } else if (schedule.mode === 'one-time') {
         const scheduleDate = new Date(schedule.scheduledTime);
-        shouldRunToday = scheduleDate.toDateString() === now.toDateString();
-        isTimeMatch = shouldRunToday && Math.abs(now.getTime() - schedule.scheduledTime) < 1000; // 1-second window
-        
-        // console.log(`[DEBUG] One-time schedule ${schedule.id}: shouldRun=${shouldRunToday}, timeMatch=${isTimeMatch}, scheduledTime=${scheduleDate.toLocaleString()}, currentTime=${now.toLocaleString()}`);
+        shouldRun = scheduleDate.toDateString() === now.toDateString();
+        timeMatch = shouldRun && Math.abs(now.getTime() - schedule.scheduledTime) < 2000;
       }
-
-      // Check if schedule should start
-      if (shouldRunToday && isTimeMatch && !activeSchedules.value[schedule.id]) {
-        console.log(`[DEBUG] ✅ Activating ${schedule.mode} schedule ${schedule.id} at ${now.toLocaleTimeString()}`);
-        
-        // Only fetch sensor data when we actually need it (when starting a schedule)
-        if (!contextData) {
-          contextData = await getCachedSensorData();
-        }
-        
-        // Mark this schedule as processed for today
+      
+      if (shouldRun && timeMatch && !activeSchedules.value[schedule.id]) {
+        console.log(`✅ Starting ${schedule.mode} schedule ${schedule.id}`);
+        processingSchedules.value.add(scheduleKey);
         lastProcessedScheduleTimes.value[scheduleKey] = now.getTime();
-        
-        activeSchedules.value[schedule.id] = {
-          startTime: now.getTime(),
-          duration: schedule.duration,
-          mode: schedule.mode,
-          currentDay: currentDay,
-          scheduleKey: scheduleKey
-        };
-        
-        await processScheduleStart(schedule, currentDay, contextData);
-        
-        // Calculate precise end time
-        const endTime = now.getTime() + (schedule.duration * 60000);
-        
-        // Set timer for schedule completion (all schedule types need this)
-        const timeUntilEnd = endTime - now.getTime();
-        scheduleTimers.value[schedule.id] = setTimeout(async () => {
-          if (activeSchedules.value[schedule.id]) {
-            console.log(`[DEBUG] ⏰ Completing ${schedule.mode} schedule ${schedule.id} at ${new Date().toLocaleTimeString()}`);
-            await processScheduleEnd(schedule, currentDay);
-            await saveToHistory(schedule, new Date(), currentDay);
-            delete activeSchedules.value[schedule.id];
-            delete scheduleTimers.value[schedule.id];
-            
-            // For one-time schedules, mark as completed in Firestore
-            if (schedule.mode === 'one-time') {
-              try {
-                const scheduleRef = doc(db, 'watering_schedules', 'schedules_root', 'one_time', schedule.id);
-                await updateDoc(scheduleRef, { completed: true });
-                console.log(`[DEBUG] Marked one-time schedule ${schedule.id} as completed`);
-              } catch (error) {
-                console.error('Error marking one-time schedule as completed:', error);
-              }
-            }
-          }
-        }, timeUntilEnd);
+        processScheduleStart(schedule, currentDay);
       }
     }
   } catch (error) {
     console.error('Schedule check error:', error);
-    showToastMessage('Error checking watering schedules', 'error');
   }
 };
 
-// Update getDayName to match your system (0=Monday)
+const sendWateringNotification = async (message, title, scheduleId, eventType, contextData = {}) => {
+  const now = new Date();
+  const notificationKey = `watering-${scheduleId}-${eventType}-${now.toISOString().split('T')[0]}`;
+  
+  const lastSent = lastWateringNotifications.value.get(notificationKey);
+  if (lastSent && (now - lastSent) < 60000) { 
+    console.log(`⏩ Watering notification already sent recently: ${notificationKey}`);
+    return { success: true, skipped: true };
+  }
+  
+  const enhancedContext = {
+    ...contextData,
+    eventType: eventType,
+    scheduleId: scheduleId,
+    notificationTime: now.toISOString(),
+    notificationType: 'watering-schedule'
+  };
+
+  console.log('💧 Sending watering notification with context:', enhancedContext);
+
+  const result = await sendNotification(
+    message,
+    title,
+    eventType === 'start' ? 'info' : 'success',
+    notificationKey,
+    enhancedContext,
+    false // ← DON'T include additional sensor data (preserve our context)
+  );
+  
+  if (result.success) {
+    lastWateringNotifications.value.set(notificationKey, now.getTime());
+    console.log('✅ Watering notification saved successfully');
+  } else if (result.skipped) {
+    console.log('⏩ Watering notification skipped (duplicate)');
+  } else {
+    console.error('❌ Failed to save watering notification');
+  }
+  
+  return result;
+};
+
 const getDayName = (dayNumber) => {
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   return dayNames[dayNumber] || 'Unknown';
 };
 
-const fetchLatestContextData = async () => {
-  // Get latest water level
-  const waterSnap = await getDocs(
-    query(collection(db, "water_level_readings"), orderBy("timestamp", "desc"), limit(1))
-  );
-  const waterLevel = !waterSnap.empty ? waterSnap.docs[0].data().waterLevel : null;
+const motorControlLocks = ref(new Map());
+const lastMotorCommand = ref({
+  status: null,
+  scheduleId: null,
+  timestamp: 0
+});
 
-  // Get latest sensor readings (esp32-2 preferred, fallback to esp32-1)
-  const sensorSnap2 = await getDocs(
-    query(collection(db, "3sensor_readings", "esp32-2", "readings"), orderBy("timestamp", "desc"), limit(1))
-  );
-  const sensorSnap1 = await getDocs(
-    query(collection(db, "3sensor_readings", "esp32-1", "readings"), orderBy("timestamp", "desc"), limit(1))
-  );
-  const sensorData = !sensorSnap2.empty ? sensorSnap2.docs[0].data() : (!sensorSnap1.empty ? sensorSnap1.docs[0].data() : {});
+const processingSchedules = ref(new Set());
+const lastMotorCommands = ref(new Map());
 
-  return {
-    waterLevel: waterLevel,
-    soilMoisture: sensorData.soilMoisture ?? null,
-    humidity: sensorData.humidity ?? null,
-    temperature: sensorData.temperature ?? null
-  };
+const updateMotorStatus = async (status, scheduleId, actionType = 'schedule') => {
+  const commandKey = `${status ? 'on' : 'off'}-${scheduleId}-${actionType}`;
+  const now = Date.now();
+  
+  if (lastMotorCommands.value.has(commandKey)) {
+    const lastSent = lastMotorCommands.value.get(commandKey);
+    if (now - lastSent < 10000) {
+      console.log(`⏩ Skipping duplicate motor command (recently sent): ${commandKey}`);
+      return true;
+    }
+  }
+  
+  if (motorControlLocks.value.has(commandKey)) {
+    console.log(`⏩ Motor command already in progress: ${commandKey}`);
+    return true;
+  }
+  
+  motorControlLocks.value.set(commandKey, true);
+  lastMotorCommands.value.set(commandKey, now);
+  
+  try {
+    console.log(`⚡ Turning motor ${status ? 'ON' : 'OFF'} for ${actionType}: ${scheduleId}`);
+    
+    const response = await api.post('/devices/motor/control', {
+      status: status ? 'on' : 'off',
+      scheduleId: scheduleId || 'system-command'
+    });
+    
+    try {
+      console.log(`📡 Sending motor status to ESP32 via /api/motor_status/`);
+      const motorStatusResponse = await api.post('/motor_status/', {
+        status: status,
+        device_id: 'main_motor',
+        user: 'system',
+        timestamp: new Date().toISOString(),
+        formatted_time: new Date().toLocaleString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        source: `schedule-${scheduleId || 'system'}-${actionType}`
+      });
+      
+      console.log(`✅ Motor status sent to ESP32:`, motorStatusResponse.data);
+    } catch (motorStatusError) {
+      console.warn('⚠️ Failed to send motor status to ESP32, but continuing:', motorStatusError.message);
+    } 
+    
+    if (response.data && response.data.status === 'success') {
+      console.log(`✅ Motor ${status ? 'started' : 'stopped'} successfully`);
+      return true;
+    }
+    
+    console.warn('Motor control returned non-success status:', response.data);
+    return false;
+    
+  } catch (error) {
+    console.error('Motor control failed:', error);
+    return false;
+  } finally {
+    setTimeout(() => {
+      motorControlLocks.value.delete(commandKey);
+    }, 10000);
+  }
 };
 
-const processScheduleStart = async (schedule, currentDay, contextData) => {
-  const now = new Date();
-  const formattedTime = now.toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
-
+const markScheduleCompleted = async (scheduleId) => {
   try {
-    let typeLabel = '';
-    let message = '';
+    console.log(`📝 Marking schedule ${scheduleId} as completed`);
     
-    if (schedule.mode === 'one-time') {
-      typeLabel = 'One-time';
-      message = `One-time watering started at ${formattedTime}`;
-    } else if (schedule.mode === 'daily') {
-      typeLabel = 'Daily';
-      message = `Daily watering started at ${formattedTime}`;
-    } else if (schedule.mode === 'weekly') {
-      typeLabel = 'Weekly';
-      const dayName = getDayName(currentDay);
-      message = `Weekly watering (${dayName}) started at ${formattedTime}`;
+    const response = await api.put(`/schedules/${scheduleId}/complete`);
+    
+    if (response.data && response.data.status === 'success') {
+      console.log(`✅ Schedule ${scheduleId} marked as completed`);
+      return true;
     }
+    
+    return false;
+  } catch (error) {
+    console.error('Error marking schedule as completed:', error);
+    return false;
+  }
+};
 
-    const dateKey = now.toISOString().split('T')[0];
-    const notificationKey = `schedule-start-${schedule.id}-${dateKey}`;
+const processScheduleStart = async (schedule, currentDay) => {
+  const scheduleId = schedule.id;
+  const scheduleKey = `${schedule.id}-${currentDay}`;
+  
+  if (scheduleProcessingStatus.value[scheduleId] === 'processing') {
+    console.log(`⏩ Schedule ${scheduleId} is already being processed`);
+    processingSchedules.value.delete(scheduleKey);
+    return;
+  }
+  
+  scheduleProcessingStatus.value[scheduleId] = 'processing';
+  const startTime = Date.now();
+  
+  try {
+    const sensorData = await getCachedSensorData();
     
-    // Update motor status first to include in context
-    const motorSuccess = await updateMotorStatus(true, schedule.id);
+    // Extract environmental data
+    const waterLevelValue = sensorData.waterData?.waterLevel || 0;
+    const temperatureValue = sensorData.sensor2Data?.temperature || 0;
+    const humidityValue = sensorData.sensor2Data?.humidity || 0;
+    const soilMoistureValue = sensorData.sensor2Data?.soilMoisture || 0;
     
-    await sendNotification(
+    const now = new Date();
+    const formattedTime = now.toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    
+    let typeLabel, message;
+    switch (schedule.mode) {
+      case 'one-time':
+        typeLabel = 'One-time';
+        message = `One-time watering started at ${formattedTime}`;
+        break;
+      case 'daily':
+        typeLabel = 'Daily';
+        message = `Daily watering started at ${formattedTime}`;
+        break;
+      case 'weekly':
+        typeLabel = 'Weekly';
+        const dayName = getDayName(currentDay);
+        message = `Weekly watering (${dayName}) started at ${formattedTime}`;
+        break;
+      default:
+        typeLabel = 'Scheduled';
+        message = `Watering started at ${formattedTime}`;
+    }
+    
+    console.log(`⚡ Turning motor ON for schedule ${scheduleId}`);
+    const motorSuccess = await updateMotorStatus(true, scheduleId, 'schedule-start');
+    
+    if (motorSuccess) {
+      console.log(`✅ Motor started for schedule ${scheduleId}`);
+    } else {
+      console.error(`❌ Failed to start motor for schedule ${scheduleId}`);
+    }
+    
+    const context = await formatNotificationContextWithLatestData('watering-schedule', {
+      scheduleType: schedule.mode,
+      duration: schedule.duration,
+      scheduleId: scheduleId,
+      motorStatus: motorSuccess ? 'on' : 'off',
+      startTime: formattedTime,
+      startTimestamp: startTime,
+      dayOfWeek: currentDay,
+      action: 'start',
+      motorSuccess: motorSuccess,
+      zone: 'Greenhouse 1',
+      mode: 'auto',
+      waterLevelAtStart: waterLevelValue,
+      
+      // Add environmental data to context
+      environment: {
+        temperature: temperatureValue,
+        humidity: humidityValue,
+        soilMoisture: soilMoistureValue,
+        waterLevel: waterLevelValue,
+        timestamp: now.toISOString()
+      },
+      
+      // Store environmental data for comparison at end time
+      environmentalData: {
+        temperature: temperatureValue,
+        humidity: humidityValue,
+        soilMoisture: soilMoistureValue,
+        waterLevel: waterLevelValue,
+        timestamp: now.toISOString()
+      }
+    });
+    
+    const notificationResult = await sendWateringNotification(
       message,
       `${typeLabel} Watering Started`,
-      'info',
-      notificationKey,
-      {
-        ...contextData,
-        scheduleType: schedule.mode,
-        duration: schedule.duration,
-        day: currentDay,
-        scheduleId: schedule.id,
-        motorStatus: motorSuccess ? 'activated' : 'failed',
-        zone: schedule.zone || 'Greenhouse 1',
-        mode: 'auto',
-        startTime: formattedTime,
-        remarks: motorSuccess ? 'Motor activated successfully' : 'Motor activation failed'
-      }
+      scheduleId,
+      'start',
+      context
     );
-
-    if (!motorSuccess) {
-      showToastMessage('Warning: Motor may not have started properly', 'warning');
+    
+    if (notificationResult.success) {
+      console.log('✅ Start notification saved successfully');
+    } else if (notificationResult.skipped) {
+      console.log('⏩ Start notification skipped (duplicate)');
+    } else {
+      console.error('❌ Failed to save start notification');
     }
-
+    
+    activeSchedules.value[scheduleId] = {
+      startTime: startTime,
+      duration: schedule.duration,
+      mode: schedule.mode,
+      currentDay: currentDay,
+      motorStarted: motorSuccess,
+      notificationSent: notificationResult.success,
+      contextData: context,
+      
+      // Store environmental data for comparison at end time
+      environmentalData: {
+        temperature: temperatureValue,
+        humidity: humidityValue,
+        soilMoisture: soilMoistureValue,
+        waterLevel: waterLevelValue,
+        timestamp: now.toISOString()
+      }
+    };
+    
+    if (scheduleTimers.value[scheduleId]) {
+      clearTimeout(scheduleTimers.value[scheduleId]);
+    }
+    
+    scheduleTimers.value[scheduleId] = setTimeout(() => {
+      processScheduleEnd(schedule, currentDay, startTime);
+    }, schedule.duration * 60000);
+    
   } catch (error) {
-    console.error(`Error starting schedule ${schedule.id}:`, error);
-    showToastMessage(`Failed to start ${schedule.mode} watering schedule`, 'error');
+    console.error(`❌ Error starting schedule ${scheduleId}:`, error);
+  } finally {
+    processingSchedules.value.delete(scheduleKey);
   }
 };
 
-const processScheduleEnd = async (schedule, currentDay) => {
-  const now = new Date();
-  const formattedTime = now.toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
-
+const processScheduleEnd = async (schedule, currentDay, startTime) => {
+  const scheduleId = schedule.id;
+  const scheduleKey = `${schedule.id}-${currentDay}`;
+  
   try {
-    const contextData = await fetchLatestContextData();
+    const sensorData = await getCachedSensorData();
+    const endTime = Date.now();
     
-    let typeLabel = '';
-    let message = '';
+    // Extract environmental data at end time
+    const waterLevelValue = sensorData.waterData?.waterLevel || 0;
+    const temperatureValue = sensorData.sensor2Data?.temperature || 0;
+    const humidityValue = sensorData.sensor2Data?.humidity || 0;
+    const soilMoistureValue = sensorData.sensor2Data?.soilMoisture || 0;
     
-    if (schedule.mode === 'one-time') {
-      typeLabel = 'One-time';
-      message = `One-time watering completed at ${formattedTime}`;
-    } else if (schedule.mode === 'daily') {
-      typeLabel = 'Daily';
-      message = `Daily watering completed at ${formattedTime}`;
-    } else if (schedule.mode === 'weekly') {
-      typeLabel = 'Weekly';
-      const dayName = getDayName(currentDay);
-      message = `Weekly watering (${dayName}) completed at ${formattedTime}`;
+    // Get environmental data from start time
+    const startEnvironmentalData = activeSchedules.value[scheduleId]?.environmentalData || {};
+    
+    const now = new Date();
+    const formattedTime = now.toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    
+    let typeLabel, message;
+    switch (schedule.mode) {
+      case 'one-time':
+        typeLabel = 'One-time';
+        message = `One-time watering completed at ${formattedTime}`;
+        break;
+      case 'daily':
+        typeLabel = 'Daily';
+        message = `Daily watering completed at ${formattedTime}`;
+        break;
+      case 'weekly':
+        typeLabel = 'Weekly';
+        const dayName = getDayName(currentDay);
+        message = `Weekly watering (${dayName}) completed at ${formattedTime}`;
+        break;
+      default:
+        typeLabel = 'Scheduled';
+        message = `Watering completed at ${formattedTime}`;
     }
-
-    const dateKey = now.toISOString().split('T')[0];
-    const notificationKey = `schedule-end-${schedule.id}-${dateKey}`;
     
-    // Update motor status first to include in context
-    const motorSuccess = await updateMotorStatus(false, schedule.id);
+    console.log(`🛑 Stopping motor for schedule ${scheduleId}`);
+    const motorSuccess = await updateMotorStatus(false, scheduleId, 'schedule-end');
     
-    await sendNotification(
+    if (motorSuccess) {
+      console.log(`✅ Motor stopped for schedule ${scheduleId}`);
+    } else {
+      console.error(`❌ Failed to stop motor for schedule ${scheduleId}`);
+    }
+    
+    const context = await formatNotificationContextWithLatestData('watering-schedule', {
+      scheduleType: schedule.mode,
+      duration: schedule.duration,
+      scheduleId: scheduleId,
+      motorStatus: motorSuccess ? 'off' : 'unknown',
+      endTime: formattedTime,
+      endTimestamp: endTime,
+      startTimestamp: startTime,
+      totalDuration: endTime - startTime,
+      dayOfWeek: currentDay,
+      action: 'end',
+      motorSuccess: motorSuccess,
+      zone: 'Greenhouse 1',
+      mode: 'auto',
+      waterLevelAtStart: startEnvironmentalData.waterLevel || 0,
+      remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor deactivation failed',
+      
+      // Add environmental data to context
+      environment: {
+        temperature: temperatureValue,
+        humidity: humidityValue,
+        soilMoisture: soilMoistureValue,
+        waterLevel: waterLevelValue,
+        timestamp: now.toISOString()
+      },
+      
+      // Add environmental data from start time for comparison
+      environmentAtStart: {
+        temperature: startEnvironmentalData.temperature || 0,
+        humidity: startEnvironmentalData.humidity || 0,
+        soilMoisture: startEnvironmentalData.soilMoisture || 0,
+        waterLevel: startEnvironmentalData.waterLevel || 0,
+        timestamp: startEnvironmentalData.timestamp || 'N/A'
+      },
+      
+      // Calculate changes between start and end
+      changes: {
+        soilMoistureChange: soilMoistureValue - (startEnvironmentalData.soilMoisture || 0),
+        temperatureChange: temperatureValue - (startEnvironmentalData.temperature || 0),
+        humidityChange: humidityValue - (startEnvironmentalData.humidity || 0),
+        waterLevelChange: waterLevelValue - (startEnvironmentalData.waterLevel || 0),
+        durationMinutes: Math.round((endTime - startTime) / 60000)
+      }
+    });
+    
+    const notificationResult = await sendWateringNotification(
       message,
       `${typeLabel} Watering Completed`,
-      'success',
-      notificationKey,
-      {
-        ...contextData,
-        scheduleType: schedule.mode,
-        duration: schedule.duration,
-        day: currentDay,
-        scheduleId: schedule.id,
-        motorStatus: motorSuccess ? 'deactivated' : 'failed to stop',
-        zone: schedule.zone || 'Greenhouse 1',
-        mode: 'auto',
-        endTime: formattedTime,
-        remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor failed to stop'
-      }
+      scheduleId,
+      'end',
+      context
     );
-
-    if (!motorSuccess) {
-      showToastMessage('Warning: Motor may not have stopped properly', 'warning');
+    
+    if (notificationResult.success) {
+      console.log('✅ End notification saved successfully');
+    } else if (notificationResult.skipped) {
+      console.log('⏩ End notification skipped (duplicate)');
+    } else {
+      console.error('❌ Failed to save end notification');
     }
-
+    
+    if (schedule.mode === 'one-time') {
+      console.log('📝 Marking one-time schedule as completed...');
+      const completionSuccess = await markScheduleCompleted(scheduleId);
+      
+      if (completionSuccess) {
+        console.log(`✅ Schedule ${scheduleId} marked as completed`);
+      } else {
+        console.error(`❌ Failed to mark schedule ${scheduleId} as completed`);
+      }
+    }
+    
+    console.log(`✅ Schedule ${scheduleId} completed successfully`);
+    
   } catch (error) {
-    console.error(`Error completing schedule ${schedule.id}:`, error);
-    showToastMessage(`Failed to complete ${schedule.mode} watering schedule`, 'error');
+    console.error(`❌ Error completing schedule ${scheduleId}:`, error);
+  } finally {
+    delete activeSchedules.value[scheduleId];
+    delete scheduleTimers.value[scheduleId];
+    delete scheduleProcessingStatus.value[scheduleId];
+    processingSchedules.value.delete(scheduleKey);
   }
 };
 
-const saveToHistory = async (schedule, endTime, day) => {
+const saveToHistory = async (schedule, startTime, endTime, day) => {
   try {
+    console.log('💾 Saving schedule to history:', schedule.id);
+    
     const historyData = {
       scheduleId: schedule.id,
       mode: schedule.mode,
       originalScheduledTime: schedule.scheduledTime,
-      actualStartTime: activeSchedules.value[schedule.id]?.startTime || endTime.getTime(),
-      completedAt: endTime.getTime(),
+      actualStartTime: startTime,
+      completedAt: endTime,
       duration: schedule.duration,
-      days: schedule.days,
+      days: schedule.days || {},
       dayOfWeek: schedule.mode === 'weekly' ? day : null,
-      notifyWatering: schedule.notifyWatering,  
-      skipIfRain: schedule.skipIfRain,
-      waterFlowRate: schedule.waterFlowRate,
-      createdAt: serverTimestamp()
+      notifyWatering: schedule.notifyWatering !== false,
+      skipIfRain: schedule.skipIfRain || false,
+      waterFlowRate: schedule.waterFlowRate || 'medium'
     };
     
-    await addDoc(
-      collection(db, 'watering_schedules', 'schedules_root', 'history'),
-      historyData
-    );
+    console.log('📤 Sending history data to schedules_root:', historyData);
+    
+    const response = await api.post('/schedules/history', historyData);
+    
+    if (response.data && response.data.status === 'success') {
+      console.log('✅ Schedule saved to history in schedules_root document');
+      
+      setTimeout(async () => {
+        try {
+          const historyResponse = await api.get('/schedules/history?limit=5');
+          if (historyResponse.data && Array.isArray(historyResponse.data)) {
+            const recentEntry = historyResponse.data.find(entry => 
+              entry.scheduleId === schedule.id && entry.completedAt === endTime
+            );
+            if (recentEntry) {
+              console.log('✅ Schedule history verified in schedules_root');
+            } else {
+              console.warn('⚠️ Schedule history not found in recent entries');
+            }
+          }
+        } catch (verifyError) {
+          console.warn('Could not verify schedule history:', verifyError);
+        }
+      }, 1000);
+      
+      return true;
+    }
+    
+    return false;
   } catch (error) {
-    console.error('Error saving to history:', error);
+    console.error('❌ Error saving to schedule history:', error);
+    
+    // Log detailed error information
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    
+    return false;
   }
 };
 
@@ -2001,27 +2503,60 @@ const invalidateSensorDataCache = () => {
   console.log('[DEBUG] Sensor data cache invalidated');
 };
 
-const fetchNotifications = () => {
+const unreadNotificationCount = ref(0);
+let pollingInterval = null;
+
+// Your existing fetch function with auto-update enhancement
+const fetchNotifications = async () => {
   try {
-    // Create a query that only gets unread notifications
-    const q = query(
-      collection(db, "notifications"),
-      where("read", "==", false) // Assuming you have a 'read' boolean field in your documents
-    );
+    const endpoints = [
+      '/notifications_unread_count', 
+      '/unread-count'
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await api.get(endpoint);
+        
+        // Only update if count changed
+        if (response.data.count !== unreadNotificationCount.value) {
+          unreadNotificationCount.value = response.data.count;
+        }
+        
+        return; // Stop if one works
+      } catch (error) {
+      }
+    }
+    
+    // If all fail, use default
+    unreadNotificationCount.value = 0;
+    
+  } catch (error) {
+    unreadNotificationCount.value = 0;
+  }
+};
 
-    // Set up real-time listener
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      notifications.value = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log('Unread notifications count:', notifications.value.length);
-    });
+// Simple polling function for real-time updates
+const startPolling = () => {
+  // Clear any existing interval
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+  }
+  
+  // Fetch immediately
+  fetchNotifications();
+  
+  // Then poll every 5 seconds for real-time updates
+  pollingInterval = setInterval(() => {
+    fetchNotifications();
+  }, 5000); // 5 seconds
+};
 
-    // Return the unsubscribe function in case you need to stop listening later
-    return unsubscribe;
-  } catch (err) {
-    console.error("Error setting up notifications listener:", err);
+// Stop polling
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
   }
 };
 
@@ -2031,17 +2566,10 @@ onMounted(async () => {
   document.addEventListener('click', closeDropdown);
   window.addEventListener('resize', handleResize);
 
-  // const todayKey = new Date().toDateString();
-  // notificationHistory.value[todayKey] = [];
-  // const now = new Date();
-  // const midnight = new Date(now);
-  // midnight.setHours(24, 0, 0, 0);
-  // const msUntilMidnight = midnight - now;
-
-  // setTimeout(() => {
-  //   notificationTracker.value.dailyCache = {};
-  //   notificationTracker.value.lastCleanup = null;
-  // }, msUntilMidnight);
+  startPolling();
+  
+  // Start sensor data polling
+  startSensorDataPolling();
 
   notificationStorage.cleanExpired();
   
@@ -2053,10 +2581,9 @@ onMounted(async () => {
 
   setTimeout(() => {
     notificationStorage.cleanExpired();
-    // Set up the next midnight cleanup
     setInterval(() => {
       notificationStorage.cleanExpired();
-    }, 24 * 60 * 60 * 1000); // 24 hours
+    }, 24 * 60 * 60 * 1000); 
   }, msUntilMidnight);
 
   // Get IP Address
@@ -2081,7 +2608,7 @@ onMounted(async () => {
 
   // Setup listeners
   setupWaterLevelListener();
-  setupScheduleListener(); // This loads the initial schedules
+  setupScheduleListener();
 
   // Check weather every 3 hours
   checkWeatherForecastForAlerts();
@@ -2090,24 +2617,20 @@ onMounted(async () => {
   // Initialize the schedule system with precise checking
   initScheduleSystem();
 
-  // --- MODIFICATION: Use unified sensor & water listener ---
+  // Use unified sensor & water listener
   setupCombinedRealtimeListener();
 
   // Store interval for cleanup
   onBeforeUnmount(() => {
     document.removeEventListener('click', closeDropdown);
     window.removeEventListener('resize', handleResize);
-    if (unsubscribeSoilMoisture) unsubscribeSoilMoisture();
-    if (unsubscribeWaterLevel.value) unsubscribeWaterLevel.value();
-    if (unsubscribeSchedules.value) unsubscribeSchedules.value();
+    
+    // Remove all Firebase-specific cleanup
     if (scheduleCheckInterval.value) clearInterval(scheduleCheckInterval.value);
     if (weatherInterval) clearInterval(weatherInterval);
     Object.values(scheduleTimers.value).forEach(timer => clearTimeout(timer));
-    // Remove old sensor listeners if present
-    if (unsubscribeSensorListeners?.value?.esp32_1) unsubscribeSensorListeners.value.esp32_1();
-    if (unsubscribeSensorListeners?.value?.esp32_2) unsubscribeSensorListeners.value.esp32_2();
-    // Remove unified combined listener
-    if (unsubscribeCombinedListener.value) unsubscribeCombinedListener.value();
+    stopPolling();
+    stopSensorDataPolling(); // Stop sensor data polling
   });
 });
 
