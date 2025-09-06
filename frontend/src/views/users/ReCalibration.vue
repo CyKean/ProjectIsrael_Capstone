@@ -23,17 +23,17 @@
         <div class="p-4 md:p-6 lg:p-8 flex-1 flex items-stretch min-h-0 md:min-h-auto">
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 w-full min-h-full md:min-h-auto">
             <!-- Left Container - WiFi Indicator -->
-            <div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
+             <div class="lg:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-3 md:p-6 transition-all duration-300 relative group">
               <div class="flex flex-col items-center justify-center h-full min-h-[150px] md:min-h-[200px] space-y-3 md:space-y-4">
                 <!-- WiFi Symbol -->
-                <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer">
+                <div class="relative p-4 md:p-6 bg-white/50 rounded-full shadow-sm cursor-pointer" @click="checkInternetConnection">
                   <svg width="120" height="90" viewBox="0 0 80 60" class="md:w-[180px] md:h-[135px] transition-all duration-500 drop-shadow-sm">
                     <!-- WiFi Base Dot -->
                     <circle 
                       cx="40" 
                       cy="50" 
                       r="4" 
-                      :fill="getWifiArcColor(wifiDetails.signalStrength)"
+                      :fill="getWifiArcColor(connectionStrength)"
                       class="drop-shadow-sm"
                     />
                     
@@ -45,40 +45,50 @@
                       stroke-width="4" 
                       fill="none" 
                       stroke-linecap="round"
-                      :stroke="wifiDetails.signalStrength >= arc.threshold ? getWifiArcColor(wifiDetails.signalStrength) : '#d1d5db'"
-                      :opacity="wifiDetails.signalStrength >= arc.threshold ? 1 : 0.3"
+                      :stroke="connectionStrength >= arc.threshold ? getWifiArcColor(connectionStrength) : '#d1d5db'"
+                      :opacity="connectionStrength >= arc.threshold ? 1 : 0.3"
                       class="transition-all duration-500 drop-shadow-sm"
                     />
                   </svg>
+                  <!-- Refresh icon -->
+                  <RefreshCw class="w-4 h-4 absolute top-2 right-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 <!-- Connection Details -->
                 <div class="text-center space-y-1 md:space-y-2">
                   <h3 class="text-sm md:text-base font-semibold text-gray-800">
-                    {{ networkDetails.ssid || 'WiFi Connection' }}
+                    {{ networkName || 'Internet Connection' }}
                   </h3>
                   <div class="flex items-center justify-center space-x-2">
                     <div 
-                      class="w-2 h-2 rounded-full transition-colors duration-300"
-                      :class="networkDetails.isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'"
+                      class="w-2 h-2 rounded-full transition-colors duration-300 animate-pulse"
+                      :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
                     ></div>
                     <span 
                       class="text-xs md:text-sm font-medium transition-colors duration-300"
-                      :class="networkDetails.isConnected ? 'text-green-600' : 'text-red-600'"
+                      :class="isOnline ? 'text-green-600' : 'text-red-600'"
                     >
                       {{ getConnectionStatus() }}
                     </span>
                   </div>
                   <p class="text-xs md:text-sm text-gray-600">
-                    Signal: {{ getSignalStrengthText() }} ({{ wifiDetails.signalStrength }}%)
+                    Speed: {{ networkSpeed }} | Strength: {{ connectionStrength }}%
                   </p>
-                  <p v-if="networkDetails.ipAddress" class="text-xs text-gray-500">
-                    Network IP: {{ networkDetails.ipAddress }}
+                  <p class="text-xs text-gray-500">
+                    IP: {{ deviceIpAddress || 'Unknown' }}
+                  </p>
+                  <!-- Connection Type -->
+                  <p class="text-xs text-blue-500 font-medium">
+                    {{ connectionType }}
+                  </p>
+                  <!-- Last Check Time -->
+                  <p class="text-xs text-gray-400">
+                    Last check: {{ lastCheckedTime }}
                   </p>
                 </div>
               </div>
             </div>
-            <!-- Middle Container - Configuration Form (2/4 width) -->
+
             <!-- changed from col-span-3 to col-span-2 for middle container -->
             <div class="lg:col-span-2 bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
               <div class="flex flex-col h-full min-h-[200px] space-y-4">
@@ -164,15 +174,22 @@
                 <!-- Connection Status -->
                 <div class="flex items-center justify-between text-sm pt-3 border-t border-gray-200">
                   <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span class="text-green-600 font-medium">Device Connected</span>
+                    <div 
+                      class="w-2 h-2 rounded-full animate-pulse"
+                      :class="connectionStatus.connected ? 'bg-green-500' : 'bg-red-500'"
+                    ></div>
+                    <span 
+                      class="font-medium transition-colors duration-300"
+                      :class="connectionStatus.connected ? 'text-green-600' : 'text-red-600'"
+                    >
+                      {{ connectionStatus.connected ? 'Device Connected' : 'Device Disconnected' }}
+                    </span>
                   </div>
-                  <span class="text-gray-500">Just now</span>
+                  <span class="text-gray-500">{{ connectionStatus.lastSeen }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Added new right container for ESP32 recalibration buttons (1/4 width) -->
             <!-- Right Container - ESP32 Recalibration Options -->
             <div class="lg:col-span-1 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-4 md:p-6 transition-all duration-300">
               <div class="flex flex-col h-full min-h-[200px] space-y-4">
@@ -190,37 +207,61 @@
                   <button 
                     @click="navigateToRecalibration('esp32-1')"
                     class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                    :disabled="deviceStatus.esp1 === 'offline'"
+                    :class="deviceStatus.esp1 === 'offline' ? 'opacity-50 cursor-not-allowed' : ''"
                   >
                     <Cpu class="w-4 h-4" />
                     <span>ESP32-1 Recalibrate</span>
+                    <span v-if="deviceStatus.esp1 === 'checking'" class="ml-2">
+                      <RefreshCw class="w-3 h-3 animate-spin" />
+                    </span>
                   </button>
 
-                  <!-- Changed ESP32-2 button from blue to green gradient -->
                   <button 
                     @click="navigateToRecalibration('esp32-2')"
                     class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                    :disabled="deviceStatus.esp2 === 'offline'"
+                    :class="deviceStatus.esp2 === 'offline' ? 'opacity-50 cursor-not-allowed' : ''"
                   >
                     <Cpu class="w-4 h-4" />
                     <span>ESP32-2 Recalibrate</span>
+                    <span v-if="deviceStatus.esp2 === 'checking'" class="ml-2">
+                      <RefreshCw class="w-3 h-3 animate-spin" />
+                    </span>
                   </button>
 
-                  <!-- Changed ESP32-3 button from teal to green gradient -->
                   <button 
                     @click="navigateToRecalibration('esp32-3')"
                     class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                    :disabled="deviceStatus.esp3 === 'offline'"
+                    :class="deviceStatus.esp3 === 'offline' ? 'opacity-50 cursor-not-allowed' : ''"
                   >
                     <Cpu class="w-4 h-4" />
                     <span>ESP32-3 Recalibrate</span>
+                    <span v-if="deviceStatus.esp3 === 'checking'" class="ml-2">
+                      <RefreshCw class="w-3 h-3 animate-spin" />
+                    </span>
                   </button>
                 </div>
 
-                <!-- Quick Status -->
+                <!-- Quick Status - Made Dynamic -->
                 <div class="text-center pt-3 border-t border-emerald-200">
-                  <p class="text-xs text-gray-600">All devices online</p>
+                  <p class="text-xs" :class="allDevicesOnline ? 'text-green-600' : 'text-red-600'">
+                    {{ deviceStatusMessage }}
+                  </p>
                   <div class="flex justify-center space-x-1 mt-1">
-                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div 
+                      class="w-2 h-2 rounded-full transition-colors duration-300"
+                      :class="deviceStatus.esp1 === 'online' ? 'bg-green-500' : 'bg-red-500'"
+                    ></div>
+                    <div 
+                      class="w-2 h-2 rounded-full transition-colors duration-300"
+                      :class="deviceStatus.esp2 === 'online' ? 'bg-green-500' : 'bg-red-500'"
+                    ></div>
+                    <div 
+                      class="w-2 h-2 rounded-full transition-colors duration-300"
+                      :class="deviceStatus.esp3 === 'online' ? 'bg-green-500' : 'bg-red-500'"
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -231,7 +272,6 @@
     </div>
   </div>
 
-  <!-- MODAL OVERLAY - Fixed positioning with proper z-index -->
   <div v-if="activeModal" class="fixed inset-0 z-[9999] overflow-y-auto">
     <!-- Backdrop with blur effect -->
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="closeModal"></div>
@@ -782,8 +822,6 @@
     </div>
   </div>
 
-  <!-- Changed loading modal colors from blue to green -->
-  <!-- Loading Modal -->
   <div v-if="showLoadingModal" class="fixed inset-0 z-[10000] overflow-y-auto">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"></div>
@@ -848,34 +886,397 @@ import {
 } from 'lucide-vue-next'
 
 import { ref, onMounted, onBeforeUnmount, watch, reactive, onUnmounted, computed } from 'vue'
-import axios from 'axios';
 import api from '../../api/index.js'
 
 // const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'https://project-israel-backend.onrender.com';
 
 const searchQuery = ref('')
 
-const wifiDetails = reactive({
-  ssid: 'ProjectIsrael_Network',
-  password: 'Israel2024!',
-  ipAddress: '192.168.1.105',
-  signalStrength: 87,
-  frequency: '2.4GHz'
+const deviceStatus = reactive({
+  esp1: 'checking', // 'online', 'offline', 'checking'
+  esp2: 'checking',
+  esp3: 'checking'
 })
 
+const networkDetails = reactive({
+  ipAddress: '',
+  ssid: '',
+  signalStrength: 0,
+  isConnected: false
+});
+
+let pollingIntervalId = null;
+let deviceStatusIntervalId = null;
+let internetCheckIntervalId = null;
+
+const isOnline = computed(() => deviceInternetStatus.isOnline);
+const connectionStrength = computed(() => deviceInternetStatus.connectionStrength);
+const networkName = computed(() => deviceInternetStatus.networkName);
+const deviceIpAddress = computed(() => deviceInternetStatus.deviceIpAddress);
+const connectionType = computed(() => deviceInternetStatus.connectionType);
+const networkSpeed = computed(() => deviceInternetStatus.networkSpeed);
+const lastCheckedTime = computed(() => formatLastUpdated(deviceInternetStatus.lastChecked));
+
+const deviceInternetStatus = reactive({
+  isOnline: navigator.onLine,
+  connectionStrength: 100,
+  networkName: 'Checking...',
+  ssid: 'Detecting...',
+  deviceIpAddress: '',
+  connectionType: 'Unknown',
+  networkType: 'unknown', // 'wifi', 'ethernet', 'cellular', 'hotspot'
+  networkSpeed: 'Unknown',
+  lastChecked: new Date(),
+  latency: 0,
+  canDetectSsid: false
+});
+
+const detectNetworkInfo = async () => {
+  try {
+    // @ts-ignore
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    
+    if (connection) {
+      deviceInternetStatus.connectionType = connection.effectiveType || 'unknown';
+      deviceInternetStatus.networkSpeed = connection.downlink ? `${connection.downlink} Mbps` : 'Unknown';
+      
+      const strengthMap = { 'slow-2g': 25, '2g': 40, '3g': 60, '4g': 85, '5g': 95 };
+      deviceInternetStatus.connectionStrength = strengthMap[connection.effectiveType] || 75;
+    }
+    
+    // Use a more reliable approach for network name/SSID
+    await detectNetworkNameReliable();
+    
+  } catch (e) {
+    console.log('Network detection error:', e);
+    await detectNetworkNameReliable();
+  }
+};
+
+const detectNetworkNameReliable = async () => {
+  try {
+    // Method 1: Try to get network info from IP geolocation
+    const ipResponse = await fetch('https://ipapi.co/json/');
+    if (ipResponse.ok) {
+      const ipData = await ipResponse.json();
+      
+      // Use ISP/organization as network name
+      if (ipData.org || ipData.isp) {
+        deviceInternetStatus.networkName = ipData.org || ipData.isp;
+        deviceInternetStatus.ssid = deviceInternetStatus.networkName;
+        return;
+      }
+    }
+  } catch (error) {
+    console.log('IP geolocation failed:', error);
+  }
+  
+  try {
+    // Method 2: Try another IP service
+    const ipResponse2 = await fetch('https://ipinfo.io/json');
+    if (ipResponse2.ok) {
+      const ipData = await ipResponse2.json();
+      if (ipData.org) {
+        deviceInternetStatus.networkName = ipData.org;
+        deviceInternetStatus.ssid = deviceInternetStatus.networkName;
+        return;
+      }
+    }
+  } catch (error) {
+    console.log('Second IP service failed:', error);
+  }
+  
+  // Method 3: Fallback based on connection type
+  // @ts-ignore
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  
+  if (connection && connection.type) {
+    switch(connection.type) {
+      case 'wifi':
+        deviceInternetStatus.networkName = 'Wi-Fi Network';
+        deviceInternetStatus.ssid = 'Wi-Fi';
+        break;
+      case 'ethernet':
+        deviceInternetStatus.networkName = 'Wired Connection';
+        deviceInternetStatus.ssid = 'Ethernet';
+        break;
+      case 'cellular':
+        deviceInternetStatus.networkName = 'Mobile Network';
+        deviceInternetStatus.ssid = 'Cellular';
+        break;
+      default:
+        deviceInternetStatus.networkName = 'Internet Connection';
+        deviceInternetStatus.ssid = 'Network';
+    }
+  } else {
+    // Final fallback
+    deviceInternetStatus.networkName = 'Internet Connection';
+    deviceInternetStatus.ssid = 'Network';
+  }
+};
+
+const checkInternetConnection = async () => {
+  try {
+    deviceInternetStatus.lastChecked = new Date();
+    
+    // Check basic online status
+    deviceInternetStatus.isOnline = navigator.onLine;
+    
+    if (!deviceInternetStatus.isOnline) {
+      deviceInternetStatus.connectionStrength = 0;
+      deviceInternetStatus.networkName = 'Offline';
+      deviceInternetStatus.ssid = 'Offline';
+      return;
+    }
+
+    // Update network information
+    await detectNetworkInfo();
+
+    // Test latency with a CORS-friendly endpoint
+    await testLatency();
+    
+    // Try to get public IP address
+    await getPublicIpAddress();
+    
+    console.log('Internet connection check completed:', deviceInternetStatus);
+    
+  } catch (error) {
+    console.error('Error checking internet connection:', error);
+    deviceInternetStatus.connectionStrength = Math.max(0, deviceInternetStatus.connectionStrength - 20);
+  }
+};
+
+
+// Test network latency with CORS-friendly endpoints
+const testLatency = async () => {
+  try {
+    const startTime = performance.now();
+    
+    // Use a CORS-friendly endpoint for latency test
+    const testEndpoints = [
+      'https://corsproxy.io/?https://httpbin.org/get',
+      'https://api.allorigins.win/raw?url=https://httpbin.org/get',
+      'https://jsonplaceholder.typicode.com/posts/1'
+    ];
+    
+    let success = false;
+    
+    for (const endpoint of testEndpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          success = true;
+          break;
+        }
+      } catch (e) {
+        continue; // Try next endpoint
+      }
+    }
+    
+    const latency = performance.now() - startTime;
+    deviceInternetStatus.latency = Math.round(latency);
+    
+    if (success) {
+      // Adjust strength based on latency
+      if (latency < 100) deviceInternetStatus.connectionStrength = Math.min(100, deviceInternetStatus.connectionStrength + 10);
+      else if (latency > 500) deviceInternetStatus.connectionStrength = Math.max(0, deviceInternetStatus.connectionStrength - 20);
+    } else {
+      // If all endpoints failed, reduce strength
+      deviceInternetStatus.connectionStrength = Math.max(0, deviceInternetStatus.connectionStrength - 30);
+    }
+    
+  } catch (error) {
+    deviceInternetStatus.connectionStrength = Math.max(0, deviceInternetStatus.connectionStrength - 30);
+  }
+};
+
+// Get public IP address with better error handling
+const getPublicIpAddress = async () => {
+  try {
+    // Try multiple IP services
+    const ipServices = [
+      'https://api.ipify.org?format=json',
+      'https://ipapi.co/json/',
+      'https://jsonip.com/'
+    ];
+    
+    for (const service of ipServices) {
+      try {
+        const response = await fetch(service, { 
+          timeout: 3000,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          deviceInternetStatus.deviceIpAddress = data.ip || data.ipaddress || 'Unknown';
+          return; // Success, exit the function
+        }
+      } catch (error) {
+        continue; // Try next service
+      }
+    }
+    
+    // If all services failed
+    deviceInternetStatus.deviceIpAddress = 'Cannot determine';
+    
+  } catch (error) {
+    deviceInternetStatus.deviceIpAddress = 'Error fetching IP';
+  }
+};
+
+
 const connectionStatus = reactive({
-  connected: true,
-  lastSeen: 'Just now'
+  connected: false,
+  lastSeen: 'Never connected'
 })
+
+const allDevicesOnline = computed(() => {
+  return deviceStatus.esp1 === 'online' && 
+         deviceStatus.esp2 === 'online' && 
+         deviceStatus.esp3 === 'online'
+})
+
+const deviceStatusMessage = computed(() => {
+  if (deviceStatus.esp1 === 'checking' || deviceStatus.esp2 === 'checking' || deviceStatus.esp3 === 'checking') {
+    return 'Checking device status...'
+  }
+  return allDevicesOnline.value ? 'All devices online' : 'Some devices offline'
+})
+
+const testDeviceConnection = async (device, url) => {
+  try {
+    deviceStatus[device] = 'checking'
+    
+    // Use a timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+    
+    const response = await fetch(url, {
+      method: 'HEAD',
+      signal: controller.signal,
+      mode: 'no-cors' // Handle CORS issues
+    })
+    
+    clearTimeout(timeoutId)
+    deviceStatus[device] = 'online'
+    return true
+  } catch (error) {
+    console.log(`${device} is offline:`, error)
+    deviceStatus[device] = 'offline'
+    return false
+  }
+}
+
+const checkAllDeviceConnections = async () => {
+  const devices = [
+    { id: 'esp1', url: 'http://npkdevice.local' },
+    { id: 'esp2', url: 'http://esp32env.local' },
+    { id: 'esp3', url: 'http://waterlevel.local' }
+  ]
+  
+  // Test all devices in parallel
+  await Promise.all(devices.map(device => 
+    testDeviceConnection(device.id, device.url)
+  ))
+}
+
+const navigateToRecalibration = async (device) => {
+  let domain;
+  
+  switch(device) {
+    case 'esp32-1':
+      domain = 'npkdevice.local';
+      break;
+    case 'esp32-2':
+      domain = 'esp32env.local';
+      break;
+    case 'esp32-3':
+      domain = 'waterlevel.local';
+      break;
+    default:
+      domain = device;
+  }
+  
+  // Test connection before navigating
+  const isOnline = await testDeviceConnection(device.replace('esp32-', 'esp'), `http://${domain}`)
+  
+  if (isOnline) {
+    window.location.href = `http://${domain}`;
+  } else {
+    showToastMessage(`${device} is currently offline`, 'error')
+  }
+}
+
+const testConnection = async () => {
+  if (!isValidIP(esp32Config.ipAddress)) {
+    showToastMessage('Please enter a valid IP address', 'error');
+    return;
+  }
+
+  try {
+    showLoadingModal.value = true;
+    
+    // Check backend connection first with shorter timeout
+    const backendPing = await api.get(`/system/ping`, { timeout: 3000 });
+    if (!backendPing.data?.success) {
+      throw new Error('Backend service unavailable');
+    }
+    
+    // Use backend proxy to test ESP32 connection with shorter timeout
+    const connectionTest = await api.get(`/esp32/test-connection`, {
+      params: { ip_address: esp32Config.ipAddress },
+      timeout: 8000  // Increased to 8 seconds to account for backend processing
+    });
+
+    showToastMessage('Connection successful to both backend and ESP32', 'success');
+    
+    // Update connection status dynamically
+    connectionStatus.connected = true;
+    connectionStatus.lastSeen = new Date().toLocaleTimeString();
+    
+    // Update WiFi signal strength
+    if (connectionTest.data.signal_strength) {
+      wifiDetails.signalStrength = connectionTest.data.signal_strength;
+    }
+    
+    return connectionTest.data;
+  } catch (error) {
+    console.error('Connection test failed:', error);
+    
+    // Update connection status on error
+    connectionStatus.connected = false;
+    connectionStatus.lastSeen = 'Connection failed';
+    
+    let errorMessage = 'Connection test failed';
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Connection timeout - device may be offline or unreachable';
+    } else if (error.response) {
+      errorMessage = `Error: ${error.response.data?.detail || error.response.statusText}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    showToastMessage(errorMessage, 'error');
+    return null;
+  } finally {
+    showLoadingModal.value = false;
+  }
+}
 
 const esp32Config = reactive({
   ipAddress: ''
 })
-
-// const isValidIP = (ip) => {
-//   const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-//   return ipRegex.test(ip);
-// }
 
 const isValidIP = (ip) => {
   const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
@@ -1002,72 +1403,72 @@ const fetchSavedIP = async () => {
   }
 };
 
-const testConnection = async () => {
-  if (!isValidIP(esp32Config.ipAddress)) {
-    showToastMessage('Please enter a valid IP address', 'error');
-    return;
-  }
+// const testConnection = async () => {
+//   if (!isValidIP(esp32Config.ipAddress)) {
+//     showToastMessage('Please enter a valid IP address', 'error');
+//     return;
+//   }
 
-  try {
-    showLoadingModal.value = true;
+//   try {
+//     showLoadingModal.value = true;
     
-    // Check backend connection
-    const backendPing = await api.get(`/system/ping`);
-    if (!backendPing.data?.success) {
-      throw new Error('Backend service unavailable');
-    }
+//     // Check backend connection
+//     const backendPing = await api.get(`/system/ping`);
+//     if (!backendPing.data?.success) {
+//       throw new Error('Backend service unavailable');
+//     }
     
-    // Use backend proxy to test ESP32 connection
-    const connectionTest = await api.get(`/esp32/test-connection`, {
-      params: { ip_address: esp32Config.ipAddress },
-      timeout: 5000 // 5s timeout for backend+ESP32
-    });
+//     // Use backend proxy to test ESP32 connection
+//     const connectionTest = await api.get(`/esp32/test-connection`, {
+//       params: { ip_address: esp32Config.ipAddress },
+//       timeout: 5000 // 5s timeout for backend+ESP32
+//     });
 
-    showToastMessage('Connection successful to both backend and ESP32', 'success');
-    connectionStatus.connected = true;
-    connectionStatus.lastSeen = new Date().toLocaleTimeString();
+//     showToastMessage('Connection successful to both backend and ESP32', 'success');
+//     connectionStatus.connected = true;
+//     connectionStatus.lastSeen = new Date().toLocaleTimeString();
     
-    // Update WiFi signal strength
-    if (connectionTest.data.signal_strength) {
-      wifiDetails.signalStrength = connectionTest.data.signal_strength;
-    }
+//     // Update WiFi signal strength
+//     if (connectionTest.data.signal_strength) {
+//       wifiDetails.signalStrength = connectionTest.data.signal_strength;
+//     }
     
-    return {
-      backend: {
-        status: 'connected',
-        version: backendPing.data.version,
-        uptime: backendPing.data.uptime
-      },
-      esp32: {
-        status: 'connected',
-        ip: esp32Config.ipAddress,
-        signalStrength: connectionTest.data.signal_strength,
-        firmware: connectionTest.data.firmware || 'unknown',
-        responseTime: connectionTest.data.response_time_ms
-      }
-    };
-  } catch (error) {
-    console.error('Connection test failed:', error);
+//     return {
+//       backend: {
+//         status: 'connected',
+//         version: backendPing.data.version,
+//         uptime: backendPing.data.uptime
+//       },
+//       esp32: {
+//         status: 'connected',
+//         ip: esp32Config.ipAddress,
+//         signalStrength: connectionTest.data.signal_strength,
+//         firmware: connectionTest.data.firmware || 'unknown',
+//         responseTime: connectionTest.data.response_time_ms
+//       }
+//     };
+//   } catch (error) {
+//     console.error('Connection test failed:', error);
     
-    if (error.response) {
-      // Backend returned error
-      showToastMessage(`Error: ${error.response.data?.detail || 'Connection test failed'}`, 'error');
-    } else if (error.code === 'ECONNABORTED') {
-      showToastMessage('Connection timed out', 'error');
-    } else {
-      showToastMessage(error.message, 'error');
-    }
+//     if (error.response) {
+//       // Backend returned error
+//       showToastMessage(`Error: ${error.response.data?.detail || 'Connection test failed'}`, 'error');
+//     } else if (error.code === 'ECONNABORTED') {
+//       showToastMessage('Connection timed out', 'error');
+//     } else {
+//       showToastMessage(error.message, 'error');
+//     }
     
-    connectionStatus.connected = false;
-    connectionStatus.lastSeen = 'Disconnected';
-    return {
-      backend: { status: 'error' },
-      esp32: { status: 'error' }
-    };
-  } finally {
-    showLoadingModal.value = false;
-  }
-};
+//     connectionStatus.connected = false;
+//     connectionStatus.lastSeen = 'Disconnected';
+//     return {
+//       backend: { status: 'error' },
+//       esp32: { status: 'error' }
+//     };
+//   } finally {
+//     showLoadingModal.value = false;
+//   }
+// };
 
 const showDeviceInfo = async () => {
   if (!isValidIP(esp32Config.ipAddress)) {
@@ -1173,10 +1574,6 @@ const showToastMessage = (message, severity = 'info', persistKey = null) => {
   window.showToast(message, severity)
 }
 
-onMounted(() => {
-  fetchAllConfigurations()
-})
-
 onBeforeUnmount(() => {
   document.body.style.overflow = 'auto';
 })
@@ -1186,39 +1583,6 @@ onUnmounted(() => {
     if (unsubscribe) unsubscribe()
   })
 })
-
-function fetchAllConfigurations() {
-  setupConfigListener('esp1')
-  setupConfigListener('esp2')
-  setupConfigListener('esp3')
-}
-
-function setupConfigListener(device) {
-  if (unsubscribeFns[device]) {
-    unsubscribeFns[device]()
-  }
-  
-  const docRef = doc(db, 'configurations', `${device}Config`)
-  
-  unsubscribeFns[device] = onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data()
-      
-      const formattedData = formatConfigData(device, data)
-      savedConfigs[device] = formattedData
-      
-      if (activeModal.value === device) {
-        updateFormConfig(device, formattedData)
-      }
-    } else {
-      savedConfigs[device] = null
-    }
-    
-    
-  }, (error) => {
-    console.error(`Error listening to ${device} configuration:`, error)
-  })
-}
 
 function formatConfigData(device, data) {
   switch(device) {
@@ -1285,27 +1649,27 @@ watch([esp1Config, esp2Config, esp3Config], ([newEsp1, newEsp2, newEsp3], [oldEs
   localStorage.setItem('esp32Configurations', JSON.stringify(configs));
 }, { deep: true })
 
-const navigateToRecalibration = (device) => {
-  let domain;
+// const navigateToRecalibration = (device) => {
+//   let domain;
   
-  switch(device) {
-    case 'esp32-1':
-      domain = 'npkdevice.local';
-      break;
-    case 'esp32-2':
-      domain = 'esp32env.local';
-      break;
-    case 'esp32-3':
-      domain = 'waterlevel.local';
-      break;
-    default:
-      // Fallback in case of unexpected device value
-      domain = device;
-  }
+//   switch(device) {
+//     case 'esp32-1':
+//       domain = 'npkdevice.local';
+//       break;
+//     case 'esp32-2':
+//       domain = 'esp32env.local';
+//       break;
+//     case 'esp32-3':
+//       domain = 'waterlevel.local';
+//       break;
+//     default:
+//       // Fallback in case of unexpected device value
+//       domain = device;
+//   }
   
-  // Redirect to the appropriate local domain
-  window.location.href = `http://${domain}`;
-}
+//   // Redirect to the appropriate local domain
+//   window.location.href = `http://${domain}`;
+// }
 
 // Add to your script setup
 const wifiArcs = computed(() => [
@@ -1316,69 +1680,107 @@ const wifiArcs = computed(() => [
 ]);
 
 const getConnectionStatus = () => {
-  if (!networkDetails.ipAddress) return 'Disconnected';
-  return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal';
+  if (!deviceInternetStatus.isOnline) return 'Offline';
+  if (deviceInternetStatus.connectionStrength < 25) return 'Very Weak';
+  if (deviceInternetStatus.connectionStrength < 50) return 'Weak';
+  if (deviceInternetStatus.connectionStrength < 75) return 'Good';
+  if (deviceInternetStatus.connectionStrength < 90) return 'Strong';
+  return 'Excellent';
 };
 
-const getSignalStrengthText = () => {
-  const strength = wifiDetails.signalStrength;
-  if (strength >= 90) return 'Excellent';
-  if (strength >= 75) return 'Very Good';
-  if (strength >= 50) return 'Good';
-  if (strength >= 25) return 'Fair';
-  return 'Poor';
-};
-
+// WiFi arc colors
 const getWifiArcColor = (strength) => {
+  if (!deviceInternetStatus.isOnline) return '#ef4444'; // red-500 when offline
   if (strength >= 75) return '#10b981'; // green-500
   if (strength >= 50) return '#eab308'; // yellow-500  
   if (strength >= 25) return '#f97316'; // orange-500
   return '#ef4444'; // red-500
 };
 
-// const getConnectionStatus = () => {
-//   return wifiDetails.signalStrength >= 25 ? 'Connected' : 'Weak Signal'
-// }
+const formatLastUpdated = (timestamp) => {
+  if (!timestamp) return 'Never';
+  
+  const now = new Date();
+  const updated = new Date(timestamp);
+  const diffMs = now - updated;
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffSecs < 10) return 'Just now';
+  if (diffSecs < 60) return `${diffSecs}s ago`;
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  return updated.toLocaleTimeString();
+};
 
-const networkDetails = reactive({
-  ipAddress: '',
-  ssid: '',
-  signalStrength: 0,
-  isConnected: false
-});
+// Listen to online/offline events
+const setupNetworkListeners = () => {
+  window.addEventListener('online', () => {
+    deviceInternetStatus.isOnline = true;
+    checkInternetConnection();
+  });
+  
+  window.addEventListener('offline', () => {
+    deviceInternetStatus.isOnline = false;
+    deviceInternetStatus.connectionStrength = 0;
+    deviceInternetStatus.lastChecked = new Date();
+  });
+};
 
 // Add this watch and Firestore listener
 let unsubscribeNetworkListener = null;
 
+const POLLING_INTERVAL = 5000;
+
+// Function to fetch network details from MongoDB
+const fetchNetworkDetails = async () => {
+  try {
+    const response = await api.get('/network/backend');
+    const data = response.data;
+
+    if (data) {
+      networkDetails.ipAddress = data.ip_address || '';
+      networkDetails.ssid = data.ssid || '';
+      
+      // Update WiFi details if available
+      if (data.signal_strength) {
+        wifiDetails.signalStrength = data.signal_strength;
+      }
+    }
+
+    console.log(data)
+  } catch (error) {
+    console.error("MongoDB network error:", error);
+  }
+};
+
 onMounted(() => {
   fetchSavedIP();
+  fetchNetworkDetails();
+  
+  // Setup device internet connection monitoring
+  setupNetworkListeners();
+  checkInternetConnection();
+  
+  // Check device connections on mount
+  checkAllDeviceConnections();
+  
+  // Set up polling for network details
+  pollingIntervalId = setInterval(fetchNetworkDetails, POLLING_INTERVAL);
+  
+  // Set up polling for device status (every 30 seconds)
+  deviceStatusIntervalId = setInterval(checkAllDeviceConnections, 30000);
+  
+  // Check internet connection periodically (every 60 seconds)
+  internetCheckIntervalId = setInterval(checkInternetConnection, 60000);
+});
 
-  unsubscribeNetworkListener = onSnapshot(
-    doc(db, 'network', 'backend'),
-    (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        networkDetails.ipAddress = data.ip_address || '';
-        networkDetails.ssid = data.ssid || '';
-        
-        // Update WiFi details if available
-        if (data.signal_strength) {
-          wifiDetails.signalStrength = data.signal_strength;
-        }
-      }
-    },
-    (error) => {
-      console.error("Firestore network error:", error);
-    }
-  );
-
-  // setInterval(() => {
-  //   // Simulate realistic signal strength fluctuation with wider range
-  //   const baseStrength = 87
-  //   const fluctuation = Math.floor(Math.random() * 16) - 8 // ±8% fluctuation
-  //   wifiDetails.signalStrength = Math.max(15, Math.min(100, baseStrength + fluctuation))
-  // }, 2500) // Slightly faster updates for more dynamic feel
-})
+onUnmounted(() => {
+  // Clean up all intervals
+  if (pollingIntervalId) clearInterval(pollingIntervalId);
+  if (deviceStatusIntervalId) clearInterval(deviceStatusIntervalId);
+  if (internetCheckIntervalId) clearInterval(internetCheckIntervalId);
+});
 
 </script>
 

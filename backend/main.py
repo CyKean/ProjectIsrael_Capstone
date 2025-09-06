@@ -6,12 +6,12 @@ import logging
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 
-from app.routers import crop_router,auth_router,sensor_data,motor_status,water_scheduling_router,sms,esp32_ip,dashboard_router,crop_recommendation,soil_analysis,npk_router,soilph_router,soil_moisture,temhum_router,waterlevel_router,motorcontrol_router,notification_router,user_router,schedule_router,sidebar_router
+from app.routers import crop_router,auth_router,sensor_data,motor_status,water_scheduling_router,sms,esp32_ip,dashboard_router,crop_recommendation,soil_analysis,npk_router,soilph_router,soil_moisture,temhum_router,waterlevel_router,motorcontrol_router,notification_router,user_router,schedule_router,sidebar_router,recalibration_router,system,esp32
 from app.services.backend_ip import save_backend_ip
 from app.services.esp32_ip_manager import ip_manager
 from app.api.base import router as base_router
-from app.api.system import router as system_router
-from app.api.esp32 import router as esp32_router
+from app.routers.system import router as system
+from app.routers.esp32 import router as esp32
 
 from app.services.database import init_database
 
@@ -68,8 +68,8 @@ app.include_router(water_scheduling_router.router)
 app.include_router(sms.router, prefix="/api/sms", tags=["sms"])
 app.include_router(esp32_ip.router)
 app.include_router(base_router)
-app.include_router(system_router)
-app.include_router(esp32_router)
+app.include_router(system)
+app.include_router(esp32)
 app.include_router(dashboard_router.router)
 app.include_router(crop_recommendation.router)
 app.include_router(soil_analysis.router)
@@ -83,6 +83,9 @@ app.include_router(notification_router.router)
 app.include_router(user_router.router)
 app.include_router(schedule_router.router)
 app.include_router(sidebar_router.router)
+app.include_router(recalibration_router.router)
+app.include_router(system)
+app.include_router(esp32)
 
 @app.middleware("http")
 async def allow_websocket_cors(request, call_next):

@@ -1,7 +1,8 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-   <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">        <!-- Gradient header for visual appeal -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">
+      
       <!-- Gradient header for visual appeal - CHANGED TO EMERALD (GREEN) -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->
@@ -30,7 +31,7 @@
                   @input="performSearch"
                 />
               </div>
-              <!-- Filter Button -->
+              
               <div class="flex flex-row gap-2">
                 <div class="relative flex-1 sm:flex-none">
                   <button 
@@ -47,7 +48,7 @@
                     class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
                     @click.stop
                   >
-                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[320px] overflow-y-auto">
                       <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
                         <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
                         <div class="flex items-center gap-2">
@@ -148,15 +149,17 @@
                   </button>
                 </div>
               </div>
+              
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Table and Graph Section - Flex container for side-by-side layout -->
-      <div class="flex-1 overflow-auto oveflow-y-auto md:overflow-hidden flex flex-col md:flex-row">
-        <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
-        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+      <!-- FIXED: Table and Graph Section - Always maintain consistent layout -->
+      <div class="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row min-h-0">
+        
+        <!-- FIXED: Live Graph Container - Fixed width that doesn't expand -->
+        <div class="w-full md:w-1/3 lg:w-1/3 md:min-w-[300px] md:max-w-[400px] border-r border-gray-200 bg-white p-4 overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-xs md:text-sm font-semibold text-gray-700">Live Soil pH</h3>
             <p class="text-[10px] md:text-xs text-gray-500">Real-time monitoring</p>
@@ -177,7 +180,7 @@
             
             <!-- Graph Canvas with current values overlay -->
             <div class="h-[280px] p-3 relative">
-              <canvas ref="chartCanvas" class="w-[200px] md:w-full md:h-full overflow-x-auto"></canvas>
+              <canvas ref="chartCanvas" class="w-full h-full"></canvas>
               
               <!-- Repositioned and Resized Current Values Indicator -->
               <div class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-md px-2 py-1 shadow-sm border border-gray-100" style="max-width: 80px; z-index: 10;">
@@ -273,52 +276,61 @@
           </div>
         </div>
         
-        <!-- Table Container - Larger width -->
-        <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
+        <!-- FIXED: Table Container - Takes remaining space with consistent width -->
+        <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col min-w-0 flex-grow">
+          
           <!-- Mobile Card View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
-            <div v-for="(row, index) in paginatedData" :key="index" 
-                class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-              <div class="flex justify-between items-start mb-2">
-                <div>
-                  <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
-                  <div class="text-[10px] text-gray-500">{{ row.time }}</div>
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Soil pH</div>
-                  <div class="text-xs font-semibold text-orange-600">{{ row.soilPh }}</div>
-                </div>
-                <div>
-                  <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">pH Status</div>
-                  <span 
-                    :class="[
-                      'px-2 py-0.5 rounded-full text-[10px] font-medium',
-                      row.phStatus === 'NEUTRAL' ? 'bg-green-100 text-green-800' :
-                      row.phStatus === 'ACIDIC' ? 'bg-red-100 text-red-800' :
-                      'bg-blue-100 text-blue-800'
-                    ]"
-                  >
-                    {{ row.phStatus }}
-                  </span>
-                </div>
-              </div>
+            <!-- Show loading state or empty state consistently -->
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-2"></div>
+              <p class="text-gray-500 text-xs">Loading soil pH data...</p>
             </div>
             
-            <div v-if="paginatedData.length === 0 && !isLoading" 
-                class="flex flex-col items-center justify-center py-8">
+            <div v-else-if="paginatedData.length === 0" class="flex flex-col items-center justify-center py-8">
               <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
               <p class="text-gray-500 text-xs font-medium">No soil pH data found</p>
               <p class="text-gray-400 text-[10px]">Try adjusting your search or filters</p>
+            </div>
+            
+            <div v-else>
+              <div v-for="(row, index) in paginatedData" :key="index" 
+                  class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
+                    <div class="text-[10px] text-gray-500">{{ row.time }}</div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Soil pH</div>
+                    <div class="text-xs font-semibold text-orange-600">{{ row.soilPh }}</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">pH Status</div>
+                    <span 
+                      :class="[
+                        'px-2 py-0.5 rounded-full text-[10px] font-medium',
+                        row.phStatus === 'NEUTRAL' ? 'bg-green-100 text-green-800' :
+                        row.phStatus === 'ACIDIC' ? 'bg-red-100 text-red-800' :
+                        'bg-blue-100 text-blue-800'
+                      ]"
+                    >
+                      {{ row.phStatus }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Desktop Table View (shown on medium screens and up) -->
           <div class="hidden sm:flex flex-1 flex-col min-h-0">
-            <!-- Scrollable Body with enhanced styling -->
+            
+            <!-- FIXED: Always show table structure even when loading -->
             <div class="flex-1 overflow-y-auto">
-              <table class="w-[600px] md:min-w-full">
+              <table class="w-full min-w-full">
                 <thead>
                   <tr>
                     <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider border-b">
@@ -343,18 +355,27 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr 
-                    v-for="(row, index) in paginatedData" 
-                    :key="index"
-                    class="border-b border-gray-50 last:border-0"
-                  >
+                  <!-- Loading state row -->
+                  <tr v-if="isLoading">
+                    <td colspan="5" class="px-6 py-16 text-center">
+                      <div class="flex flex-col items-center justify-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mb-4"></div>
+                        <p class="text-gray-500 text-lg font-medium">Loading soil pH data...</p>
+                        <p class="text-gray-400 text-sm mt-1">Please wait while we fetch your data</p>
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  <!-- Data rows -->
+                  <tr v-else-if="paginatedData.length > 0"
+                      v-for="(row, index) in paginatedData" 
+                      :key="index"
+                      class="border-b border-gray-50 last:border-0">
                     <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
                       <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
                     </td>
                     <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
-                      <div class="text-sm font-medium text-orange-600">
-                        {{ row.soilPh }}
-                      </div>
+                      <div class="text-sm font-medium text-orange-600">{{ row.soilPh }}</div>
                     </td>
                     <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
                       <span 
@@ -375,8 +396,9 @@
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>
-                  <!-- Empty state when no data - Enhanced styling -->
-                  <tr v-if="paginatedData.length === 0 && !isLoading">
+                  
+                  <!-- Empty state row -->
+                  <tr v-else>
                     <td colspan="5" class="px-6 py-16 text-center">
                       <div class="flex flex-col items-center justify-center">
                         <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
@@ -392,7 +414,7 @@
         </div>
 
         <!-- Mobile Pagination -->
-        <div class="border-t border-gray-200 py-2 px-3 bg-gray-50 sm:hidden">
+        <div class="border-t border-gray-200 py-2 px-3 bg-gray-50 sm:hidden" v-if="!isLoading && paginatedData.length > 0">
           <div class="flex items-center justify-between">
             <div class="text-[10px] md:text-xs text-gray-600">
               Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
@@ -447,7 +469,6 @@
     title="Loading Soil pH Data" 
     message="Please wait while we fetch the latest soil pH measurements"
   />
-  <!-- <Settings /> -->
 </template>
   
 <script setup>

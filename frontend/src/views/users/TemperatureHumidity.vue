@@ -47,7 +47,7 @@
                     class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
                     @click.stop
                   >
-                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[320px] overflow-y-auto">
                       <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
                         <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
                         <div class="flex items-center gap-2">
@@ -153,17 +153,17 @@
         </div>
       </div>
 
-      <!-- Table and Graph Section - Flex container for side-by-side layout -->
-      <div class="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row">
-        <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
-        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+      <!-- Table and Graph Section - Fixed flex container with proper width constraints -->
+      <div class="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row min-h-0">
+        <!-- Live Graph Container - FIXED: constrained width that doesn't expand -->
+        <div class="w-full md:w-1/3 md:max-w-[33.333333%] md:min-w-[300px] lg:w-1/3 lg:max-w-[33.333333%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-xs md:text-sm font-semibold text-gray-700">Live Temperature & Humidity</h3>
             <p class="text-[10px] md:text-xs text-gray-500">Real-time monitoring</p>
           </div>
           
-          <!-- Enhanced Combined Graph Container -->
-          <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+          <!-- Enhanced Combined Graph Container with fixed dimensions -->
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4 max-w-full">
             <!-- Graph Header with improved styling -->
             <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <div class="flex items-center gap-4">
@@ -181,9 +181,9 @@
               </div>
             </div>
             
-            <!-- Graph Canvas with current values overlay -->
-            <div class="h-[280px] p-3 relative">
-              <canvas ref="chartCanvas" class="w-full h-full"></canvas>
+            <!-- Graph Canvas with fixed height and responsive width -->
+            <div class="h-[280px] p-3 relative w-full max-w-full overflow-hidden">
+              <canvas ref="chartCanvas" class="w-full h-full max-w-full"></canvas>
               
               <!-- Repositioned and Resized Current Values Indicator -->
               <div class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-md px-2 py-1 shadow-sm border border-gray-100" style="max-width: 80px; z-index: 10;">
@@ -252,7 +252,7 @@
           </div>
           
           <!-- Optimal Ranges section (kept this as it's useful) -->
-          <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4 max-w-full">
             <h4 class="text-sm font-semibold text-gray-700 mb-2">Optimal Ranges</h4>
             <div class="space-y-3">
               <div>
@@ -288,8 +288,8 @@
           </div>
         </div>
         
-        <!-- Table Container - Larger width with FIXED ALIGNMENT -->
-        <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
+        <!-- Table Container - FIXED: takes remaining space without expanding graph -->
+        <div class="w-full md:w-2/3 md:flex-1 lg:w-2/3 lg:flex-1 flex flex-col min-w-0">
           <!-- Mobile Card View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
             <div v-for="(row, index) in paginatedData" :key="index" 
@@ -394,7 +394,7 @@
           </div>
 
           <!-- Pagination Section -->
-          <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
+          <div class="border-t border-gray-200 py-2 px-3 bg-gray-50 flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="text-[10px] md:text-xs text-gray-600">
                 Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}

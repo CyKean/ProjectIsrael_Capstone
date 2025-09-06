@@ -652,6 +652,7 @@
       </div>
     </div>
   </div>
+  
 
   <LogoutModal v-if="showModal" @confirm="executeLogout" @cancel="showModal = false" />
 
@@ -664,6 +665,8 @@
     </div>
     <span class="text-gray-900 font-medium text-sm">{{ toastMessage }}</span>
   </div>
+
+
 </template>
 
 <script setup>
@@ -677,6 +680,9 @@ import {
 } from 'lucide-vue-next'
 import LogoutModal from '../layout/LogoutModal.vue'
 import api from '../../api/index.js'
+import UserProfileGuide from '../guide/UserProfileGuide.vue'
+
+const showTour = ref(false)
 
 const router = useRouter()
 const userStore = useUserStore()

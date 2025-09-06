@@ -46,7 +46,7 @@
                     class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
                     @click.stop
                   >
-                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[320px] overflow-y-auto">
                       <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
                         <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
                         <div class="flex items-center gap-2">
@@ -155,14 +155,14 @@
       <!-- Table and Graph Section - Flex container for side-by-side layout -->
       <div class="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row">
         <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
-        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+        <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[33.333%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-xs md:text-sm font-semibold text-gray-700">Motor Activity Monitor</h3>
             <p class="text-[10px] md:text-xs text-gray-500">Real-time status tracking</p>
           </div>
           
-          <!-- Motor Status Graph Container -->
-          <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4">
+          <!-- Motor Status Graph Container - FIXED: Add container constraints -->
+          <div class="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden flex flex-col mb-4 max-w-full">
             <!-- Graph Header with improved styling -->
             <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <div class="flex items-center gap-4">
@@ -176,11 +176,12 @@
               </div>
             </div>
             
-            <!-- Graph Canvas with current values overlay - PROPER SIZING -->
-            <div class="relative w-full" style="height: 320px; min-height: 320px;">
+            <!-- Graph Canvas with current values overlay - FIXED: Add strict size constraints -->
+            <div class="h-[320px] p-3 relative w-full overflow-hidden">
               <canvas 
                 ref="chartCanvas" 
-                class="w-full h-full"
+                class="w-full h-full max-w-full"
+                :style="{ maxWidth: '100%', maxHeight: '320px' }"
               ></canvas>
               
               <!-- Current Status Indicator -->
@@ -244,7 +245,7 @@
         </div>
         
         <!-- Table Container - Larger width -->
-        <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
+        <div class="w-full md:w-2/3 lg:w-2/3 md:max-w-[66.666%] flex flex-col flex-grow min-w-0">
           <!-- Mobile Card View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
             <div v-for="(row, index) in paginatedData" :key="index" 
@@ -944,9 +945,13 @@ const fetchMotorControlData = async (showLoading = false) => {
       isLoading.value = true
     }
     
-    // Replace Firebase query with API call
-    const response = await api.get('/motor-control/history')
-    const motorDataFromApi = response.data
+    // Fetch current status
+    const currentResponse = await api.get('/motor-control/current')
+    const currentData = currentResponse.data
+    
+    // Fetch history (no limit parameter)
+    const historyResponse = await api.get('/motor-control/history')
+    const motorDataFromApi = historyResponse.data
     
     const processedData = motorDataFromApi.map((data, index) => {
       let formattedDate = '--'
@@ -954,43 +959,48 @@ const fetchMotorControlData = async (showLoading = false) => {
       let timestampSeconds = 0
       
       try {
-        // Handle timestamp from MongoDB
-        const timestamp = data.timestamp ? new Date(data.timestamp) : new Date()
+        // Handle MongoDB timestamp - various formats
+        let timestamp
+        if (data.timestamp instanceof Date) {
+          timestamp = data.timestamp
+        } else if (data.timestamp && typeof data.timestamp === 'object' && data.timestamp._seconds) {
+          // Firebase timestamp format
+          timestamp = new Date(data.timestamp._seconds * 1000)
+        } else if (typeof data.timestamp === 'string') {
+          // ISO string format
+          timestamp = new Date(data.timestamp)
+        } else {
+          timestamp = new Date()
+        }
         
         formattedDate = timestamp.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: '2-digit'
-        });
+        })
 
         formattedTime = timestamp.toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
           hour12: true
-        });
+        })
         
         timestampSeconds = timestamp.getTime() / 1000
       } catch (e) {
         console.error("Error formatting date:", e)
       }
 
-      let status = 'OFF';
+      // Handle status from various fields
+      let status = 'OFF'
       if (data.status !== undefined && data.status !== null) {
-        if (typeof data.status === 'boolean') {
-          status = data.status ? 'ON' : 'OFF';
-        } else if (typeof data.status === 'number') {
-          status = data.status === 1 ? 'ON' : 'OFF';
-        } else {
-          const statusStr = String(data.status).trim().toUpperCase();
-          if (['ON', 'OFF', '1', '0', 'TRUE', 'FALSE'].includes(statusStr)) {
-            status = ['ON', '1', 'TRUE'].includes(statusStr) ? 'ON' : 'OFF';
-          }
-        }
+        status = data.status ? 'ON' : 'OFF'
+      } else if (data.action) {
+        status = data.action.toLowerCase() === 'on' ? 'ON' : 'OFF'
       }
 
       const deviceId = data.device_id || data.deviceId || 'main_motor'
-      const user = data.user || data.controller || 'system'
+      const user = data.user || data.triggeredBy || 'system'
 
       return {
         id: index + 1,
@@ -1000,18 +1010,52 @@ const fetchMotorControlData = async (showLoading = false) => {
         status: status,
         user: user,
         date: formattedDate,
-        time: formattedTime
+        time: formattedTime,
+        action: data.action || '',
+        source: data.triggeredBy || 'manual',
+        scheduleId: data.scheduleId || ''
       }
     })
 
     motorData.value = processedData
-    initializeChartData(processedData)
+    
+    // Initialize chart with limited data to prevent performance issues
+    const limitedChartData = processedData.slice(-15) // Only use last 100 entries for chart
+    initializeChartData(limitedChartData)
+    
+    // Update current values from the current status endpoint
+    if (currentData) {
+      currentStatus.value = currentData.status ? 'ON' : 'OFF'
+      currentDeviceId.value = currentData.device_id || 'main_motor'
+      currentUser.value = currentData.user || 'system'
+      
+      if (currentData.timestamp) {
+        let timestamp
+        if (currentData.timestamp instanceof Date) {
+          timestamp = currentData.timestamp
+        } else if (currentData.timestamp && typeof currentData.timestamp === 'object' && currentData.timestamp._seconds) {
+          timestamp = new Date(currentData.timestamp._seconds * 1000)
+        } else if (typeof currentData.timestamp === 'string') {
+          timestamp = new Date(currentData.timestamp)
+        } else {
+          timestamp = new Date()
+        }
+        
+        const formattedTime = timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        })
+        lastUpdated.value = formattedTime
+      }
+    }
     
     if (showLoading) {
       isLoading.value = false
     }
 
-    PRINT_CHART_DATA_LIMIT = motorData.value.length
+    PRINT_CHART_DATA_LIMIT = motorData.value // Limit chart data for printing
     
   } catch (error) {
     console.error("❌ Error fetching motor control data:", error)
@@ -1022,101 +1066,107 @@ const fetchMotorControlData = async (showLoading = false) => {
 const pollingInterval = ref(null)
 
 const setupDataPolling = () => {
-  // Clear any existing interval first
   if (pollingInterval.value) {
     clearInterval(pollingInterval.value)
   }
   
-  // Poll every 5 seconds for updates
   pollingInterval.value = setInterval(async () => {
     try {
       const response = await api.get('/motor-control/latest')
-      const latestData = response.data
+      const latestData = response.data[0] // Get first item from array
       
-      if (latestData && latestData.length > 0) {
-        const newEntry = latestData[0]
-        
-        // Handle timestamp properly
+      if (latestData) {
+        // Handle timestamp conversion
         let timestamp
-        if (newEntry.timestamp instanceof Date) {
-          timestamp = newEntry.timestamp
-        } else if (typeof newEntry.timestamp === 'string') {
-          timestamp = new Date(newEntry.timestamp)
-        } else if (newEntry.timestamp && newEntry.timestamp._seconds) {
-          timestamp = new Date(newEntry.timestamp._seconds * 1000)
+        if (latestData.timestamp instanceof Date) {
+          timestamp = latestData.timestamp
+        } else if (latestData.timestamp && typeof latestData.timestamp === 'object' && latestData.timestamp._seconds) {
+          timestamp = new Date(latestData.timestamp._seconds * 1000)
+        } else if (typeof latestData.timestamp === 'string') {
+          timestamp = new Date(latestData.timestamp)
         } else {
           timestamp = new Date()
         }
         
-        let status = 'OFF'
-        if (newEntry.status !== undefined && newEntry.status !== null) {
-          if (typeof newEntry.status === 'boolean') {
-            status = newEntry.status ? 'ON' : 'OFF'
-          } else if (typeof newEntry.status === 'number') {
-            status = newEntry.status === 1 ? 'ON' : 'OFF'
-          } else {
-            const statusStr = String(newEntry.status).trim().toUpperCase()
-            if (['ON', 'OFF', '1', '0', 'TRUE', 'FALSE'].includes(statusStr)) {
-              status = ['ON', '1', 'TRUE'].includes(statusStr) ? 'ON' : 'OFF'
+        const status = latestData.status ? 'ON' : 'OFF'
+        const deviceId = latestData.device_id || 'main_motor'
+        const user = latestData.user || latestData.triggeredBy || 'system'
+        
+        // Check if this is a new status update
+        const lastEntry = chartData.value[chartData.value.length - 1]
+        const isNewEntry = !lastEntry || 
+                          lastEntry.status !== status || 
+                          lastEntry.timestamp.getTime() !== timestamp.getTime()
+        
+        if (isNewEntry) {
+          const newChartData = [
+            ...chartData.value,
+            {
+              timestamp,
+              status,
+              deviceId,
+              user,
+              source: latestData.triggeredBy || 'polling'
+            }
+          ]
+          
+          if (newChartData.length > 50) {
+            newChartData.splice(0, newChartData.length - 50)
+          }
+          
+          chartData.value = newChartData
+          
+          currentStatus.value = status
+          currentDeviceId.value = deviceId
+          currentUser.value = user
+          
+          const formattedTime = timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          })
+          lastUpdated.value = formattedTime
+          
+          const onCount = newChartData.filter(item => item.status === 'ON').length
+          const offCount = newChartData.filter(item => item.status === 'OFF').length
+          
+          let switches = 0
+          for (let i = 1; i < newChartData.length; i++) {
+            if (newChartData[i].status !== newChartData[i-1].status) {
+              switches++
             }
           }
-        }
-        
-        const deviceId = newEntry.device_id || newEntry.deviceId || 'main_motor'
-        const user = newEntry.user || newEntry.controller || 'system'
-        
-        // Create a new array instead of pushing to prevent reactivity issues
-        const newChartData = [
-          ...chartData.value,
-          {
-            timestamp,
-            status,
-            deviceId,
-            user
+          
+          statusStats.value = {
+            onCount,
+            offCount,
+            switches
           }
-        ]
-        
-        // Keep only the last 50 data points to prevent memory issues
-        if (newChartData.length > 50) {
-          newChartData.splice(0, newChartData.length - 50)
-        }
-        
-        // Update the chart data reactively
-        chartData.value = newChartData
-        
-        // Update current values
-        currentStatus.value = status
-        currentDeviceId.value = deviceId
-        currentUser.value = user
-        
-        const formattedTime = timestamp.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        })
-        lastUpdated.value = formattedTime
-        
-        // Update stats
-        const onCount = newChartData.filter(item => item.status === 'ON').length
-        const offCount = newChartData.filter(item => item.status === 'OFF').length
-        
-        let switches = 0
-        for (let i = 1; i < newChartData.length; i++) {
-          if (newChartData[i].status !== newChartData[i-1].status) {
-            switches++
+          
+          if (chart.value) {
+            try {
+              // Update chart data directly
+              const labels = newChartData.map(item => 
+                item.timestamp.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })
+              )
+              
+              const statusValues = newChartData.map(item => item.status === 'ON' ? 1 : 0)
+              
+              chart.value.data.labels = labels
+              chart.value.data.datasets[0].data = statusValues
+              
+              requestAnimationFrame(() => {
+                chart.value.update('none')
+              })
+            } catch (error) {
+              console.error('Chart update error:', error)
+            }
           }
-        }
-        
-        statusStats.value = {
-          onCount,
-          offCount,
-          switches
-        }
-        
-        // Safely update the chart if it exists
-        if (chart.value) {
-          updateChart()
         }
       }
     } catch (error) {
@@ -1128,28 +1178,18 @@ const setupDataPolling = () => {
 }
 
 const initializeChartData = (data) => {
-  const initialChartData = data.slice(0, 20)
+  const initialChartData = data.slice(0, 50)
     .map(item => {
-      // Handle timestamp from MongoDB data structure
-      let timestamp;
-      
-      // Check if rawTimestamp exists and handle different formats
-      if (item.rawTimestamp) {
-        if (item.rawTimestamp instanceof Date) {
-          timestamp = item.rawTimestamp;
-        } else if (typeof item.rawTimestamp === 'string') {
-          // If it's an ISO string
-          timestamp = new Date(item.rawTimestamp);
-        } else if (item.rawTimestamp._seconds) {
-          // If it's a Firebase-like timestamp object from MongoDB
-          timestamp = new Date(item.rawTimestamp._seconds * 1000);
-        } else {
-          // Fallback to current date
-          timestamp = new Date();
-        }
+      // Handle timestamp from various formats
+      let timestamp
+      if (item.rawTimestamp instanceof Date) {
+        timestamp = item.rawTimestamp
+      } else if (item.rawTimestamp && typeof item.rawTimestamp === 'object' && item.rawTimestamp._seconds) {
+        timestamp = new Date(item.rawTimestamp._seconds * 1000)
+      } else if (typeof item.rawTimestamp === 'string') {
+        timestamp = new Date(item.rawTimestamp)
       } else {
-        // If no timestamp, use current date
-        timestamp = new Date();
+        timestamp = new Date()
       }
       
       return {
@@ -1159,31 +1199,31 @@ const initializeChartData = (data) => {
         user: item.user
       }
     })
-    .sort((a, b) => a.timestamp - b.timestamp);
+    .sort((a, b) => a.timestamp - b.timestamp)
 
-  chartData.value = initialChartData;
+  chartData.value = initialChartData
 
   if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1];
-    currentStatus.value = latestReading.status;
-    currentDeviceId.value = latestReading.deviceId;
-    currentUser.value = latestReading.user;
+    const latestReading = initialChartData[initialChartData.length - 1]
+    currentStatus.value = latestReading.status
+    currentDeviceId.value = latestReading.deviceId
+    currentUser.value = latestReading.user
     
     const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
       hour12: true
-    });
-    lastUpdated.value = formattedTime;
+    })
+    lastUpdated.value = formattedTime
     
-    const onCount = initialChartData.filter(item => item.status === 'ON').length;
-    const offCount = initialChartData.filter(item => item.status === 'OFF').length;
+    const onCount = initialChartData.filter(item => item.status === 'ON').length
+    const offCount = initialChartData.filter(item => item.status === 'OFF').length
     
-    let switches = 0;
+    let switches = 0
     for (let i = 1; i < initialChartData.length; i++) {
       if (initialChartData[i].status !== initialChartData[i-1].status) {
-        switches++;
+        switches++
       }
     }
     
@@ -1191,16 +1231,16 @@ const initializeChartData = (data) => {
       onCount,
       offCount,
       switches
-    };
+    }
   }
   
   // Wait for DOM to be ready, then initialize chart
   nextTick(() => {
     setTimeout(() => {
-      initializeChart();
-    }, 100);
-  });
-};
+      initializeChart()
+    }, 100)
+  })
+}
 
 const initializeChart = () => {
   if (!chartCanvas.value) {

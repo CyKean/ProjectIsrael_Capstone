@@ -1,7 +1,7 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-auto overflow-x-hidden">
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-y-hidden overflow-x-hidden">
       <!-- Gradient header for visual appeal -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->
@@ -35,7 +35,7 @@
         <!-- System Controls Section - KEEPING ORIGINAL 3-COLUMN GRID -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Motor Control Card - Left Position (COMPLETELY UNTOUCHED) -->
-          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
+          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300" data-intro-motor>
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-2">
                 <!-- Changed icon color from purple to green -->
@@ -48,7 +48,7 @@
             
             <!-- Motor Status and Toggle - Ultra Modern Design -->
             <div class="mt-6">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-4" data-intro-status>
                 <span class="text-sm font-medium text-gray-700">Motor Status</span>
                 <div class="flex items-center gap-2">
                   <div class="w-2.5 h-2.5 rounded-full" :class="waterPumpActive ? 'bg-green-500' : 'bg-gray-300'"></div>
@@ -208,6 +208,7 @@
               <div class="flex items-center gap-2 grid grid-cols-1 md:grid-cols-2">
                 <!-- View History Button -->
                 <button 
+                  data-intro-history-button
                   @click="viewScheduleHistory()" 
                   class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full px-2 py-1 md:px-4 md:py-2 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
                 >
@@ -216,6 +217,7 @@
                 </button>
                 <!-- Add Schedule Button - Slightly larger but not too large -->
                 <button 
+                  data-intro-schedule-button
                   @click="openScheduleModal()" 
                   class="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-full px-2 py-1 md:px-4 md:py-2 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
                 >
@@ -231,7 +233,7 @@
             </div>
             
             <!-- Next Scheduled Watering - Enhanced with modern design -->
-            <div class="mb-5 bg-green-50 rounded-xl p-2 md:p-4 flex items-center justify-between border border-green-100 shadow-sm">
+            <div class="mb-5 bg-green-50 rounded-xl p-2 md:p-4 flex items-center justify-between border border-green-100 shadow-sm" data-intro-next-watering>
               <div class="flex items-center gap-2">
                 <div class="bg-green-100 p-1.5 rounded-full">
                   <CalendarClock class="w-4 h-4 text-green-600" />
@@ -1312,7 +1314,7 @@
       </div>
     </div>
   </Transition>
-
+  <DeviceControlGuide v-if="showTour" />
 </template>
 
 <script setup>
@@ -1356,6 +1358,9 @@ import autoTable from 'jspdf-autotable'
 import { saveAs } from 'file-saver'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import api from '../../api/index'
+import DeviceControlGuide from '../guide/DeviceControlGuide.vue'
+
+const showTour = ref(true)
 
 const SCHEDULE_ROOT_DOC = 'schedules_root'
 const SCHEDULE_COLLECTION = 'watering_schedules'

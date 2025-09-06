@@ -1378,8 +1378,10 @@ const initSoilMoistureChart = () => {
       soilMoistureChartInstance.value.destroy();
     }
 
-    const labels = soilMoistureReadings.value.map(r => formatTimeLabel(r.timestamp));
-    const data = soilMoistureReadings.value.map(r => r.soilMoisture || 0);
+    // Get only the last 15-20 readings
+    const recentReadings = soilMoistureReadings.value.slice(-20);
+    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
+    const data = recentReadings.map(r => r.soilMoisture || 0);
 
     soilMoistureChartInstance.value = new Chart(soilMoistureChartRef.value.getContext('2d'), {
       type: 'line',
@@ -1413,6 +1415,14 @@ const initSoilMoistureChart = () => {
         scales: {
           x: {
             grid: { display: false },
+            ticks: {
+              // Show all datetime labels
+              callback: function(value) {
+                return this.getLabelForValue(value);
+              },
+              maxRotation: 45, // Rotate labels if needed
+              minRotation: 45  // Keep consistent rotation
+            }
           },
           y: {
             min: 0,
@@ -1441,8 +1451,10 @@ const initHumidityChart = () => {
       humidityChartInstance.value.destroy();
     }
 
-    const labels = humidityReadings.value.map(r => formatTimeLabel(r.timestamp));
-    const data = humidityReadings.value.map(r => r.humidity || 0);
+    // Get only the last 15-20 readings
+    const recentReadings = humidityReadings.value.slice(-20);
+    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
+    const data = recentReadings.map(r => r.humidity || 0);
 
     humidityChartInstance.value = new Chart(humidityChartRef.value.getContext('2d'), {
       type: 'line',
@@ -1476,6 +1488,14 @@ const initHumidityChart = () => {
         scales: {
           x: {
             grid: { display: false },
+            ticks: {
+              // Show all datetime labels
+              callback: function(value) {
+                return this.getLabelForValue(value);
+              },
+              maxRotation: 45, // Rotate labels if needed
+              minRotation: 45  // Keep consistent rotation
+            }
           },
           y: {
             min: 0,
@@ -1504,8 +1524,10 @@ const initTemperatureChart = () => {
       temperatureChartInstance.value.destroy();
     }
 
-    const labels = temperatureReadings.value.map(r => formatTimeLabel(r.timestamp));
-    const data = temperatureReadings.value.map(r => r.temperature || 0);
+    // Get only the last 15-20 readings
+    const recentReadings = temperatureReadings.value.slice(-20);
+    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
+    const data = recentReadings.map(r => r.temperature || 0);
     const maxY = Math.max(...data, 30);
 
     temperatureChartInstance.value = new Chart(temperatureChartRef.value.getContext('2d'), {
@@ -1540,6 +1562,14 @@ const initTemperatureChart = () => {
         scales: {
           x: {
             grid: { display: false },
+            ticks: {
+              // Show all datetime labels
+              callback: function(value) {
+                return this.getLabelForValue(value);
+              },
+              maxRotation: 45, // Rotate labels if needed
+              minRotation: 45  // Keep consistent rotation
+            }
           },
           y: {
             min: Math.min(...data, 10) - 5,
@@ -1567,8 +1597,10 @@ const initSoilPhChart = () => {
       soilPhChartInstance.value.destroy();
     }
 
-    const labels = soilPhReadings.value.map(r => formatTimeLabel(r.timestamp));
-    const data = soilPhReadings.value.map(r => r.soilPh || 0);
+    // Get only the last 15-20 readings
+    const recentReadings = soilPhReadings.value.slice(-20);
+    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
+    const data = recentReadings.map(r => r.soilPh || 0);
     const minY = Math.min(...data, 1); 
     const maxY = Math.max(...data, 7); 
 
@@ -1609,6 +1641,14 @@ const initSoilPhChart = () => {
         scales: {
           x: {
             grid: { display: false },
+            ticks: {
+              // Show all datetime labels
+              callback: function(value) {
+                return this.getLabelForValue(value);
+              },
+              maxRotation: 45, // Rotate labels if needed
+              minRotation: 45  // Keep consistent rotation
+            }
           },
           y: {
             min: minY - 1,
@@ -1734,9 +1774,9 @@ const initNpkChart = () => {
           x: {
             grid: { display: false },
             ticks: { 
-              maxTicksLimit: 6,
-              callback: function(value, index, values) {
-                return index % 3 === 0 ? this.getLabelForValue(value) : '';
+              // Show all labels for NPK chart
+              callback: function(value) {
+                return this.getLabelForValue(value);
               }
             }
           },
@@ -1808,34 +1848,6 @@ const destroyAllCharts = () => {
     }
   });
 };
-
-// const debugData = () => {
-//   console.log('NPK Readings:', npkReadings.value);
-//   console.log('NPK Levels:', npkLevels.value);
-//   console.log('Water Level:', waterLevel.value);
-//   console.log('Soil Moisture Readings:', soilMoistureReadings.value);
-//   console.log('Humidity Readings:', humidityReadings.value);
-//   console.log('Temperature Readings:', temperatureReadings.value);
-// };
-
-// const debugApiResponse = async () => {
-//   try {
-//     const response = await api.get('/sensor-data/all');
-//     console.log('API Response:', response.data);
-    
-//     if (response.data.npkData) {
-//       console.log('NPK Data:', response.data.npkData);
-//       console.log('Latest NPK:', response.data.npkData[response.data.npkData.length - 1]);
-//     }
-    
-//     if (response.data.waterData) {
-//       console.log('Water Data:', response.data.waterData);
-//       console.log('Latest Water:', response.data.waterData[response.data.waterData.length - 1]);
-//     }
-//   } catch (error) {
-//     console.error('Debug API Error:', error);
-//   }
-// };
 
 onMounted(async () => {
   isLoading.value = true;

@@ -46,7 +46,7 @@
                     class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
                     @click.stop
                   >
-                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[320px] overflow-y-auto">
                       <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
                         <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
                         <div class="flex items-center gap-2">
@@ -153,9 +153,9 @@
       </div>
 
       <!-- Table and Graph Section - Flex container for side-by-side layout -->
-      <div class="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row">
+      <div class="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row min-h-0">
         <!-- Live Graph Container - Three Separate Charts -->
-        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+        <div class="w-full md:w-1/3 md:max-w-sm lg:w-1/3 lg:max-w-md xl:max-w-lg border-r border-gray-200 bg-white p-4 overflow-y-auto flex-shrink-0">
           <div class="mb-3 flex items-center justify-between">
             <div>
               <h3 class="text-xs md:text-sm font-semibold text-gray-700">Live NPK Analysis</h3>
@@ -1158,6 +1158,8 @@ const setupRealtimeListener = () => {
   }
 }
 
+const chartsInitialized = ref(false);
+
 const initializeChartData = (data) => {
   // Take only valid data for charts
   const validChartData = data
@@ -1239,10 +1241,14 @@ const initializeChartData = (data) => {
 
 const initializeChart = () => {
   nextTick(() => {
-    initializeNitrogenChart()
-    initializePhosphorusChart()
-    initializePotassiumChart()
-  })
+    // Small delay to ensure DOM is fully rendered
+    setTimeout(() => {
+      initializeNitrogenChart();
+      initializePhosphorusChart();
+      initializePotassiumChart();
+      chartsInitialized.value = true;
+    }, 100);
+  });
 }
 
 const initializeNitrogenChart = () => {
@@ -1252,6 +1258,9 @@ const initializeNitrogenChart = () => {
     }
     
     const ctx = nitrogenChartCanvas.value.getContext('2d')
+    const container = nitrogenChartCanvas.value.parentElement;
+    nitrogenChartCanvas.value.width = container.clientWidth;
+    nitrogenChartCanvas.value.height = container.clientHeight;
     
     nitrogenChart.value = new Chart(ctx, {
       type: 'line',
@@ -1345,6 +1354,9 @@ const initializePhosphorusChart = () => {
     }
     
     const ctx = phosphorusChartCanvas.value.getContext('2d')
+    const container = phosphorusChartCanvas.value.parentElement;
+    phosphorusChartCanvas.value.width = container.clientWidth;
+    phosphorusChartCanvas.value.height = container.clientHeight;
     
     phosphorusChart.value = new Chart(ctx, {
       type: 'line',
@@ -1438,6 +1450,9 @@ const initializePotassiumChart = () => {
     }
     
     const ctx = potassiumChartCanvas.value.getContext('2d')
+    const container = potassiumChartCanvas.value.parentElement;
+    potassiumChartCanvas.value.width = container.clientWidth;
+    potassiumChartCanvas.value.height = container.clientHeight;
     
     potassiumChart.value = new Chart(ctx, {
       type: 'line',
@@ -1521,6 +1536,28 @@ const initializePotassiumChart = () => {
         }
       }
     })
+  }
+}
+
+const handleResize = () => {
+  if (nitrogenChart.value) {
+    const container = nitrogenChartCanvas.value.parentElement;
+    nitrogenChartCanvas.value.width = container.clientWidth;
+    nitrogenChartCanvas.value.height = container.clientHeight;
+    nitrogenChart.value.resize();
+  }
+  // Repeat for other charts
+  if (phosphorusChart.value) {
+    const container = phosphorusChartCanvas.value.parentElement;
+    phosphorusChartCanvas.value.width = container.clientWidth;
+    phosphorusChartCanvas.value.height = container.clientHeight;
+    phosphorusChart.value.resize();
+  }
+  if (potassiumChart.value) {
+    const container = potassiumChartCanvas.value.parentElement;
+    potassiumChartCanvas.value.width = container.clientWidth;
+    potassiumChartCanvas.value.height = container.clientHeight;
+    potassiumChart.value.resize();
   }
 }
 
@@ -1936,56 +1973,58 @@ watch([searchQuery, activeFilters, itemsPerPage], () => {
 let unsubscribe = null
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', handleClickOutside);
   
-  fetchNPKData()
+  fetchNPKData();
   
-  unsubscribe = setupRealtimeListener()
+  unsubscribe = setupRealtimeListener();
   
-  const handleResize = () => {
-    if (nitrogenChart.value) nitrogenChart.value.resize()
-    if (phosphorusChart.value) phosphorusChart.value.resize()
-    if (potassiumChart.value) potassiumChart.value.resize()
+  // Use ResizeObserver to handle container resizing
+  const resizeObserver = new ResizeObserver(() => {
+    if (chartsInitialized.value) {
+      handleResize();
+    }
+  });
+  
+  // Observe all chart containers
+  if (nitrogenChartCanvas.value) {
+    resizeObserver.observe(nitrogenChartCanvas.value.parentElement);
+  }
+  if (phosphorusChartCanvas.value) {
+    resizeObserver.observe(phosphorusChartCanvas.value.parentElement);
+  }
+  if (potassiumChartCanvas.value) {
+    resizeObserver.observe(potassiumChartCanvas.value.parentElement);
   }
   
-  if (typeof ResizeObserver !== 'undefined') {
-    const resizeObserver = new ResizeObserver(handleResize)
-    if (nitrogenChartCanvas.value) {
-      resizeObserver.observe(nitrogenChartCanvas.value.parentElement)
-    }
-    if (phosphorusChartCanvas.value) {
-      resizeObserver.observe(phosphorusChartCanvas.value.parentElement)
-    }
-    if (potassiumChartCanvas.value) {
-      resizeObserver.observe(potassiumChartCanvas.value.parentElement)
-    }
-  } else {
-    window.addEventListener('resize', handleResize)
-  }
+  // Also listen to window resize
+  window.addEventListener('resize', handleResize);
   
-  updateCurrentDate()
-  const dateInterval = setInterval(updateCurrentDate, 60000) 
+  updateCurrentDate();
+  const dateInterval = setInterval(updateCurrentDate, 60000);
   
-  window.dateUpdateInterval = dateInterval
-})
+  window.dateUpdateInterval = dateInterval;
+});
 
+// Update the onUnmounted lifecycle hook
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleClickOutside);
   
-  if (nitrogenChart.value) nitrogenChart.value.destroy()
-  if (phosphorusChart.value) phosphorusChart.value.destroy()
-  if (potassiumChart.value) potassiumChart.value.destroy()
+  if (nitrogenChart.value) nitrogenChart.value.destroy();
+  if (phosphorusChart.value) phosphorusChart.value.destroy();
+  if (potassiumChart.value) potassiumChart.value.destroy();
   
   if (unsubscribe) {
-    unsubscribe()
+    unsubscribe();
   }
   
-  window.removeEventListener('resize', () => {})
+  window.removeEventListener('resize', handleResize);
   
   if (window.dateUpdateInterval) {
-    clearInterval(window.dateUpdateInterval)
+    clearInterval(window.dateUpdateInterval);
   }
-})
+});
+
 
 const updateCurrentDate = () => {
   const now = new Date()
@@ -1998,6 +2037,18 @@ const updateCurrentDate = () => {
 </script>
   
 <style>
+canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 /* Core styles */
 .relative {
   position: relative;

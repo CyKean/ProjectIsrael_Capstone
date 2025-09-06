@@ -162,180 +162,182 @@
                   <span class="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
                   Soil Composition Analysis
                 </h3>
-                <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 ">
-                  <!-- Nitrogen Level -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-green-300 hover:shadow-md">
+                <div data-intro-soil data-intro-soil-composition>
+                  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 [data-intro-soil]">
+                    <!-- Nitrogen Level -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-green-300 hover:shadow-md">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-green-50 rounded-lg">
+                              <BeakerIcon class="w-3 h-3 md:w-4 md:h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[10px] md:text-sm font-medium text-gray-500">Nitrogen (N)</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ nitrogen }}
+                                </span>
+                                <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              </div>
+                            </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                              <div 
+                                class="h-1.5 bg-green-500 rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.min(100, (parseFloat(nitrogen || 0) / 200 * 100))}%` }"
+                              ></div>
+                            </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
                         <div class="flex items-center gap-3 mb-3">
-                          <div class="p-2 bg-green-50 rounded-lg">
-                            <BeakerIcon class="w-3 h-3 md:w-4 md:h-4 text-green-600" />
-                          </div>
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[10px] md:text-sm font-medium text-gray-500">Nitrogen (N)</label>
+                            <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ nitrogen }}
-                              </span>
-                              <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-8"></div>
                             </div>
                           </div>
+                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
+                      </div>
+                    </div>
+
+                    <!-- Phosphorus Level -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-blue-50 rounded-lg">
+                              <TestTubesIcon class="w-3 h-3 md:w-4 md:h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[8.7px] md:text-sm font-medium text-gray-500">Phosphorus (P)</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ phosphorus }}
+                                </span>
+                                <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              </div>
+                            </div>
                           </div>
                           <div class="h-1.5 w-full bg-gray-100 rounded-full">
                             <div 
-                              class="h-1.5 bg-green-500 rounded-full transition-all duration-500"
-                              :style="{ width: `${Math.min(100, (parseFloat(nitrogen || 0) / 200 * 100))}%` }"
+                              class="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, (parseFloat(phosphorus || 0) / 200 * 100))}%` }"
                             ></div>
                           </div>
-                      </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-8"></div>
-                          </div>
                         </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
-                    </div>
-                  </div>
-
-                  <!-- Phosphorus Level -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
                         <div class="flex items-center gap-3 mb-3">
-                          <div class="p-2 bg-blue-50 rounded-lg">
-                            <TestTubesIcon class="w-3 h-3 md:w-4 md:h-4 text-blue-600" />
-                          </div>
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[8.7px] md:text-sm font-medium text-gray-500">Phosphorus (P)</label>
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ phosphorus }}
-                              </span>
-                              <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-8"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, (parseFloat(phosphorus || 0) / 200 * 100))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-8"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
-                  </div>
 
-                  <!-- Potassium Level -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-purple-300 hover:shadow-md">
-                        <div class="flex items-center gap-3 mb-3">
-                          <div class="p-2 bg-purple-50 rounded-lg">
-                            <BeakerIcon class="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
+                    <!-- Potassium Level -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-purple-300 hover:shadow-md">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-purple-50 rounded-lg">
+                              <BeakerIcon class="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[9px] md:text-sm font-medium text-gray-500">Potassium (K)</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ potassium }}
+                                </span>
+                                  <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              </div>
+                            </div>
                           </div>
+                          <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                            <div 
+                              class="h-1.5 bg-purple-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, (parseFloat(potassium || 0) / 200 * 100))}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[9px] md:text-sm font-medium text-gray-500">Potassium (K)</label>
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ potassium }}
-                              </span>
-                                <span class="text-[7px] md:text-xs text-gray-500">mg/kg</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-8"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-purple-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, (parseFloat(potassium || 0) / 200 * 100))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-8"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
-                  </div>
 
-                  <!-- pH Level -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-3 md:p-4 border border-gray-100 transition-all duration-300 hover:border-amber-300 hover:shadow-md">
-                        <div class="flex items-center gap-3 mb-3">
-                          <div class="p-2 bg-amber-50 rounded-lg">
-                            <DropletIcon class="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
+                    <!-- pH Level -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-3 md:p-4 border border-gray-100 transition-all duration-300 hover:border-amber-300 hover:shadow-md">
+                          <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-amber-50 rounded-lg">
+                              <DropletIcon class="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[10px] md:text-sm font-medium text-gray-500">Soil pH</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ soilpH }}
+                                </span>
+                                <span class="text-[7px] md:text-xs text-gray-500">pH</span>
+                              </div>
+                            </div>
                           </div>
+                          <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                            <div 
+                              class="h-1.5 bg-amber-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, (parseFloat(soilpH || 0) / 14 * 100))}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[10px] md:text-sm font-medium text-gray-500">Soil pH</label>
+                            <div class="h-4 bg-gray-200 rounded w-16 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ soilpH }}
-                              </span>
-                              <span class="text-[7px] md:text-xs text-gray-500">pH</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-6"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-amber-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, (parseFloat(soilpH || 0) / 14 * 100))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-16 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-6"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
                   </div>
                 </div>
@@ -347,136 +349,138 @@
                   <span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
                   Environmental Parameters
                 </h3>
-                <div class="grid grid-cols-3 sm:grid-cols-3 gap-1">
-                  <!-- Soil Moisture -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-cyan-300 hover:shadow-md">
-                        <div class="flex items-center gap-1 md:gap-3 mb-3">
-                          <div class="p-1 bg-cyan-50 rounded-lg">
-                            <WavesIcon class="w-2 h-2 md:w-4 md:h-4 text-cyan-600" />
+                <div data-intro-environment>
+                  <div class="grid grid-cols-3 sm:grid-cols-3 gap-1 [data-intro-environment]">
+                    <!-- Soil Moisture -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                          <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-cyan-300 hover:shadow-md">
+                          <div class="flex items-center gap-1 md:gap-3 mb-3">
+                            <div class="p-1 bg-cyan-50 rounded-lg">
+                              <WavesIcon class="w-2 h-2 md:w-4 md:h-4 text-cyan-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[7px] md:text-sm font-medium text-gray-500">Soil Moisture</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ soilMoisture }}
+                                </span>
+                                <span class="text-[9px] md:text-xs text-gray-500">%</span>
+                              </div>
+                            </div>
                           </div>
+                          <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                            <div 
+                              class="h-1.5 bg-cyan-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, parseFloat(soilMoisture || 0))}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[7px] md:text-sm font-medium text-gray-500">Soil Moisture</label>
+                            <div class="h-4 bg-gray-200 rounded w-28 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ soilMoisture }}
-                              </span>
-                              <span class="text-[9px] md:text-xs text-gray-500">%</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-4"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-cyan-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, parseFloat(soilMoisture || 0))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-28 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-4"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
-                  </div>
 
-                  <!-- Temperature -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-orange-300 hover:shadow-md">
-                        <div class="flex items-center gap-1 md:gap-3 mb-3">
-                          <div class="p-1 md:p-2 bg-orange-50 rounded-lg">
-                            <ThermometerIcon class="w-2 h-2 md:w-4 md:h-4 text-orange-600" />
+                    <!-- Temperature -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-orange-300 hover:shadow-md">
+                          <div class="flex items-center gap-1 md:gap-3 mb-3">
+                            <div class="p-1 md:p-2 bg-orange-50 rounded-lg">
+                              <ThermometerIcon class="w-2 h-2 md:w-4 md:h-4 text-orange-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[7px] md:text-sm font-medium text-gray-500">Temperature</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ temperature }}
+                                </span>
+                                <span class="text-[9px] md:text-xs text-gray-500">°C</span>
+                              </div>
+                            </div>
                           </div>
+                          <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                            <div 
+                              class="h-1.5 bg-orange-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, (parseFloat(temperature || 0) / 50 * 100))}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[7px] md:text-sm font-medium text-gray-500">Temperature</label>
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ temperature }}
-                              </span>
-                              <span class="text-[9px] md:text-xs text-gray-500">°C</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-6"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-orange-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, (parseFloat(temperature || 0) / 50 * 100))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-6"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
-                  </div>
 
-                  <!-- Humidity -->
-                  <div class="relative group">
-                    <template v-if="!isSensorDataLoading">
-                      <div class="absolute inset-0 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
-                      <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-teal-300 hover:shadow-md">
-                        <div class="flex items-center gap-1 md:gap-3 mb-3">
-                          <div class="p-1 md:p-2 bg-teal-50 rounded-lg">
-                            <CloudIcon class="w-2 h-2 md:w-4 md:h-4 text-teal-600" />
+                    <!-- Humidity -->
+                    <div class="relative group">
+                      <template v-if="!isSensorDataLoading">
+                        <div class="absolute inset-0 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl transition-opacity opacity-0 group-hover:opacity-100"></div>
+                        <div class="relative bg-white rounded-lg p-2 md:p-4 border border-gray-100 transition-all duration-300 hover:border-teal-300 hover:shadow-md">
+                          <div class="flex items-center gap-1 md:gap-3 mb-3">
+                            <div class="p-1 md:p-2 bg-teal-50 rounded-lg">
+                              <CloudIcon class="w-2 h-2 md:w-4 md:h-4 text-teal-600" />
+                            </div>
+                            <div>
+                              <label class="block text-[7px] md:text-sm font-medium text-gray-500">Humidity</label>
+                              <div class="flex items-baseline gap-1 mt-0.5">
+                                <span 
+                                  class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
+                                >
+                                  {{ humidity }}
+                                </span>
+                                <span class="text-[8px] md:text-xs text-gray-500">%</span>
+                              </div>
+                            </div>
                           </div>
+                          <div class="h-1.5 w-full bg-gray-100 rounded-full">
+                            <div 
+                              class="h-1.5 bg-teal-500 rounded-full transition-all duration-500"
+                              :style="{ width: `${Math.min(100, parseFloat(humidity || 0))}%` }"
+                            ></div>
+                          </div>
+                        </div>
+                      </template>
+                      <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
                           <div>
-                            <label class="block text-[7px] md:text-sm font-medium text-gray-500">Humidity</label>
+                            <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
                             <div class="flex items-baseline gap-1 mt-0.5">
-                              <span 
-                                class="text-lg md:text-xl font-bold text-gray-900 bg-transparent w-auto focus:outline-none"
-                              >
-                                {{ humidity }}
-                              </span>
-                              <span class="text-[8px] md:text-xs text-gray-500">%</span>
+                              <div class="h-6 bg-gray-200 rounded w-16"></div>
+                              <div class="h-3 bg-gray-200 rounded w-4"></div>
                             </div>
                           </div>
                         </div>
-                        <div class="h-1.5 w-full bg-gray-100 rounded-full">
-                          <div 
-                            class="h-1.5 bg-teal-500 rounded-full transition-all duration-500"
-                            :style="{ width: `${Math.min(100, parseFloat(humidity || 0))}%` }"
-                          ></div>
-                        </div>
+                        <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                       </div>
-                    </template>
-                    <div v-else class="relative bg-white rounded-lg p-4 border border-gray-100 animate-pulse">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="p-2 bg-gray-200 rounded-lg w-8 h-8"></div>
-                        <div>
-                          <div class="h-4 bg-gray-200 rounded w-20 mb-1"></div>
-                          <div class="flex items-baseline gap-1 mt-0.5">
-                            <div class="h-6 bg-gray-200 rounded w-16"></div>
-                            <div class="h-3 bg-gray-200 rounded w-4"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="h-1.5 w-full bg-gray-200 rounded-full"></div>
                     </div>
                   </div>
                 </div>
@@ -485,6 +489,7 @@
               <!-- Action Button -->
               <div class="flex justify-center mt-6 md:mt-8">
                 <button 
+                  data-intro-recommendation-button
                   type="submit"
                   @click="submitForm"
                   :disabled="isRecommending"
@@ -507,529 +512,531 @@
           </div>
 
           <!-- Table Section with Enhanced UI and Truly Fixed Height -->
-          <div class="bg-white rounded-xl shadow-md p-2 md:p-5 sm:p-6 border border-gray-100 relative overflow-hidden">
-            <!-- Background Pattern -->
-            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 to-transparent opacity-50 -z-10"></div>
-              
-            <!-- Enhanced Filter Tabs -->
-            <div class="border-b border-gray-100 mb-2 md:mb-6">
-              <div class="flex gap-1 md:gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pb-2">
-                <button 
-                  v-for="filter in filters" 
-                  :key="filter.name"
-                  :class="[
-                    'px-2 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium transition-all duration-200 relative whitespace-nowrap',
-                    activeFilter === filter.name 
-                      ? 'text-green-600' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  ]"
-                  @click="activeFilter = filter.name"
-                >
-                  {{ filter.name }}
-                  <div 
+          <div data-intro-history-table>
+            <div class="bg-white rounded-xl shadow-md p-2 md:p-5 sm:p-6 border border-gray-100 relative overflow-hidden [data-intro-history-table]">
+              <!-- Background Pattern -->
+              <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 to-transparent opacity-50 -z-10"></div>
+                
+              <!-- Enhanced Filter Tabs -->
+              <div class="border-b border-gray-100 mb-2 md:mb-6">
+                <div class="flex gap-1 md:gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pb-2">
+                  <button 
+                    v-for="filter in filters" 
+                    :key="filter.name"
                     :class="[
-                      'absolute bottom-0 left-0 w-full h-0.5 transition-all duration-200',
+                      'px-2 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium transition-all duration-200 relative whitespace-nowrap',
                       activeFilter === filter.name 
-                        ? 'bg-green-500' 
-                        : 'bg-transparent group-hover:bg-gray-100'
+                        ? 'text-green-600' 
+                        : 'text-gray-500 hover:text-gray-700'
                     ]"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <!-- Enhanced Search and Actions -->
-            <div class="flex flex-wrap justify-between items-center mb-2 md:mb-6 gap-2 md:gap-4">
-              <div class="relative flex-1 max-w-md">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <SearchIcon class="w-3 h-3 md:h-4 md:w-4 text-gray-400" />
-                </div>
-                <input 
-                  type="text"
-                  v-model="searchQuery"
-                  placeholder="Search predictions..."
-                  class="w-full pl-8 md:pl-10 pr-4 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200"
-                />
-              </div>
-              <div class="flex items-center gap-2">
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                  @click="toggleGridView"
-                  :class="{'bg-gray-100': isGridView}"
-                  aria-label="Toggle grid view"
-                >
-                  <LayoutGridIcon class="h-4 w-4" />
-                </button>
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                  @click="toggleFilterPanel"
-                  :class="{'bg-gray-100': showFilterPanel}"
-                  aria-label="Toggle filter panel"
-                >
-                  <FilterIcon class="h-4 w-4" />
-                </button>
-                 <!-- Add Export Dropdown Button -->
-                <div class="relative inline-block">
-                  <button 
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                    @click.stop="toggleExportDropdown"
+                    @click="activeFilter = filter.name"
                   >
-                    <DownloadIcon class="h-4 w-4" />
-                    <span class="text-xs">Export</span>
-                  </button>
-                  
-                  <!-- Export Dropdown -->
-                  <transition
-                    enter-active-class="transition ease-out duration-100"
-                    enter-from-class="transform opacity-0 scale-95"
-                    enter-to-class="transform opacity-100 scale-100"
-                    leave-active-class="transition ease-in duration-75"
-                    leave-from-class="transform opacity-100 scale-100"
-                    leave-to-class="transform opacity-0 scale-95"
-                  >
+                    {{ filter.name }}
                     <div 
-                      v-if="showExportDropdown"
-                      class="absolute right-0 mt-2 w-40 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
-                      role="menu"
-                      aria-orientation="vertical"
-                      aria-labelledby="menu-button"
-                    >
-                      <div class="py-1" role="none">
-                        <button 
-                          @click.stop="exportCropData('csv')"
-                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                          role="menuitem"
-                        >
-                          Export as CSV
-                        </button>
-                        <button 
-                          @click.stop="exportCropData('pdf')"
-                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                          role="menuitem"
-                        >
-                          Export as PDF
-                        </button>
-                      </div>
-                    </div>
-                  </transition>
-                  
-                </div>
-                  <button 
-                    @click="printTable"
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                  >
-                    <PrinterIcon class="h-4 w-4" />
-                    <span class="text-xs">Print</span>
-                  </button>
-              </div>
-            </div>
-
-            <!-- Filter Panel -->
-            <div 
-              v-if="showFilterPanel" 
-              class="bg-gray-50 rounded-lg p-4 mb-6 transition-all duration-300 ease-in-out"
-            >
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-medium text-gray-700">Advanced Filters</h3>
-                <button 
-                  @click="toggleFilterPanel"
-                  class="text-gray-400 hover:text-gray-600"
-                >
-                  <XIcon class="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Success Rate Range -->
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 mb-2">Success Rate</label>
-                  <div class="flex items-center gap-2">
-                    <input 
-                      type="number" 
-                      v-model="filterSuccessRateMin" 
-                      min="0" 
-                      max="100"
-                      placeholder="Min" 
-                      class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                    />
-                    <span class="text-gray-400">-</span>
-                    <input 
-                      type="number" 
-                      v-model="filterSuccessRateMax" 
-                      min="0" 
-                      max="100"
-                      placeholder="Max" 
-                      class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                    />
-                  </div>
-                </div>
-                  
-                <!-- Date Range -->
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 mb-2">Date Range</label>
-                  <div class="flex items-center gap-2">
-                    <input 
-                      type="date" 
-                      v-model="filterDateStart" 
-                      class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                    />
-                    <span class="text-gray-400">-</span>
-                    <input 
-                      type="date" 
-                      v-model="filterDateEnd" 
-                      class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                    />
-                  </div>
-                </div>
-                    
-                <!-- Status Filter -->
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 mb-2">Status</label>
-                  <select 
-                    v-model="filterStatus" 
-                    class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="Planted">Planted</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Harvested">Harvested</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-                  
-              <div class="flex justify-end mt-4 gap-2">
-                <button 
-                  @click="resetFilters"
-                  class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  Reset
-                </button>
-                <button 
-                  @click="applyFilters"
-                  class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors"
-                  >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-
-            <!-- Grid View -->
-            <div 
-              v-if="isGridView" 
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 transition-all duration-300 ease-in-out"
-            > 
-              <div 
-                v-for="prediction in paginatedPredictions" 
-                :key="prediction.id"
-                class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 hover:-translate-y-1"
-              >
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50 text-green-600">
-                    <SproutIcon class="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 class="text-sm font-medium text-gray-900">{{ prediction.crop }}</h3>
-                    <p class="text-xs text-gray-500">{{ prediction.date.split(',')[0] }}</p>
-                  </div>
-                </div>
-                    
-                <div class="space-y-2 mb-3">
-                  <div class="flex justify-between items-center">
-                    <span class="text-xs text-gray-600">Success Rate:</span>
-                    <span class="text-xs font-medium text-gray-900">{{ prediction.successRate }}%</span>
-                  </div>
-                  <div class="w-full bg-gray-100 rounded-full h-1.5">
-                    <div 
-                      class="bg-green-500 h-1.5 rounded-full"
-                      :style="{ width: `${prediction.successRate}%` }"
-                    />
-                  </div>
-                </div>
-                    
-                <div class="flex items-center justify-between">
-                  <span 
-                    :class="[
-                      'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
-                      getStatusClass(prediction.status)
-                    ]"
-                  >
-                    <span 
                       :class="[
-                        'w-1.5 h-1.5 rounded-full mr-1.5',
-                        {
-                          'bg-green-500': prediction.status === 'Planted',
-                          'bg-blue-500': prediction.status === 'Ongoing',
-                          'bg-red-500': prediction.status === 'Cancelled',
-                          'bg-gray-500': prediction.status === 'Harvested'
-                        }
+                        'absolute bottom-0 left-0 w-full h-0.5 transition-all duration-200',
+                        activeFilter === filter.name 
+                          ? 'bg-green-500' 
+                          : 'bg-transparent group-hover:bg-gray-100'
                       ]"
                     />
-                    {{ prediction.status }}
-                  </span>
-                    
-                  <button 
-                    @click="showDetails(prediction)"
-                    class="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors duration-200 gap-1"
-                  >
-                    <EyeIcon class="h-3 w-3" />
-                    Details
                   </button>
                 </div>
               </div>
-              <!-- Skeleton for Grid View -->
-              <template v-if="isPredictionsLoading">
-                <div v-for="n in itemsPerPage" :key="`grid-skeleton-${n}`" class="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-                  <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-lg bg-gray-200"></div>
-                    <div>
-                      <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                      <div class="h-3 bg-gray-200 rounded w-16"></div>
+
+              <!-- Enhanced Search and Actions -->
+              <div class="flex flex-wrap justify-between items-center mb-2 md:mb-6 gap-2 md:gap-4">
+                <div class="relative flex-1 max-w-md">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SearchIcon class="w-3 h-3 md:h-4 md:w-4 text-gray-400" />
+                  </div>
+                  <input 
+                    type="text"
+                    v-model="searchQuery"
+                    placeholder="Search predictions..."
+                    class="w-full pl-8 md:pl-10 pr-4 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200"
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    @click="toggleGridView"
+                    :class="{'bg-gray-100': isGridView}"
+                    aria-label="Toggle grid view"
+                  >
+                    <LayoutGridIcon class="h-4 w-4" />
+                  </button>
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    @click="toggleFilterPanel"
+                    :class="{'bg-gray-100': showFilterPanel}"
+                    aria-label="Toggle filter panel"
+                  >
+                    <FilterIcon class="h-4 w-4" />
+                  </button>
+                  <!-- Add Export Dropdown Button -->
+                  <div class="relative inline-block">
+                    <button 
+                      class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                      @click.stop="toggleExportDropdown"
+                    >
+                      <DownloadIcon class="h-4 w-4" />
+                      <span class="text-xs">Export</span>
+                    </button>
+                    
+                    <!-- Export Dropdown -->
+                    <transition
+                      enter-active-class="transition ease-out duration-100"
+                      enter-from-class="transform opacity-0 scale-95"
+                      enter-to-class="transform opacity-100 scale-100"
+                      leave-active-class="transition ease-in duration-75"
+                      leave-from-class="transform opacity-100 scale-100"
+                      leave-to-class="transform opacity-0 scale-95"
+                    >
+                      <div 
+                        v-if="showExportDropdown"
+                        class="absolute right-0 mt-2 w-40 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                        role="menu"
+                        aria-orientation="vertical"
+                        aria-labelledby="menu-button"
+                      >
+                        <div class="py-1" role="none">
+                          <button 
+                            @click.stop="exportCropData('csv')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            role="menuitem"
+                          >
+                            Export as CSV
+                          </button>
+                          <button 
+                            @click.stop="exportCropData('pdf')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            role="menuitem"
+                          >
+                            Export as PDF
+                          </button>
+                        </div>
+                      </div>
+                    </transition>
+                    
+                  </div>
+                    <button 
+                      @click="printTable"
+                      class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                    >
+                      <PrinterIcon class="h-4 w-4" />
+                      <span class="text-xs">Print</span>
+                    </button>
+                </div>
+              </div>
+
+              <!-- Filter Panel -->
+              <div 
+                v-if="showFilterPanel" 
+                class="bg-gray-50 rounded-lg p-4 mb-6 transition-all duration-300 ease-in-out"
+              >
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-sm font-medium text-gray-700">Advanced Filters</h3>
+                  <button 
+                    @click="toggleFilterPanel"
+                    class="text-gray-400 hover:text-gray-600"
+                  >
+                    <XIcon class="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <!-- Success Rate Range -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-2">Success Rate</label>
+                    <div class="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        v-model="filterSuccessRateMin" 
+                        min="0" 
+                        max="100"
+                        placeholder="Min" 
+                        class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
+                      <span class="text-gray-400">-</span>
+                      <input 
+                        type="number" 
+                        v-model="filterSuccessRateMax" 
+                        min="0" 
+                        max="100"
+                        placeholder="Max" 
+                        class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
                     </div>
                   </div>
-                  <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                  <div class="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                  <div class="flex items-center justify-between">
-                    <div class="h-6 bg-gray-200 rounded-full w-20"></div>
-                    <div class="h-8 bg-gray-200 rounded-lg w-24"></div>
+                    
+                  <!-- Date Range -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-2">Date Range</label>
+                    <div class="flex items-center gap-2">
+                      <input 
+                        type="date" 
+                        v-model="filterDateStart" 
+                        class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
+                      <span class="text-gray-400">-</span>
+                      <input 
+                        type="date" 
+                        v-model="filterDateEnd" 
+                        class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                      
+                  <!-- Status Filter -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-2">Status</label>
+                    <select 
+                      v-model="filterStatus" 
+                      class="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="Planted">Planted</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Harvested">Harvested</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
                   </div>
                 </div>
-              </template>
-            </div>
+                    
+                <div class="flex justify-end mt-4 gap-2">
+                  <button 
+                    @click="resetFilters"
+                    class="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button 
+                    @click="applyFilters"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors"
+                    >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
 
-            <!-- Enhanced Table with Truly Fixed Height -->
-            <div 
-              v-if="!isGridView && !isPredictionsLoading"
-              class="overflow-hidden rounded-lg border border-gray-100 transition-all duration-300 ease-in-out"
-            >
-              <div class="overflow-x-auto">
-                <div class="overflow-y-auto" style="height: 370px"> <!-- Fixed height container -->
+              <!-- Grid View -->
+              <div 
+                v-if="isGridView" 
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 transition-all duration-300 ease-in-out"
+              > 
+                <div 
+                  v-for="prediction in paginatedPredictions" 
+                  :key="prediction.id"
+                  class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 hover:-translate-y-1"
+                >
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50 text-green-600">
+                      <SproutIcon class="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-900">{{ prediction.crop }}</h3>
+                      <p class="text-xs text-gray-500">{{ prediction.date.split(',')[0] }}</p>
+                    </div>
+                  </div>
+                      
+                  <div class="space-y-2 mb-3">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs text-gray-600">Success Rate:</span>
+                      <span class="text-xs font-medium text-gray-900">{{ prediction.successRate }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5">
+                      <div 
+                        class="bg-green-500 h-1.5 rounded-full"
+                        :style="{ width: `${prediction.successRate}%` }"
+                      />
+                    </div>
+                  </div>
+                      
+                  <div class="flex items-center justify-between">
+                    <span 
+                      :class="[
+                        'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+                        getStatusClass(prediction.status)
+                      ]"
+                    >
+                      <span 
+                        :class="[
+                          'w-1.5 h-1.5 rounded-full mr-1.5',
+                          {
+                            'bg-green-500': prediction.status === 'Planted',
+                            'bg-blue-500': prediction.status === 'Ongoing',
+                            'bg-red-500': prediction.status === 'Cancelled',
+                            'bg-gray-500': prediction.status === 'Harvested'
+                          }
+                        ]"
+                      />
+                      {{ prediction.status }}
+                    </span>
+                      
+                    <button 
+                      @click="showDetails(prediction)"
+                      class="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors duration-200 gap-1"
+                    >
+                      <EyeIcon class="h-3 w-3" />
+                      Details
+                    </button>
+                  </div>
+                </div>
+                <!-- Skeleton for Grid View -->
+                <template v-if="isPredictionsLoading">
+                  <div v-for="n in itemsPerPage" :key="`grid-skeleton-${n}`" class="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+                    <div class="flex items-center gap-3 mb-3">
+                      <div class="w-10 h-10 rounded-lg bg-gray-200"></div>
+                      <div>
+                        <div class="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                        <div class="h-3 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div class="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
+                    <div class="flex items-center justify-between">
+                      <div class="h-6 bg-gray-200 rounded-full w-20"></div>
+                      <div class="h-8 bg-gray-200 rounded-lg w-24"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Enhanced Table with Truly Fixed Height -->
+              <div 
+                v-if="!isGridView && !isPredictionsLoading"
+                class="overflow-hidden rounded-lg border border-gray-100 transition-all duration-300 ease-in-out " 
+              >
+                <div class="overflow-x-auto">
+                  <div class="overflow-y-auto" style="height: 370px"> <!-- Fixed height container -->
+                    <table class="w-full">
+                      <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
+                        <tr>
+                          <th 
+                            v-for="header in tableHeaders" 
+                            :key="header.key"
+                            class="px-3 py-2 md:px-4 md:py-3.5 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            {{ header.label }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100">
+                        <tr 
+                          v-for="prediction in paginatedPredictions" 
+                          :key="prediction.id"
+                          class="group hover:bg-gray-50/50 transition-colors duration-200"
+                        >
+                          <td class="px-3 py-1 md:px-4 md:py-3.5 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                              <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-600">
+                                <SproutIcon class="h-4 w-4" />
+                              </div>
+                              <span class="text-xs md:text-sm font-medium text-gray-900">
+                                {{ prediction.crop }}
+                              </span>
+                            </div>
+                          </td>
+                          <td class="px-4 py-3.5 whitespace-nowrap">
+                            <div class="flex flex-col">
+                              <span class="text-sm font-medium text-gray-900">
+                                {{ prediction.date.split(' at ')[0] }}  <!-- Date part -->
+                              </span>
+                              <span class="text-xs text-gray-500">
+                                {{ prediction.date.split(' at ')[1] }}  <!-- Time part -->
+                              </span>
+                            </div>
+                          </td>
+                          <td class="px-4 py-3.5 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                              <div class="w-16 bg-gray-100 rounded-full h-1.5">
+                                <div 
+                                  class="bg-green-500 h-1.5 rounded-full"
+                                  :style="{ width: `${prediction.successRate}%` }"
+                                />
+                              </div>
+                              <span class="text-sm font-medium text-gray-900">
+                                {{ prediction.successRate }}%
+                              </span>
+                            </div>
+                          </td>
+                          <td class="px-4 py-3.5 whitespace-nowrap">
+                            <span 
+                              :class="[
+                                'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+                                getStatusClass(prediction.status)
+                              ]"
+                            >
+                              <span 
+                                :class="[
+                                  'w-1.5 h-1.5 rounded-full mr-1.5',
+                                  {
+                                    'bg-green-500': prediction.status === 'Planted',
+                                    'bg-blue-500': prediction.status === 'Ongoing',
+                                    'bg-red-500': prediction.status === 'Cancelled',
+                                    'bg-gray-500': prediction.status === 'Harvested'
+                                  }
+                                ]"
+                              />
+                              {{ prediction.status }}
+                            </span>
+                          </td>
+                          <td class="px-4 py-3.5 whitespace-nowrap">
+                            <button 
+                              @click="showDetails(prediction)"
+                              class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors duration-200 gap-1.5"
+                            >
+                              <EyeIcon class="h-3.5 w-3.5" />
+                              Show
+                            </button>
+                          </td>
+                        </tr>
+                        <!-- Placeholder rows to maintain height -->
+                        <tr v-for="n in Math.max(0, itemsPerPage - paginatedPredictions.length)" :key="n">
+                          <td colspan="6" class="px-4 py-3.5">&nbsp;</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <!-- Loading state for Table View -->
+              <div v-if="!isGridView && isPredictionsLoading" class="overflow-hidden rounded-lg border border-gray-100">
+                <div class="overflow-y-auto animate-pulse" style="height: 370px">
                   <table class="w-full">
                     <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
                       <tr>
-                        <th 
-                          v-for="header in tableHeaders" 
-                          :key="header.key"
-                          class="px-3 py-2 md:px-4 md:py-3.5 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {{ header.label }}
+                        <th v-for="header in tableHeaders" :key="header.key" class="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
                         </th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                      <tr 
-                        v-for="prediction in paginatedPredictions" 
-                        :key="prediction.id"
-                        class="group hover:bg-gray-50/50 transition-colors duration-200"
-                      >
-                        <td class="px-3 py-1 md:px-4 md:py-3.5 whitespace-nowrap">
-                          <div class="flex items-center gap-3">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-600">
-                              <SproutIcon class="h-4 w-4" />
-                            </div>
-                            <span class="text-xs md:text-sm font-medium text-gray-900">
-                              {{ prediction.crop }}
-                            </span>
-                          </div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                          <div class="flex flex-col">
-                            <span class="text-sm font-medium text-gray-900">
-                              {{ prediction.date.split(' at ')[0] }}  <!-- Date part -->
-                            </span>
-                            <span class="text-xs text-gray-500">
-                              {{ prediction.date.split(' at ')[1] }}  <!-- Time part -->
-                            </span>
-                          </div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                          <div class="flex items-center gap-2">
-                            <div class="w-16 bg-gray-100 rounded-full h-1.5">
-                              <div 
-                                class="bg-green-500 h-1.5 rounded-full"
-                                :style="{ width: `${prediction.successRate}%` }"
-                              />
-                            </div>
-                            <span class="text-sm font-medium text-gray-900">
-                              {{ prediction.successRate }}%
-                            </span>
-                          </div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                          <span 
-                            :class="[
-                              'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                              getStatusClass(prediction.status)
-                            ]"
-                          >
-                            <span 
-                              :class="[
-                                'w-1.5 h-1.5 rounded-full mr-1.5',
-                                {
-                                  'bg-green-500': prediction.status === 'Planted',
-                                  'bg-blue-500': prediction.status === 'Ongoing',
-                                  'bg-red-500': prediction.status === 'Cancelled',
-                                  'bg-gray-500': prediction.status === 'Harvested'
-                                }
-                              ]"
-                            />
-                            {{ prediction.status }}
-                          </span>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                          <button 
-                            @click="showDetails(prediction)"
-                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors duration-200 gap-1.5"
-                          >
-                            <EyeIcon class="h-3.5 w-3.5" />
-                            Show
-                          </button>
-                        </td>
-                      </tr>
-                      <!-- Placeholder rows to maintain height -->
-                      <tr v-for="n in Math.max(0, itemsPerPage - paginatedPredictions.length)" :key="n">
-                        <td colspan="6" class="px-4 py-3.5">&nbsp;</td>
+                      <tr v-for="n in itemsPerPage" :key="`table-skeleton-${n}`">
+                        <td v-for="header in tableHeaders" :key="`cell-skeleton-${header.key}-${n}`" class="px-4 py-3.5"><div class="h-5 bg-gray-200 rounded"></div></td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
-            <!-- Loading state for Table View -->
-            <div v-if="!isGridView && isPredictionsLoading" class="overflow-hidden rounded-lg border border-gray-100">
-              <div class="overflow-y-auto animate-pulse" style="height: 370px">
-                <table class="w-full">
-                  <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
-                    <tr>
-                      <th v-for="header in tableHeaders" :key="header.key" class="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100">
-                    <tr v-for="n in itemsPerPage" :key="`table-skeleton-${n}`">
-                      <td v-for="header in tableHeaders" :key="`cell-skeleton-${header.key}-${n}`" class="px-4 py-3.5"><div class="h-5 bg-gray-200 rounded"></div></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            <!-- Enhanced Pagination -->
-            <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <!-- Items per page selector - full width on mobile -->
-              <div class="w-full sm:w-auto flex items-center gap-2">
-                <label class="text-xs md:text-sm text-gray-600 whitespace-nowrap">Items per page</label>
-                <select 
-                  v-model="itemsPerPage"
-                  class="text-xs md:text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 w-full sm:w-auto"
-                >
-                  <option value="6">6</option>
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                </select>
-              </div>
-              
-              <!-- Pagination controls - centered on mobile -->
-              <div class="w-full sm:w-auto flex items-center justify-center gap-2">
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  :disabled="currentPage === 1"
-                  @click="currentPage--"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeftIcon class="h-4 w-4" />
-                </button>
-                
-                <!-- Mobile-friendly page numbers with ellipsis -->
-                <div class="flex items-center gap-1 overflow-x-auto py-1 max-w-[200px] sm:max-w-none">
-                  <!-- Always show first page button if not on first page -->
-                  <button 
-                    v-if="currentPage > 1"
-                    :class="[
-                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
-                      currentPage === 1
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                        : 'text-gray-500 hover:bg-gray-50'
-                    ]"
-                    @click="currentPage = 1"
+              <!-- Enhanced Pagination -->
+              <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Items per page selector - full width on mobile -->
+                <div class="w-full sm:w-auto flex items-center gap-2">
+                  <label class="text-xs md:text-sm text-gray-600 whitespace-nowrap">Items per page</label>
+                  <select 
+                    v-model="itemsPerPage"
+                    class="text-xs md:text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 w-full sm:w-auto"
                   >
-                    1
-                  </button>
-                  
-                  <!-- Show ellipsis if current page is far from start -->
-                  <span 
-                    v-if="currentPage > 3"
-                    class="px-1 text-gray-400"
-                  >
-                    ...
-                  </span>
-                  
-                  <!-- Show previous page if not first page -->
-                  <button 
-                    v-if="currentPage > 2"
-                    :class="[
-                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
-                      'text-gray-500 hover:bg-gray-50'
-                    ]"
-                    @click="currentPage = currentPage - 1"
-                  >
-                    {{ currentPage - 1 }}
-                  </button>
-                  
-                  <!-- Always show current page -->
-                  <button 
-                    :class="[
-                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
-                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                    ]"
-                  >
-                    {{ currentPage }}
-                  </button>
-                  
-                  <!-- Show next page if not last page -->
-                  <button 
-                    v-if="currentPage < totalPages - 1"
-                    :class="[
-                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
-                      'text-gray-500 hover:bg-gray-50'
-                    ]"
-                    @click="currentPage = currentPage + 1"
-                  >
-                    {{ currentPage + 1 }}
-                  </button>
-                  
-                  <!-- Show ellipsis if current page is far from end -->
-                  <span 
-                    v-if="currentPage < totalPages - 2"
-                    class="px-1 text-gray-400"
-                  >
-                    ...
-                  </span>
-                  
-                  <!-- Always show last page button if not on last page -->
-                  <button 
-                    v-if="currentPage < totalPages"
-                    :class="[
-                      'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
-                      currentPage === totalPages
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                        : 'text-gray-500 hover:bg-gray-50'
-                    ]"
-                    @click="currentPage = totalPages"
-                  >
-                    {{ totalPages }}
-                  </button>
+                    <option value="6">6</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                  </select>
                 </div>
                 
-                <button 
-                  class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  :disabled="currentPage === totalPages"
-                  @click="currentPage++"
-                  aria-label="Next page"
-                >
-                  <ChevronRightIcon class="h-4 w-4" />
-                </button>
+                <!-- Pagination controls - centered on mobile -->
+                <div class="w-full sm:w-auto flex items-center justify-center gap-2">
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    :disabled="currentPage === 1"
+                    @click="currentPage--"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeftIcon class="h-4 w-4" />
+                  </button>
+                  
+                  <!-- Mobile-friendly page numbers with ellipsis -->
+                  <div class="flex items-center gap-1 overflow-x-auto py-1 max-w-[200px] sm:max-w-none">
+                    <!-- Always show first page button if not on first page -->
+                    <button 
+                      v-if="currentPage > 1"
+                      :class="[
+                        'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                        currentPage === 1
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                          : 'text-gray-500 hover:bg-gray-50'
+                      ]"
+                      @click="currentPage = 1"
+                    >
+                      1
+                    </button>
+                    
+                    <!-- Show ellipsis if current page is far from start -->
+                    <span 
+                      v-if="currentPage > 3"
+                      class="px-1 text-gray-400"
+                    >
+                      ...
+                    </span>
+                    
+                    <!-- Show previous page if not first page -->
+                    <button 
+                      v-if="currentPage > 2"
+                      :class="[
+                        'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                        'text-gray-500 hover:bg-gray-50'
+                      ]"
+                      @click="currentPage = currentPage - 1"
+                    >
+                      {{ currentPage - 1 }}
+                    </button>
+                    
+                    <!-- Always show current page -->
+                    <button 
+                      :class="[
+                        'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                        'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                      ]"
+                    >
+                      {{ currentPage }}
+                    </button>
+                    
+                    <!-- Show next page if not last page -->
+                    <button 
+                      v-if="currentPage < totalPages - 1"
+                      :class="[
+                        'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                        'text-gray-500 hover:bg-gray-50'
+                      ]"
+                      @click="currentPage = currentPage + 1"
+                    >
+                      {{ currentPage + 1 }}
+                    </button>
+                    
+                    <!-- Show ellipsis if current page is far from end -->
+                    <span 
+                      v-if="currentPage < totalPages - 2"
+                      class="px-1 text-gray-400"
+                    >
+                      ...
+                    </span>
+                    
+                    <!-- Always show last page button if not on last page -->
+                    <button 
+                      v-if="currentPage < totalPages"
+                      :class="[
+                        'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-lg transition-colors duration-200',
+                        currentPage === totalPages
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                          : 'text-gray-500 hover:bg-gray-50'
+                      ]"
+                      @click="currentPage = totalPages"
+                    >
+                      {{ totalPages }}
+                    </button>
+                  </div>
+                  
+                  <button 
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    :disabled="currentPage === totalPages"
+                    @click="currentPage++"
+                    aria-label="Next page"
+                  >
+                    <ChevronRightIcon class="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1437,6 +1444,7 @@
     </div>
   </div>
 
+<CropPredictionGuide v-if="showTour" />
 </template>
 
 <script setup>
@@ -1481,6 +1489,9 @@ import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import 'jspdf-autotable';
+import CropPredictionGuide from '../guide/CropPredictionGuide.vue'
+
+const showTour = ref(true)
 
 // Initialize all sensor data as reactive refs
 const nitrogen = ref(0)

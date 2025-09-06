@@ -122,7 +122,7 @@
               @mouseenter="showRecalibrationTooltip = true"
               @mouseleave="showRecalibrationTooltip = false"
             >
-              <div class="flex items-center justify-center size-full rounded-full" :class="$route.path === '/recalibration' ? 'bg-green-500/20' : ''">
+              <div class="flex items-center justify-center size-full rounded-full" :class="$route.path === '/app/recalibration' ? 'bg-white/30' : ''">
                 <Cog class="h-3.5 w-3.5 text-white" />
               </div>
             </button>
@@ -381,9 +381,8 @@
               <button
                 @click="goToRecalibration"
                 class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
-                :class="{ 'bg-white/10': $route.path === '/(link of the calibration link)' }"
               >
-                <div class="flex items-center justify-center size-7 rounded-full mr-1.5" :class="$route.path === '/recalibration' ? 'bg-green-500/20' : ''">
+                <div class="flex items-center justify-center size-7 rounded-full mr-1.5">
                   <Cog class="h-3.5 w-3.5 text-white" />
                 </div>
                 <span class="whitespace-nowrap">Recalibration</span>
@@ -436,6 +435,7 @@
 
   <!-- Spacer for content below navbar -->
   <div class="h-20"></div>
+  <!-- <SidebarGuide v-if="showTour" /> -->
 </template>
 
 <script setup>
@@ -473,6 +473,9 @@ import {
 import { getWeatherData, mapWeatherCode } from '../../utils/weather.js'
 import api from '../../api/index.js'
 import { useUserStore } from '../../utils/user.js'
+import SidebarGuide from '../guide/SidebarGuide.vue'
+
+const showTour = ref(true) 
 
 const route = useRoute()
 const router = useRouter()

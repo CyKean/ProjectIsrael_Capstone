@@ -46,7 +46,7 @@
                     class="fixed sm:absolute left-2 sm:left-auto sm:right-0 mt-2 w-[calc(100%-1rem)] sm:w-64 md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
                     @click.stop
                   >
-                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[400px] overflow-y-auto">
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[400px] md:w-[320px] overflow-y-auto">
                       <div v-for="field in filterFields" :key="field.key" class="space-y-1.5 sm:space-y-2">
                         <label class="block text-xs sm:text-sm font-medium text-gray-700">{{ field.label }}</label>
                         <div class="flex items-center gap-2">
@@ -153,9 +153,9 @@
       </div>
 
       <!-- Table and Graph Section - Flex container for side-by-side layout -->
-      <div class="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row">
+      <div class="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row min-h-0">
         <!-- Live Graph Container - Smaller width compared to table, now scrollable -->
-        <div class="w-full md:w-1/3 lg:w-1/3 border-r border-gray-200 bg-white p-4 md:overflow-y-auto">
+        <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[33.333%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-sm font-semibold text-gray-700">Live Soil Moisture</h3>
             <p class="text-xs text-gray-500">Real-time monitoring</p>
@@ -266,7 +266,7 @@
           </div>
         </div>
         
-        <!-- Table Container - Larger width with FIXED ALIGNMENT -->
+       <!-- Table Container - Larger width with FIXED ALIGNMENT -->
         <div class="w-full md:w-2/3 lg:w-2/3 flex flex-col">
           <!-- Mobile Card View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
@@ -434,6 +434,8 @@
           </div>
         </div>
       </div>
+
+      
     </div>
   </div>
 
