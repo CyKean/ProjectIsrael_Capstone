@@ -7,7 +7,7 @@ import json
 import os
 from dotenv import load_dotenv
 from fastapi.encoders import jsonable_encoder
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from app.services.database import get_database
 from bson import ObjectId
 
@@ -16,6 +16,23 @@ router = APIRouter(prefix="/api")
 load_dotenv()
 
 subscribers: List[asyncio.Queue] = []
+
+# Get Philippine timezone (UTC+8)
+PH_TIMEZONE = timezone(timedelta(hours=8))
+
+def get_ph_time():
+    """Get current datetime in Philippine timezone"""
+    return datetime.now(PH_TIMEZONE)
+
+def convert_to_firestore_timestamp(dt):
+    """Convert datetime to Firestore-like timestamp format"""
+    timestamp = dt.timestamp()
+    seconds = int(timestamp)
+    nanoseconds = int((timestamp - seconds) * 1e9)
+    return {
+        "_seconds": seconds,
+        "_nanoseconds": nanoseconds
+    }
 
 # ESP32-1 (NPK Soil pH)
 class NPKSoilPHData(BaseModel):
@@ -37,6 +54,60 @@ class WaterLevelData(BaseModel):
     waterLevel: float
     device_id: str  # Added device_id field
 
+async def save_sensor_reading(sensor_type: str, reading_data: dict):
+    """Save sensor reading to the appropriate document with readings array"""
+    try:
+        db = await get_database()
+        collection = db["sensor_readings"]
+        
+        # Create a unique ID for the reading
+        reading_id = str(ObjectId())
+        
+        # Prepare the reading document with Philippine time in Firestore format
+        reading = {
+            "_id": reading_id,
+            "device_id": reading_data["device_id"],
+            "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Use Firestore format
+        }
+        
+        # Add sensor-specific fields
+        if sensor_type == "esp32-1":
+            reading.update({
+                "nitrogen": reading_data["nitrogen"],
+                "phosphorus": reading_data["phosphorus"],
+                "potassium": reading_data["potassium"],
+                "soilPh": reading_data["soilPh"]
+            })
+        elif sensor_type == "esp32-2":
+            reading.update({
+                "soilMoisture": reading_data["soilMoisture"],
+                "temperature": reading_data["temperature"],
+                "humidity": reading_data["humidity"]
+            })
+        
+        # Update the document for this sensor type, pushing the new reading to the readings array
+        await collection.update_one(
+            {"_id": sensor_type},
+            {
+                "$push": {
+                    "readings": {
+                        "$each": [reading],
+                        "$sort": {"timestamp._seconds": -1},  # Sort by seconds
+                        "$slice": 1000  # Limit array size to prevent excessive growth
+                    }
+                },
+                "$setOnInsert": {"_id": sensor_type}  # Create document if it doesn't exist
+            },
+            upsert=True
+        )
+        
+        print(f"✅ {sensor_type} data saved to MongoDB for device {reading_data['device_id']}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ MongoDB save error ({sensor_type}): {e}")
+        return False
+
 @router.post("/esp32-1")
 async def receive_npk_soilph(data: NPKSoilPHData):
     raw_data = data.dict()
@@ -45,32 +116,20 @@ async def receive_npk_soilph(data: NPKSoilPHData):
     message = {
         "type": "esp32-1",
         "data": raw_data,
-        "device_id": device_id
+        "device_id": device_id,
+        "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Add Firestore format timestamp
     }
 
     print(f"📡 Received ESP32-1 Data from {device_id}:", raw_data)
 
-    try:
-        # ✅ Save to MongoDB collection "sensor_readings" with type "esp32-1"
-        db = await get_database()
-        collection = db["sensor_readings"]
-        
-        await collection.insert_one({
-            **raw_data,
-            "device_id": device_id,
-            "sensor_type": "esp32-1",
-            "timestamp": datetime.utcnow()
-        })
-        print(f"✅ ESP32-1 data saved to MongoDB for device {device_id}")
-    except Exception as e:
-        print(f"❌ MongoDB save error (ESP32-1): {e}")
+    # Save to MongoDB in the new format
+    await save_sensor_reading("esp32-1", {"device_id": device_id, **raw_data})
 
     for queue in subscribers:
         await queue.put(message)
 
     return {"message": "ESP32-1 data received and broadcasted"}
 
-# ========= ESP32-2 ROUTE ========== (Updated for ESP32-ENV)
 @router.post("/esp32-2")
 async def receive_moisture_temp_hum(data: MoistureClimateData):
     raw_data = data.dict()
@@ -79,32 +138,20 @@ async def receive_moisture_temp_hum(data: MoistureClimateData):
     message = {
         "type": "esp32-2",
         "data": raw_data,
-        "device_id": device_id
+        "device_id": device_id,
+        "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Add Firestore format timestamp
     }
 
     print(f"📡 Received ESP32-2 Data from {device_id}:", raw_data)
 
-    try:
-        # ✅ Save to MongoDB collection "sensor_readings" with type "esp32-2"
-        db = await get_database()
-        collection = db["sensor_readings"]
-        
-        await collection.insert_one({
-            **raw_data,
-            "device_id": device_id,
-            "sensor_type": "esp32-2",
-            "timestamp": datetime.utcnow()
-        })
-        print(f"✅ ESP32-2 data saved to MongoDB for device {device_id}")
-    except Exception as e:
-        print(f"❌ MongoDB save error (ESP32-2): {e}")
+    # Save to MongoDB in the new format
+    await save_sensor_reading("esp32-2", {"device_id": device_id, **raw_data})
 
     for queue in subscribers:
         await queue.put(message)
 
     return {"message": "ESP32-2 data received and broadcasted"}
 
-# ========= ESP32-3 ROUTE ==========
 @router.post("/esp32-3")
 async def receive_water_level(data: WaterLevelData):
     raw_data = data.dict()
@@ -113,20 +160,21 @@ async def receive_water_level(data: WaterLevelData):
     message = {
         "type": "esp32-3",
         "data": raw_data,
-        "device_id": device_id
+        "device_id": device_id,
+        "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Add Firestore format timestamp
     }
 
     print(f"📡 Received ESP32-3 Water Level from {device_id}: {raw_data['waterLevel']}")
 
     try:
-        # ✅ Save to MongoDB collection "water_level_readings"
+        # ✅ Save to MongoDB collection "water_level_readings" with Firestore format timestamp
         db = await get_database()
         collection = db["water_level_readings"]
         
         await collection.insert_one({
             **raw_data,
             "device_id": device_id,
-            "timestamp": datetime.utcnow()
+            "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Use Firestore format
         })
         print(f"✅ Water level saved to MongoDB for device {device_id}")
     except Exception as e:
@@ -137,7 +185,6 @@ async def receive_water_level(data: WaterLevelData):
 
     return {"message": "ESP32-3 data received and broadcasted"}
 
-# ========= UNIFIED STREAM ==========
 @router.get("/stream")
 async def stream_sensor_data():
     queue = asyncio.Queue()
@@ -155,7 +202,6 @@ async def stream_sensor_data():
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-# ========= GET HISTORICAL DATA ==========
 @router.get("/sensor-readings")
 async def get_sensor_readings(sensor_type: Optional[str] = None, device_id: Optional[str] = None, limit: int = 100):
     try:
@@ -165,19 +211,26 @@ async def get_sensor_readings(sensor_type: Optional[str] = None, device_id: Opti
         # Build query filter
         query_filter = {}
         if sensor_type:
-            query_filter["sensor_type"] = sensor_type
+            query_filter["_id"] = sensor_type
+        
+        # Get the sensor document
+        sensor_doc = await collection.find_one(query_filter)
+        
+        if not sensor_doc:
+            return {"readings": []}
+        
+        readings = sensor_doc.get("readings", [])
+        
+        # Filter by device_id if provided
         if device_id:
-            query_filter["device_id"] = device_id
+            readings = [reading for reading in readings if reading.get("device_id") == device_id]
         
-        # Get readings sorted by timestamp descending
-        cursor = collection.find(query_filter).sort("timestamp", -1).limit(limit)
-        readings = []
+        # Apply limit and ensure we have the most recent readings
+        readings = readings[:limit]
         
-        async for doc in cursor:
-            # Convert ObjectId to string and format timestamp
-            doc["_id"] = str(doc["_id"])
-            doc["timestamp"] = doc["timestamp"].isoformat() if doc.get("timestamp") else None
-            readings.append(doc)
+        # Convert ObjectId to string for each reading
+        for reading in readings:
+            reading["_id"] = str(reading["_id"])
         
         return {"readings": readings}
     
@@ -195,14 +248,13 @@ async def get_water_level_readings(device_id: Optional[str] = None, limit: int =
         if device_id:
             query_filter["device_id"] = device_id
         
-        # Get readings sorted by timestamp descending
-        cursor = collection.find(query_filter).sort("timestamp", -1).limit(limit)
+        # Get readings sorted by timestamp descending (using seconds field)
+        cursor = collection.find(query_filter).sort("timestamp._seconds", -1).limit(limit)
         readings = []
         
         async for doc in cursor:
-            # Convert ObjectId to string and format timestamp
+            # Convert ObjectId to string
             doc["_id"] = str(doc["_id"])
-            doc["timestamp"] = doc["timestamp"].isoformat() if doc.get("timestamp") else None
             readings.append(doc)
         
         return {"readings": readings}

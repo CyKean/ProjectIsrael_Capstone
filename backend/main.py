@@ -14,6 +14,7 @@ from app.routers.system import router as system
 from app.routers.esp32 import router as esp32
 
 from app.services.database import init_database
+from app.utils.route_testing import start_continuous_testing, sensor_simulator 
 
 load_dotenv()
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
@@ -160,3 +161,18 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Headers": "*",
         }
     )
+
+
+
+# @app.on_event("startup")
+# async def startup_event():
+#     """Start continuous sensor data simulation when application starts"""
+#     start_continuous_testing()
+#     print("✅ Continuous sensor simulation started")
+
+# @app.on_event("shutdown")
+# async def shutdown_event():
+#     """Stop the sensor simulation when application shuts down"""
+#     sensor_simulator.stop()
+#     print("✅ Sensor simulation stopped")
+

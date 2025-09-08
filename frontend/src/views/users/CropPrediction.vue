@@ -1549,6 +1549,13 @@ const isSensorDataLoading = ref(false); // For the NPK, pH, etc. input cards
 const isSavingRecommendation = ref(false); // For the save recommendation button in the modal
 const isRecommending = ref(false); // For the "Get Crop Recommendations" button
 
+const sensorPollingInterval = ref(null)
+const statsPollingInterval = ref(null)
+const lastUpdateTime = ref(null)
+const isPollingActive = ref(false)
+
+const SENSOR_POLLING_INTERVAL = 1000 // 2 seconds for sensors
+
 // Add these constants at the top of your script section
 const MAX_VALUES = {
   nitrogen: 200, // mg/kg
@@ -2285,11 +2292,13 @@ onMounted(async () => {
   await fetchSavedRecommendations();
   await fetchRecommendationStats();
 
+  startPolling()
   // Set up polling for sensor data (every 10 seconds)
-  const sensorPollingInterval = setInterval(fetchLatestSensorData, 10000);
+  const sensorPollingInterval = setInterval(fetchLatestSensorData, 1000);
   
   // Cleanup on unmount
   onUnmounted(() => {
+    stopPolling()
     clearInterval(sensorPollingInterval);
     document.removeEventListener('click', handleClickOutside);
   });
@@ -2322,6 +2331,114 @@ const fetchLatestSensorData = async () => {
     isSensorDataLoading.value = false;
   }
 };
+
+const realtime = async () => {
+  try {
+    const responsed = await api.get('/sensors/latest');
+    const sensorData = responsed.data;
+    
+    // Update sensor values
+    nitrogen.value = Number(sensorData.nitrogen);
+    phosphorus.value = Number(sensorData.phosphorus);
+    potassium.value = Number(sensorData.potassium);
+    soilpH.value = Number(sensorData.soilPh);
+    temperature.value = Number(sensorData.temperature);
+    humidity.value = Number(sensorData.humidity);
+    soilMoisture.value = Number(sensorData.soilMoisture);
+
+    const response = await api.get('/recommendations/stats');
+    const statsData = response.data;
+    
+    stats.value.current = statsData.current;
+    stats.value.baseline = statsData.baseline;
+    
+    console.log('Stats updated:', statsData);
+    isStatsLoading.value = false;
+
+    const responses = await api.get('/recommendations');
+    const recommendations = responses.data;
+
+    // Process and format the data
+    const formattedRecommendations = recommendations.map(rec => {
+      // Handle date formatting - use the pre-formatted date from backend
+      let dateDisplay = rec.date || "N/A";
+      
+      // If backend didn't format it, try to format it here
+      if (dateDisplay === "N/A" && rec.timestamp) {
+        try {
+          // Handle ISO format timestamp
+          const dateObj = new Date(rec.timestamp);
+          if (!isNaN(dateObj.getTime())) {
+            dateDisplay = dateObj.toLocaleString();
+          }
+        } catch (e) {
+          console.error("Error parsing timestamp:", e);
+        }
+      }
+
+      return {
+        id: rec.id,
+        crop: rec.recommendedCrop || rec.crop || "Unknown Crop",
+        successRate: rec.successRate || 0,
+        status: rec.status || 'Recommended',
+        date: dateDisplay,
+        timestamp: rec.timestamp ? new Date(rec.timestamp) : new Date(),
+        soilCompatibility: rec.soilCompatibility || 0,
+        growthRate: rec.growthRate || 0,
+        yieldPotential: rec.yieldPotential || 0,
+        alternativeOptions: rec.alternativeOptions || [],
+        fertilizer: rec.fertilizer || {
+          type: '',
+          name: '',
+          base_amount: 0,
+          adjusted_amount: 0,
+          unit: ''
+        }
+      };
+    });
+
+    predictions.value = formattedRecommendations;
+    filteredPredictionsCache.value = [...formattedRecommendations];
+    
+    console.log("✅ Recommendations loaded:", predictions.value);
+    isPredictionsLoading.value = false;
+  } catch (error) {
+    console.error("❌ Error fetching sensor data:", error);
+  } finally {
+    isSensorDataLoading.value = false;
+  }
+}
+
+const startPolling = () => {
+  if (isPollingActive.value) return
+  
+  isPollingActive.value = true
+  
+  // Sensor data polling (frequent)
+  sensorPollingInterval.value = setInterval(realtime, SENSOR_POLLING_INTERVAL)
+  
+  console.log('Polling started with intervals:', {
+    sensors: SENSOR_POLLING_INTERVAL + 'ms',
+    stats: STATS_POLLING_INTERVAL + 'ms',
+    predictions: PREDICTIONS_POLLING_INTERVAL + 'ms'
+  })
+}
+
+// Stop all polling
+const stopPolling = () => {
+  if (sensorPollingInterval.value) {
+    clearInterval(sensorPollingInterval.value)
+    sensorPollingInterval.value = null
+  }
+  
+  if (statsPollingInterval.value) {
+    clearInterval(statsPollingInterval.value)
+    statsPollingInterval.value = null
+  }
+  
+  isPollingActive.value = false
+  console.log('Polling stopped')
+}
 
 const normalizeFirestoreTimestamp = (timestamp) => {
   // Handle Firestore Timestamp objects

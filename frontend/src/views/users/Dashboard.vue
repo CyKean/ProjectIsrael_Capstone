@@ -1343,12 +1343,15 @@ const fetchAllSensorData = async () => {
 const updateChartDataFromStream = (data) => {
   if (!data || !data.timestamp) return;
 
+  // Ensure timestamp is properly converted to Date object
+  const timestamp = new Date(data.timestamp);
+  
   const newReading = {
-    timestamp: new Date(data.timestamp),
+    timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp,
     ...data.data
   };
 
-  // Add to appropriate chart dataset
+  // Rest of the function remains the same...
   if (data.type === 'esp32-1') {
     soilPhReadings.value = [...soilPhReadings.value.slice(-14), newReading];
     npkReadings.value = [...npkReadings.value.slice(-14), newReading];
@@ -1361,14 +1364,28 @@ const updateChartDataFromStream = (data) => {
 };
 
 const formatTimeLabel = (timestamp) => {
-  const date = timestamp?.toDate?.() || new Date(timestamp);
-  return date.toLocaleString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: true 
-  });
+  try {
+    // Handle both Date objects and string/number timestamps
+    const date = timestamp instanceof Date 
+      ? timestamp 
+      : new Date(timestamp);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return '--:--';
+    }
+    
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  } catch (error) {
+    console.error('Error formatting time label:', error, timestamp);
+    return '--:--';
+  }
 };
 
 const initSoilMoistureChart = () => {
@@ -1678,28 +1695,45 @@ const initSoilPhChart = () => {
 };
 
 const initNpkChart = () => {
-  if (!performanceChartRef.value || !npkReadings.value.length) return;
+  if (!performanceChartRef.value) return;
   
   try {
+    // Destroy existing chart instance if it exists
     if (performanceChartInstance.value) {
       performanceChartInstance.value.destroy();
+      performanceChartInstance.value = null;
+    }
+
+    // Check if we have valid data
+    if (!npkReadings.value || npkReadings.value.length === 0) {
+      console.log("No NPK data available for chart");
+      return;
     }
 
     // Get the last 20 readings for better visibility
     const recentReadings = npkReadings.value.slice(-20);
-    const labels = recentReadings.map(r => formatTimeLabel(r.timestamp));
-    const nitrogenData = recentReadings.map(r => r.nitrogen || 0);
-    const phosphorusData = recentReadings.map(r => r.phosphorus || 0);
-    const potassiumData = recentReadings.map(r => r.potassium || 0);
+    
+    // Filter out readings with invalid timestamps
+    const validReadings = recentReadings.filter(reading => {
+      const timestamp = reading.timestamp instanceof Date ? reading.timestamp : new Date(reading.timestamp);
+      return !isNaN(timestamp.getTime());
+    });
+
+    if (validReadings.length === 0) {
+      console.log("No valid NPK data available for chart");
+      return;
+    }
+
+    const labels = validReadings.map(r => formatTimeLabel(r.timestamp));
+    const nitrogenData = validReadings.map(r => Number(r.nitrogen) || 0);
+    const phosphorusData = validReadings.map(r => Number(r.phosphorus) || 0);
+    const potassiumData = validReadings.map(r => Number(r.potassium) || 0);
 
     // Find the maximum value to set appropriate Y-axis scale
-    const maxValue = Math.max(
-      Math.max(...nitrogenData),
-      Math.max(...phosphorusData),
-      Math.max(...potassiumData),
-      50 // Minimum scale of 50
-    );
-
+    const allValues = [...nitrogenData, ...phosphorusData, ...potassiumData];
+    const maxValue = Math.max(...allValues, 50); // Minimum scale of 50
+    
+    // Create the chart
     performanceChartInstance.value = new Chart(performanceChartRef.value.getContext('2d'), {
       type: 'line',
       data: {
@@ -1716,7 +1750,8 @@ const initNpkChart = () => {
             pointRadius: 3,
             pointBackgroundColor: '#4ADE80',
             pointBorderColor: '#ffffff',
-            pointBorderWidth: 2
+            pointBorderWidth: 2,
+            pointHoverRadius: 6
           },
           {
             label: 'Phosphorus (mg/kg)',
@@ -1729,7 +1764,8 @@ const initNpkChart = () => {
             pointRadius: 3,
             pointBackgroundColor: '#60A5FA',
             pointBorderColor: '#ffffff',
-            pointBorderWidth: 2
+            pointBorderWidth: 2,
+            pointHoverRadius: 6
           },
           {
             label: 'Potassium (mg/kg)',
@@ -1742,7 +1778,8 @@ const initNpkChart = () => {
             pointRadius: 3,
             pointBackgroundColor: '#A78BFA',
             pointBorderColor: '#ffffff',
-            pointBorderWidth: 2
+            pointBorderWidth: 2,
+            pointHoverRadius: 6
           }
         ]
       },
@@ -1756,7 +1793,10 @@ const initNpkChart = () => {
             labels: {
               usePointStyle: true,
               boxWidth: 10,
-              padding: 20
+              padding: 20,
+              font: {
+                size: 12
+              }
             }
           },
           tooltip: {
@@ -1772,11 +1812,15 @@ const initNpkChart = () => {
         interaction: { intersect: false, mode: 'index' },
         scales: {
           x: {
-            grid: { display: false },
+            grid: { 
+              display: false,
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
             ticks: { 
-              // Show all labels for NPK chart
-              callback: function(value) {
-                return this.getLabelForValue(value);
+              maxRotation: 45,
+              minRotation: 30,
+              font: {
+                size: 10
               }
             }
           },
@@ -1784,15 +1828,35 @@ const initNpkChart = () => {
             beginAtZero: true,
             suggestedMax: maxValue * 1.1, // Add 10% padding
             ticks: {
-              callback: v => v + ' mg/kg'
+              callback: v => v + ' mg/kg',
+              font: {
+                size: 10
+              }
             },
-            grid: { color: 'rgba(0, 0, 0, 0.1)' }
+            grid: { 
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
           }
+        },
+        animation: {
+          duration: 500,
+          easing: 'easeOutQuart'
         }
       }
     });
+    
+    console.log("NPK chart initialized successfully");
   } catch (error) {
     console.error("Error initializing NPK chart:", error);
+    // Create a fallback message if chart fails
+    if (performanceChartRef.value) {
+      const ctx = performanceChartRef.value.getContext('2d');
+      ctx.clearRect(0, 0, performanceChartRef.value.width, performanceChartRef.value.height);
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#999";
+      ctx.textAlign = "center";
+      ctx.fillText("Chart could not be loaded", performanceChartRef.value.width / 2, performanceChartRef.value.height / 2);
+    }
   }
 };
 
