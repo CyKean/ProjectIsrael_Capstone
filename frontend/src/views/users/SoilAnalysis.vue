@@ -1300,18 +1300,58 @@ const handleAnyScroll = (e) => {
   if (activeDropdown.value) activeDropdown.value = null
 }
 
+const realTime = async () => {
+  try {
+    await fetchESP32_1_Data()
+    await fetchESP32_2_Data()
+    isLoading.value = false
+  } catch (error) {
+    console.error("❌ Error fetching soil analysis data:", error)
+    isLoading.value = false
+  }
+}
+
+const pollingInterval = ref(null)
+const pollingEnabled = ref(true)
+const pollingIntervalTime = ref(1000) // 30 seconds
+
+// Add this method to handle periodic data fetching
+const startPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+  }
+  
+  pollingInterval.value = setInterval(async () => {
+    if (pollingEnabled.value) {
+      console.log('🔄 Polling for new soil analysis data...')
+      await realTime()
+    }
+  }, pollingIntervalTime.value)
+}
+
+const stopPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('resize', handleResize)
   document.addEventListener('scroll', handleAnyScroll, true)
   fetchSoilAnalysisData()
+  realTime().then(() => {
+    startPolling()
+  })
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('scroll', handleAnyScroll, true)
+  stopPolling()
 })
 </script>
 

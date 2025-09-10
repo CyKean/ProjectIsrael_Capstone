@@ -411,53 +411,52 @@
               </table>
             </div>
           </div>
+          <div class="border-t border-gray-200 py-2 px-3 bg-gray-50" v-if="!isLoading && paginatedData.length > 0">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] md:text-xs text-gray-600">
+                  Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
+                  of {{ sortedData.length }}
+                </div>
+                <div class="flex items-center gap-1">
+                  <button 
+                    @click="prevPage"
+                    :disabled="currentPage === 1"
+                    class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
+                  >
+                    <ChevronLeft class="w-3.5 h-3.5" />
+                  </button>
+                  
+                  <div class="flex items-center gap-1">
+                    <button
+                      v-for="(page, index) in paginationNumbers"
+                      :key="index"
+                      @click="goToPage(page)"
+                      :disabled="page === '...'"
+                      :class="[
+                        'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
+                        page === currentPage 
+                          ? 'bg-emerald-500 text-white font-medium' 
+                          : page === '...' 
+                            ? 'text-gray-400 cursor-default' 
+                            : 'text-gray-700 hover:text-emerald-600 hover:bg-gray-100'
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                  </div>
+                  
+                  <button 
+                    @click="nextPage"
+                    :disabled="currentPage >= totalPages"
+                    class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
+                  >
+                    <ChevronRight class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
         </div>
 
-        <!-- Mobile Pagination -->
-        <div class="border-t border-gray-200 py-2 px-3 bg-gray-50 sm:hidden" v-if="!isLoading && paginatedData.length > 0">
-          <div class="flex items-center justify-between">
-            <div class="text-[10px] md:text-xs text-gray-600">
-              Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-              of {{ sortedData.length }}
-            </div>
-            <div class="flex items-center gap-1">
-              <button 
-                @click="prevPage"
-                :disabled="currentPage === 1"
-                class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
-              >
-                <ChevronLeft class="w-3.5 h-3.5" />
-              </button>
-              
-              <div class="flex items-center gap-1">
-                <button
-                  v-for="(page, index) in paginationNumbers"
-                  :key="index"
-                  @click="goToPage(page)"
-                  :disabled="page === '...'"
-                  :class="[
-                    'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
-                    page === currentPage 
-                      ? 'bg-emerald-500 text-white font-medium' 
-                      : page === '...' 
-                        ? 'text-gray-400 cursor-default' 
-                        : 'text-gray-700 hover:text-emerald-600 hover:bg-gray-100'
-                  ]"
-                >
-                  {{ page }}
-                </button>
-              </div>
-              
-              <button 
-                @click="nextPage"
-                :disabled="currentPage >= totalPages"
-                class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
-              >
-                <ChevronRight class="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
     </div>
@@ -485,7 +484,8 @@ import Chart from 'chart.js/auto'
 const soilPhData = ref([])
 const isLoading = ref(true)
 const chartCanvas = ref(null)
-const chart = ref(null)
+// const chart = ref(null)
+let chart = null;
 const chartData = ref([])
 const currentPhValue = ref('--')
 const lastUpdated = ref('--')
@@ -494,10 +494,29 @@ const phStats = ref({
   max: '--',
   avg: '--'
 })
+let chartLabels = []
+let chartValues = []
+let combinedRealtimeData = []
+
 const dataCache = ref(null)
-const combinedRealtimeData = ref([]) 
+let pollingInterval = null;
+// let Chart = null;
+let lastProcessedTimestamp = 0;
+
+let ChartJS = null;
 
 let PRINT_CHART_DATA_LIMIT = 0;  
+
+const loadChartJS = async () => {
+  try {
+    const chartModule = await import('chart.js/auto');
+    Chart = chartModule.default;
+    return true;
+  } catch (error) {
+    console.error('Failed to load Chart.js:', error);
+    return false;
+  }
+};
 
 const printTable = async () => {
   activeDropdown.value = null;
@@ -1088,8 +1107,9 @@ const fetchSoilPhData = async () => {
     soilPhData.value = processedData;
     isLoading.value = false;
     
+    // FIX: Call initializeChartData
     initializeChartData(processedData);
-    PRINT_CHART_DATA_LIMIT = processedData.value
+    PRINT_CHART_DATA_LIMIT = processedData.length;
     
     console.log(`✅ Processed ${processedData.length} readings`);
     
@@ -1104,83 +1124,127 @@ const fetchSoilPhData = async () => {
   }
 };
 
-
 const setupRealtimeListener = () => {
-  const pollingInterval = setInterval(async () => {
+  pollingInterval = setInterval(async () => {
     try {
       const response = await api.get(`/soil-ph/readings/realtime`);
-      const data = response.data; 
-      console.log('Realtime data:', data);
-      
-      if (!Array.isArray(data)) {
-        console.error('Realtime data is not an array:', data);
-        return;
+      if (response.data && Array.isArray(response.data)) {
+        processRealtimeData(response.data);
       }
-      
-      processRealtimeData(data);
     } catch (error) {
       console.error('Polling error:', error);
     }
-  }, 5000); 
+  }, 5000);
   
   return () => {
-    clearInterval(pollingInterval);
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
   };
 };
 
 const processRealtimeData = (data) => {
-  if (!Array.isArray(data)) {
-    console.error('Realtime data is not an array:', data);
-    return;
-  }
-  
-  const newData = data
-    .filter(item => item && item.soilPh !== undefined && item.soilPh !== null && item.soilPh !== '--')
-    .map(item => {
-      try {
-        const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : new Date();
-        
-        return {
-          timestamp,
-          value: Number(item.soilPh),
-          deviceId: item.deviceId || 'esp32-1'
-        };
-      } catch (error) {
-        console.error('Error processing realtime item:', item, error);
-        return null;
-      }
-    })
-    .filter(item => item !== null); 
-  
-  combinedRealtimeData.value = [...newData];
-  
-  combinedRealtimeData.value.sort((a, b) => a.timestamp - b.timestamp);
-  combinedRealtimeData.value = combinedRealtimeData.value.slice(-20);
-  
-  chartData.value = combinedRealtimeData.value;
-  
-  if (combinedRealtimeData.value.length > 0) {
-    const latestReading = combinedRealtimeData.value[combinedRealtimeData.value.length - 1];
-    currentPhValue.value = latestReading.value.toFixed(1);
+  if (!Array.isArray(data) || data.length === 0) return;
+
+  try {
+    // Get the highest existing ID to continue sequencing
+    const maxId = soilPhData.value.length > 0 
+      ? Math.max(...soilPhData.value.map(item => parseInt(item.id.replace('rt-', '')) || 0))
+      : 0;
+
+    const processedData = data
+      .filter(item => item && item.soilPh !== undefined && item.soilPh !== null && item.soilPh !== '--')
+      .map((item, index) => {
+        try {
+          const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : new Date();
+          const value = Number(item.soilPh);
+          
+          if (isNaN(value)) return null;
+          
+          const formattedDate = timestamp.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+          });
+          
+          const formattedTime = timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+          
+          return {
+            timestamp,
+            value,
+            deviceId: item.deviceId || 'esp32-1',
+            soilPh: value.toFixed(1),
+            phStatus: calculatePhStatus(value),
+            date: formattedDate,
+            time: formattedTime,
+            rawTimestamp: timestamp,
+            // Use sequential ID instead of timestamp
+            id: `${maxId + index + 1}`
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(item => item !== null);
     
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    // Add new data to table (prepend to show newest first)
+    if (processedData.length > 0) {
+      soilPhData.value = [...processedData, ...soilPhData.value].slice(0, 100);
+    }
     
-    const values = combinedRealtimeData.value.map(item => item.value);
-    phStats.value = {
-      min: Math.min(...values).toFixed(1),
-      max: Math.max(...values).toFixed(1),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
-    };
-  }
-  
-  requestAnimationFrame(() => {
+    // Rest of your chart update logic remains the same...
+    const chartDataPoints = processedData.map(item => ({
+      timestamp: item.timestamp,
+      value: item.value,
+      deviceId: item.deviceId
+    }));
+    
+    combinedRealtimeData = [...combinedRealtimeData, ...chartDataPoints];
+    combinedRealtimeData.sort((a, b) => b.timestamp - a.timestamp);
+    combinedRealtimeData = combinedRealtimeData.slice(0, 20);
+    
+    const chronologicalData = [...combinedRealtimeData].sort((a, b) => a.timestamp - b.timestamp);
+    
+    chartLabels = chronologicalData.map(item => 
+      item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      })
+    );
+    
+    chartValues = chronologicalData.map(item => item.value);
+    
+    if (combinedRealtimeData.length > 0) {
+      const latestReading = combinedRealtimeData[0];
+      currentPhValue.value = latestReading.value.toFixed(1);
+      
+      lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      
+      const values = combinedRealtimeData.map(item => item.value);
+      phStats.value = {
+        min: Math.min(...values).toFixed(1),
+        max: Math.max(...values).toFixed(1),
+        avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
+      };
+    }
+    
     updateChart();
-  });
+    
+  } catch (error) {
+    console.error('Error in processRealtimeData:', error);
+  }
 };
 
 const fetchStats = async () => {
@@ -1260,16 +1324,34 @@ const updateRealtimeData = (snapshot, deviceId) => {
 }
 
 const initializeChartData = (data) => {
-  const initialChartData = data.slice(0, 20)
+  // Sort data by timestamp (newest first) and take the first 20
+  const sortedData = [...data].sort((a, b) => {
+    const aTime = a.rawTimestamp instanceof Date ? a.rawTimestamp.getTime() : new Date(a.rawTimestamp).getTime();
+    const bTime = b.rawTimestamp instanceof Date ? b.rawTimestamp.getTime() : new Date(b.rawTimestamp).getTime();
+    return bTime - aTime; // Newest first
+  });
+  
+  const initialChartData = sortedData
+    .filter(item => item.soilPh !== '--' && !isNaN(Number(item.soilPh)))
+    .slice(0, 20) // Get first 20 records (newest)
     .map(item => ({
       timestamp: item.rawTimestamp,
       value: Number(item.soilPh),
       deviceId: item.deviceId || 'esp32-1'
     }))
-    .sort((a, b) => a.timestamp - b.timestamp); 
+    .sort((a, b) => a.timestamp - b.timestamp); // Sort chronologically for chart
+
+  chartLabels = initialChartData.map(item => 
+    item.timestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  );
   
-  chartData.value = initialChartData;
-  combinedRealtimeData.value = initialChartData; 
+  chartValues = initialChartData.map(item => item.value);
+  combinedRealtimeData = initialChartData;
   
   if (initialChartData.length > 0) {
     const latestReading = initialChartData[initialChartData.length - 1];
@@ -1293,28 +1375,37 @@ const initializeChartData = (data) => {
   initializeChart();
 };
 
+// FIX: Enhanced initializeChart with proper styling like SoilMoisture.vue
 const initializeChart = () => {
   nextTick(() => {
-    if (chartCanvas.value) {
-      if (chart.value) {
-        chart.value.destroy()
+    if (!chartCanvas.value) return;
+    
+    // Destroy existing chart
+    if (chart && typeof chart.destroy === 'function') {
+      try {
+        chart.destroy();
+      } catch (error) {
+        console.error('Error destroying chart:', error);
       }
+    }
+    
+    try {
+      const ctx = chartCanvas.value.getContext('2d');
       
-      const ctx = chartCanvas.value.getContext('2d')
+      // Calculate proper y-axis range
+      const values = chartValues.filter(val => !isNaN(val));
+      const minValue = values.length > 0 ? Math.min(...values) : 0;
+      const maxValue = values.length > 0 ? Math.max(...values) : 14;
+      const yMin = Math.max(0, Math.floor(minValue * 0.9));
+      const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
       
-      chart.value = new Chart(ctx, {
+      chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: chartData.value.map(item => {
-            return item.timestamp.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            })
-          }),
+          labels: chartLabels,
           datasets: [{
             label: 'Soil pH',
-            data: chartData.value.map(item => item.value),
+            data: chartValues,
             borderColor: '#f97316',
             backgroundColor: 'rgba(249, 115, 22, 0.15)',
             borderWidth: 2.5,
@@ -1330,27 +1421,18 @@ const initializeChart = () => {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: {
+            duration: 0
+          },
           interaction: {
             mode: 'index',
             intersect: false,
           },
-          animation: {
-            duration: 500, 
-            easing: 'easeOutQuart'
-          },
-          layout: {
-            padding: {
-              top: 10,
-              left: 10,
-              right: 10,
-              bottom: 10
-            }
-          },
           scales: {
             y: {
               beginAtZero: false,
-              min: Math.max(0, Math.floor(phStats.value.min * 0.95)),
-              max: Math.min(14, Math.ceil(phStats.value.max * 1.05)),
+              min: yMin,
+              max: yMax,
               title: {
                 display: true,
                 text: 'pH Level',
@@ -1358,16 +1440,13 @@ const initializeChart = () => {
                 font: {
                   size: 11,
                   weight: '600'
-                },
-                padding: {
-                  bottom: 10
                 }
               },
               ticks: {
                 font: {
                   size: 10
                 },
-                color: '#64748b', 
+                color: '#64748b',
                 padding: 8
               },
               grid: {
@@ -1382,7 +1461,7 @@ const initializeChart = () => {
                 },
                 maxRotation: 0,
                 padding: 8,
-                color: '#64748b' 
+                color: '#64748b'
               },
               grid: {
                 display: false,
@@ -1396,8 +1475,8 @@ const initializeChart = () => {
             },
             tooltip: {
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#334155', 
-              bodyColor: '#334155', 
+              titleColor: '#334155',
+              bodyColor: '#334155',
               borderColor: '#e2e8f0',
               borderWidth: 1,
               padding: 12,
@@ -1421,29 +1500,71 @@ const initializeChart = () => {
             }
           }
         }
-      })
+      });
+    } catch (error) {
+      console.error('Error initializing chart:', error);
     }
-  })
-}
+  });
+};
 
-const updateChart = () => {
-  if (chart.value && chartData.value.length > 0) {
-    chart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    
-    chart.value.data.datasets[0].data = chartData.value.map(item => item.value)
-    
-    chart.value.options.scales.y.min = Math.max(0, Math.floor(phStats.value.min * 0.95))
-    chart.value.options.scales.y.max = Math.min(14, Math.ceil(phStats.value.max * 1.05))
-    
-    chart.value.update('none') 
+const safeChartUpdate = () => {
+  if (chart.value && typeof chart.value.update === 'function') {
+    chart.value.update('none');
   }
-}
+};
+
+// FIX: Update the updateChart function to handle undefined chart
+const updateChart = () => {
+  if (!chart) return;
+
+  try {
+    // Only update if we have data
+    if (chartValues.length === 0) return;
+    
+    // Update chart data
+    chart.data.labels = [...chartLabels];
+    chart.data.datasets[0].data = [...chartValues];
+    
+    // Calculate proper min/max values for y-axis
+    const values = chartValues.filter(val => !isNaN(val));
+    const minValue = values.length > 0 ? Math.min(...values) : 0;
+    const maxValue = values.length > 0 ? Math.max(...values) : 14;
+    
+    // Set y-axis range with some padding
+    const yMin = Math.max(0, Math.floor(minValue * 0.9));
+    const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
+    
+    if (chart.options && chart.options.scales && chart.options.scales.y) {
+      chart.options.scales.y.min = yMin;
+      chart.options.scales.y.max = yMax;
+    }
+    
+    // Update the chart
+    chart.update();
+  } catch (error) {
+    console.error('Error updating chart:', error);
+  }
+};
+
+const isNewRecord = (record) => {
+  if (!record || !record.timestamp) return false;
+  
+  const recordTime = record.timestamp.getTime();
+  
+  // Check if this record is newer than the last processed one
+  if (recordTime > lastProcessedTimestamp) {
+    lastProcessedTimestamp = recordTime;
+    return true;
+  }
+  
+  // Also check if we have this exact record already
+  const exists = combinedRealtimeData.some(existing => 
+    existing.timestamp.getTime() === recordTime && 
+    existing.value === record.value
+  );
+  
+  return !exists;
+};
 
 const calculatePhStatus = (ph) => {
   if (ph < 6.6) return 'ACIDIC'
@@ -1460,7 +1581,7 @@ const itemsPerPage = ref(20)
 const currentPage = ref(1)
 const activeDropdown = ref(null)
 const sortKey = ref('date')
-const sortDirection = ref('asc')
+const sortDirection = ref('desc')
 const activeFilters = ref({})
 
 const filterFields = [
@@ -1477,8 +1598,19 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
+const sortedByTimestampData = computed(() => {
+  return [...soilPhData.value].sort((a, b) => {
+    // Convert to timestamps for comparison
+    const aTime = a.rawTimestamp instanceof Date ? a.rawTimestamp.getTime() : new Date(a.rawTimestamp).getTime();
+    const bTime = b.rawTimestamp instanceof Date ? b.rawTimestamp.getTime() : new Date(b.rawTimestamp).getTime();
+    
+    // Sort newest first (descending order)
+    return bTime - aTime;
+  });
+});
+
 const filteredData = computed(() => {
-  let result = [...soilPhData.value]
+  let result = [...sortedByTimestampData.value] // Use the sorted data
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
@@ -1745,42 +1877,33 @@ watch([searchQuery, activeFilters, itemsPerPage], () => {
 })
 
 let cleanupRealtime = null
+let resizeObserver = null;
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', handleClickOutside);
   
-  fetchSoilPhData()
-  cleanupRealtime = setupRealtimeListener()
+  // Always setup realtime listener, regardless of initial data
+  cleanupRealtime = setupRealtimeListener();
   
-  const handleResize = () => {
-    if (chart.value) {
-      chart.value.resize()
-    }
-  }
-  
-  if (typeof ResizeObserver !== 'undefined') {
-    const resizeObserver = new ResizeObserver(handleResize)
-    if (chartCanvas.value) {
-      resizeObserver.observe(chartCanvas.value.parentElement)
-    }
-  } else {
-    window.addEventListener('resize', handleResize)
-  }
-})
+  // Then fetch initial data
+  fetchSoilPhData();
+});
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleClickOutside);
   
-  if (chart.value) {
-    chart.value.destroy()
+  if (chart && typeof chart.destroy === 'function') {
+    try {
+      chart.destroy();
+    } catch (error) {
+      console.error('Error destroying chart:', error);
+    }
   }
   
-  if (cleanupRealtime) {
-    cleanupRealtime()
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
   }
-  
-  window.removeEventListener('resize', () => {})
-})
+});
 </script>
   
 <style>

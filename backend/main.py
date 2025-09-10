@@ -164,15 +164,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 
-# @app.on_event("startup")
-# async def startup_event():
-#     """Start continuous sensor data simulation when application starts"""
-#     start_continuous_testing()
-#     print("✅ Continuous sensor simulation started")
+@app.on_event("startup")
+async def startup_event():
+    """Start continuous sensor data simulation when application starts"""
+    start_continuous_testing()
+    print("✅ Continuous sensor simulation started")
 
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     """Stop the sensor simulation when application shuts down"""
-#     sensor_simulator.stop()
-#     print("✅ Sensor simulation stopped")
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop the sensor simulation when application shuts down"""
+    sensor_simulator.stop()
+    print("✅ Sensor simulation stopped")
 

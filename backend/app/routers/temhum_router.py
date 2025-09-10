@@ -14,25 +14,11 @@ class Timestamp(BaseModel):
 
 class TemperatureHumidityReading(BaseModel):
     _id: Optional[str] = None
-    device_id: Optional[str] = None  # Make device_id optional
+    device_id: Optional[str] = None
     temperature: float
     humidity: float
     soilMoisture: Optional[int] = None
     timestamp: Timestamp
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "device_id": "ESP32-ENV",
-                "temperature": 29.2,
-                "humidity": 78.8,
-                "soilMoisture": 94,
-                "timestamp": {
-                    "_seconds": 1751511889,
-                    "_nanoseconds": 235000000
-                }
-            }
-        }
 
 class ReadingStats(BaseModel):
     average: float
@@ -58,10 +44,12 @@ async def get_temperature_humidity_readings(
         document = await db["sensor_readings"].find_one({"_id": "esp32-2"})
         
         if not document:
+            print("Document esp32-2 not found in sensor_readings collection")
             return []
         
         # Get the readings array from the document
         readings_array = document.get("readings", [])
+        print(f"Found {len(readings_array)} readings in esp32-2 document")
         
         # Apply date filtering if specified
         filtered_readings = []
@@ -77,17 +65,35 @@ async def get_temperature_humidity_readings(
         else:
             filtered_readings = readings_array
         
-        # Sort by timestamp descending
+        # Sort by timestamp descending (newest first)
         filtered_readings.sort(key=lambda x: x.get("timestamp", {}).get("_seconds", 0), reverse=True)
         
-        # Convert ObjectId to string for JSON serialization
+        # Convert ObjectId to string for JSON serialization and ensure data types
+        processed_readings = []
         for reading in filtered_readings:
-            if "_id" in reading and isinstance(reading["_id"], ObjectId):
-                reading["_id"] = str(reading["_id"])
+            processed_reading = reading.copy()
+            
+            # Convert ObjectId to string
+            if "_id" in processed_reading and isinstance(processed_reading["_id"], ObjectId):
+                processed_reading["_id"] = str(processed_reading["_id"])
+            
+            # Ensure numeric values are properly typed
+            if "temperature" in processed_reading:
+                processed_reading["temperature"] = float(processed_reading["temperature"])
+            if "humidity" in processed_reading:
+                processed_reading["humidity"] = float(processed_reading["humidity"])
+            if "soilMoisture" in processed_reading:
+                processed_reading["soilMoisture"] = int(processed_reading["soilMoisture"])
+            
+            processed_readings.append(processed_reading)
         
-        return filtered_readings
+        print(f"Returning {len(processed_readings)} processed readings")
+        return processed_readings
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error fetching readings: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error fetching readings: {str(e)}")
 
 @router.get("/readings/recent", response_model=List[TemperatureHumidityReading])
@@ -122,13 +128,27 @@ async def get_recent_readings(
         recent_readings.sort(key=lambda x: x.get("timestamp", {}).get("_seconds", 0), reverse=True)
         
         # Convert ObjectId to string for JSON serialization
+        processed_readings = []
         for reading in recent_readings:
-            if "_id" in reading and isinstance(reading["_id"], ObjectId):
-                reading["_id"] = str(reading["_id"])
+            processed_reading = reading.copy()
+            
+            if "_id" in processed_reading and isinstance(processed_reading["_id"], ObjectId):
+                processed_reading["_id"] = str(processed_reading["_id"])
+            
+            # Ensure numeric values are properly typed
+            if "temperature" in processed_reading:
+                processed_reading["temperature"] = float(processed_reading["temperature"])
+            if "humidity" in processed_reading:
+                processed_reading["humidity"] = float(processed_reading["humidity"])
+            
+            processed_readings.append(processed_reading)
         
-        return recent_readings
+        return processed_readings
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error fetching recent readings: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error fetching recent readings: {str(e)}")
 
 @router.get("/stats", response_model=StatsResponse)
@@ -174,25 +194,43 @@ async def get_temperature_humidity_stats(
         else:
             filtered_readings = readings_array
         
-        # Calculate statistics
-        if filtered_readings:
-            temperatures = [r.get("temperature", 0) for r in filtered_readings if r.get("temperature") is not None]
-            humidities = [r.get("humidity", 0) for r in filtered_readings if r.get("humidity") is not None]
+        # Calculate statistics with proper data validation
+        temperatures = []
+        humidities = []
+        
+        for reading in filtered_readings:
+            temp = reading.get("temperature")
+            humidity = reading.get("humidity")
             
-            if temperatures and humidities:
-                return StatsResponse(
-                    temperature=ReadingStats(
-                        average=round(sum(temperatures) / len(temperatures), 2),
-                        min=round(min(temperatures), 2),
-                        max=round(max(temperatures), 2)
-                    ),
-                    humidity=ReadingStats(
-                        average=round(sum(humidities) / len(humidities), 2),
-                        min=round(min(humidities), 2),
-                        max=round(max(humidities), 2)
-                    ),
-                    total_readings=len(filtered_readings)
-                )
+            # Validate and convert temperature
+            if temp is not None:
+                try:
+                    temperatures.append(float(temp))
+                except (ValueError, TypeError):
+                    pass
+            
+            # Validate and convert humidity
+            if humidity is not None:
+                try:
+                    humidities.append(float(humidity))
+                except (ValueError, TypeError):
+                    pass
+        
+        # Calculate statistics only if we have valid data
+        if temperatures and humidities:
+            return StatsResponse(
+                temperature=ReadingStats(
+                    average=round(sum(temperatures) / len(temperatures), 2),
+                    min=round(min(temperatures), 2),
+                    max=round(max(temperatures), 2)
+                ),
+                humidity=ReadingStats(
+                    average=round(sum(humidities) / len(humidities), 2),
+                    min=round(min(humidities), 2),
+                    max=round(max(humidities), 2)
+                ),
+                total_readings=len(filtered_readings)
+            )
         
         return StatsResponse(
             temperature=ReadingStats(average=0, min=0, max=0),
@@ -201,6 +239,9 @@ async def get_temperature_humidity_stats(
         )
             
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error calculating statistics: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error calculating statistics: {str(e)}")
 
 @router.get("/count")
@@ -222,12 +263,15 @@ async def get_readings_count(db=Depends(get_database)):
         return {"count": count}
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error counting readings: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error counting readings: {str(e)}")
 
 @router.get("/test-document")
 async def test_document(db=Depends(get_database)):
     """
-    Test endpoint to check if esp32-2 document exists
+    Test endpoint to check if esp32-2 document exists and examine its structure
     """
     try:
         # Get the esp32-2 document specifically
@@ -235,10 +279,17 @@ async def test_document(db=Depends(get_database)):
         
         if document:
             readings_count = len(document.get("readings", []))
+            
+            # Sample a few readings to examine structure
+            sample_readings = []
+            if readings_count > 0:
+                sample_readings = document.get("readings", [])[:3]  # First 3 readings
+            
             return {
                 "exists": True,
                 "readings_count": readings_count,
-                "document_keys": list(document.keys())
+                "document_keys": list(document.keys()),
+                "sample_readings": sample_readings
             }
         else:
             # Check what documents exist
@@ -251,6 +302,9 @@ async def test_document(db=Depends(get_database)):
             }
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error testing document: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error testing document: {str(e)}")
 
 # Make sure the router is exported

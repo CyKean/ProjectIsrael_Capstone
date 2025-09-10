@@ -504,6 +504,9 @@ const waterLevelStats = ref({
   max: '--',
   avg: '--'
 })
+let pollingInterval = null
+const POLLING_FREQUENCY = 5000 
+
 
 let PRINT_CHART_DATA_LIMIT = 0 
 
@@ -1003,166 +1006,267 @@ const dataCache = ref(null)
 
 const fetchWaterLevelData = async () => {
   try {
-    if (dataCache.value) {
-      waterLevelData.value = dataCache.value
-      isLoading.value = false
-      initializeChartData(dataCache.value)
-    } else {
-      isLoading.value = true
+    console.log('💧 Fetching water level data...')
+
+    const response = await api.get(`/water-level/readings`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+
+    console.log('📊 API Response:', response)
+    
+    let data
+    if (response && typeof response === 'object') {
+      if (response.data !== undefined) {
+        data = response.data
+        console.log('📊 Response status:', response.status)
+      } else if (Array.isArray(response)) {
+        data = response
+      } else {
+        data = response
+      }
     }
-    
-    const response = await api.get('/water-level/readings')
-    const waterData = response.data
-    
-    const processedData = waterData
-      .filter(item => item.waterLevel !== undefined)
-      .map((item, index) => {
-        let formattedDate = '--'
-        let formattedTime = '--'
-        let timestampSeconds = 0
-        
-        try {
-          const timestamp = item.timestamp ? new Date(item.timestamp) : new Date()
-          
-          formattedDate = timestamp.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-          });
 
-          formattedTime = timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          });
-          
-          timestampSeconds = timestamp.getTime() / 1000
-        } catch (e) {
-          console.error("Error formatting date:", e)
+    console.log('📊 Response data:', data)
+
+    if (!Array.isArray(data)) {
+      console.error('❌ Expected array but got:', typeof data, data)
+      throw new Error(`Expected array but got: ${typeof data}`)
+    }
+
+    console.log('📊 Number of items received:', data.length)
+
+    if (data.length === 0) {
+      console.log('📭 No water level data found in database')
+      waterLevelData.value = []
+      isLoading.value = false
+      return
+    }
+
+    const processedData = data.map((reading, index) => {
+      let timestamp
+      if (reading.timestamp) {
+        if (typeof reading.timestamp === 'string') {
+          timestamp = new Date(reading.timestamp)
+        } else if (reading.timestamp instanceof Date) {
+          timestamp = reading.timestamp
+        } else {
+          console.warn('Unknown timestamp format:', reading.timestamp)
+          timestamp = new Date()
         }
+      } else {
+        timestamp = new Date()
+      }
 
-        const waterLevel = item.waterLevel !== undefined && item.waterLevel !== null 
-          ? Number(item.waterLevel).toFixed(2) 
-          : '--'
-        
-        const status = calculateWaterStatus(Number(item.waterLevel))
+      const waterLevelValue = reading.waterLevel !== undefined ? reading.waterLevel : 
+                             reading.value !== undefined ? reading.value : 0
 
-        return {
-          id: index + 1,
-          timestamp: timestampSeconds,
-          waterLevel: waterLevel,
-          status: status,
-          date: formattedDate,
-          time: formattedTime,
-          rawTimestamp: item.timestamp
-        }
-      })
+      return {
+        id: `${index + 1}`,
+        timestamp: timestamp.getTime() / 1000,
+        waterLevel: Number(waterLevelValue).toFixed(2),
+        status: calculateWaterStatus(Number(waterLevelValue)),
+        date: timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        }),
+        time: timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }),
+        rawTimestamp: timestamp,
+        deviceId: reading.deviceId || reading.device_id || 'unknown'
+      }
+    })
 
-    dataCache.value = processedData
-    
+    // Update the data
     waterLevelData.value = processedData
+    dataCache.value = processedData
     isLoading.value = false
     
+    // Update chart with the latest data
     initializeChartData(processedData)
     PRINT_CHART_DATA_LIMIT = processedData.length
+    
+    console.log(`✅ Successfully loaded ${processedData.length} water level readings`)
+
   } catch (error) {
     console.error("❌ Error fetching water level data:", error)
     isLoading.value = false
-    
-    if (dataCache.value) {
-      waterLevelData.value = dataCache.value
-      initializeChartData(dataCache.value)
+    // Don't clear the data on error, keep showing existing data
+  }
+}
+
+const setupPollingListener = () => {
+  // Clear any existing interval
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
+  
+  // Start polling immediately and then set interval
+  fetchWaterLevelData()
+  pollingInterval = setInterval(fetchWaterLevelData, POLLING_FREQUENCY)
+  
+  // Return cleanup function
+  return () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
     }
   }
 }
 
-const setupRealtimeListener = () => {
-  // For MongoDB, we'll use polling instead of realtime listener
-  // You can implement WebSocket or Server-Sent Events for true realtime
-  const pollInterval = setInterval(async () => {
-    try {
-      const response = await api.get('/water-level/latest')
-      const newData = response.data
+// Helper function to process data for table
+const processDataForTable = (data) => {
+  return data
+    .filter(item => item.waterLevel !== undefined)
+    .map((item, index) => {
+      let formattedDate = '--'
+      let formattedTime = '--'
+      let timestampSeconds = 0
       
-      if (newData && newData.length > 0) {
-        processNewData(newData)
-      }
-    } catch (error) {
-      console.error("Error polling for new data:", error)
-    }
-  }, 5000) // Poll every 5 seconds
+      try {
+        const timestamp = item.timestamp ? new Date(item.timestamp) : new Date()
+        
+        formattedDate = timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        });
 
-  return () => clearInterval(pollInterval)
+        formattedTime = timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        
+        timestampSeconds = timestamp.getTime() / 1000
+      } catch (e) {
+        console.error("Error formatting date:", e)
+      }
+
+      const waterLevel = item.waterLevel !== undefined && item.waterLevel !== null 
+        ? Number(item.waterLevel).toFixed(2) 
+        : '--'
+      
+      const status = calculateWaterStatus(Number(item.waterLevel))
+
+      return {
+        id: waterLevelData.value.length + index + 1, // Ensure unique IDs
+        timestamp: timestampSeconds,
+        waterLevel: waterLevel,
+        status: status,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: item.timestamp
+      }
+    })
 }
 
 const processNewData = (newDataArray) => {
-  const newData = []
+  if (!chartCanvas.value) return;
+  
+  const newData = [];
+  let processedCount = 0;
   
   newDataArray.forEach(item => {
     try {
-      if (item.waterLevel === undefined || item.waterLevel === null) return
+      if (item.waterLevel === undefined || item.waterLevel === null) return;
       
-      let timestamp
+      let timestamp;
       if (item.timestamp) {
-        timestamp = new Date(item.timestamp)
+        timestamp = new Date(item.timestamp);
       } else {
-        timestamp = new Date()
+        timestamp = new Date();
       }
       
-      const value = parseFloat(item.waterLevel)
+      const value = parseFloat(item.waterLevel);
       if (!isNaN(value)) {
         newData.push({
           timestamp,
           value: value
-        })
+        });
+        processedCount++;
       }
     } catch (e) {
-      console.error("Error processing item:", e)
+      console.error("Error processing item:", e);
     }
-  })
+  });
   
-  newData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+  if (processedCount === 0) return;
   
-  // Update chart data with new readings
-  chartData.value = [...chartData.value, ...newData].slice(-100) // Keep last 100 readings
+  newData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  
+  // Update chart data with new readings (limit to 100)
+  const updatedChartData = [...chartData.value, ...newData];
+  if (updatedChartData.length > 100) {
+    chartData.value = updatedChartData.slice(-100);
+  } else {
+    chartData.value = updatedChartData;
+  }
   
   if (newData.length > 0) {
-    const latestReading = newData[newData.length - 1]
-    currentWaterLevelValue.value = latestReading.value.toFixed(2)
+    const latestReading = newData[newData.length - 1];
+    currentWaterLevelValue.value = latestReading.value.toFixed(2);
     
     lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
       hour12: true
-    })
+    });
     
-    const values = chartData.value.map(item => item.value).filter(val => !isNaN(val))
+    const values = chartData.value.map(item => item.value).filter(val => !isNaN(val));
     if (values.length > 0) {
       waterLevelStats.value = {
         min: Math.min(...values).toFixed(2),
         max: Math.max(...values).toFixed(2),
         avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
-      }
+      };
     }
   }
   
-  requestAnimationFrame(() => {
-    updateChart()
-  })
-}
+  // Use setTimeout to break the call stack
+  setTimeout(() => {
+    updateChart();
+  }, 0);
+};
 
 const initializeChartData = (data) => {
+  // Filter out any undefined items first
+  const validData = data.filter(item => item !== undefined && item !== null)
+  
+  // Take the most recent 20 data points for the chart
+  const recentData = validData.slice(0, 20)
   const initialChartData = []
   
-  data.slice(0, 20).forEach(item => {
+  recentData.forEach(item => {
     try {
+      // Check if item exists and has required properties
+      if (!item || item.waterLevel === undefined || item.waterLevel === null) {
+        return // Skip this item
+      }
+      
       let timestamp
       if (item.rawTimestamp && typeof item.rawTimestamp.toDate === 'function') {
         timestamp = item.rawTimestamp.toDate()
       } else if (item.rawTimestamp?.seconds) {
         timestamp = new Date(item.rawTimestamp.seconds * 1000)
+      } else if (item.date && item.time) {
+        // Try to parse from date and time strings
+        try {
+          timestamp = new Date(`${item.date} ${item.time}`)
+          if (isNaN(timestamp.getTime())) {
+            timestamp = new Date()
+          }
+        } catch (e) {
+          timestamp = new Date()
+        }
       } else {
         timestamp = new Date()
       }
@@ -1175,10 +1279,11 @@ const initializeChartData = (data) => {
         })
       }
     } catch (e) {
-      console.error("Error processing item:", e)
+      console.error("Error processing item:", e, item)
     }
   })
   
+  // Sort by timestamp ascending for the chart
   initialChartData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
   
   chartData.value = initialChartData
@@ -1209,12 +1314,15 @@ const initializeChartData = (data) => {
 
 const initializeChart = () => {
   nextTick(() => {
-    if (chartCanvas.value) {
+    if (chartCanvas.value && chartData.value.length > 0) {
       if (chart.value) {
-        chart.value.destroy()
+        chart.value.destroy();
       }
       
-      const ctx = chartCanvas.value.getContext('2d')
+      const ctx = chartCanvas.value.getContext('2d');
+      
+      // Create a safe reference to avoid reactive dependency issues
+      const currentStats = {...waterLevelStats.value};
       
       chart.value = new Chart(ctx, {
         type: 'line',
@@ -1224,7 +1332,7 @@ const initializeChart = () => {
               hour: '2-digit',
               minute: '2-digit',
               hour12: true
-            })
+            });
           }),
           datasets: [{
             label: 'Water Level (%)',
@@ -1263,8 +1371,8 @@ const initializeChart = () => {
           scales: {
             y: {
               beginAtZero: false,
-              min: Math.max(0, Math.floor(waterLevelStats.value.min * 0.95)),
-              max: Math.min(100, Math.ceil(waterLevelStats.value.max * 1.05)),
+              min: Math.max(0, Math.floor((currentStats.min || 0) * 0.95)),
+              max: Math.min(100, Math.ceil((currentStats.max || 100) * 1.05)),
               title: {
                 display: true,
                 text: 'Level (%)',
@@ -1335,29 +1443,44 @@ const initializeChart = () => {
             }
           }
         }
-      })
+      });
     }
-  })
-}
+  });
+};
 
 const updateChart = () => {
-  if (chart.value && chartData.value.length > 0) {
-    chart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    
-    chart.value.data.datasets[0].data = chartData.value.map(item => item.value)
-    
-    chart.value.options.scales.y.min = Math.max(0, Math.floor(waterLevelStats.value.min * 0.95))
-    chart.value.options.scales.y.max = Math.min(100, Math.ceil(waterLevelStats.value.max * 1.05))
-    
-    chart.value.update('none') 
+  if (chart.value && chartData.value.length > 0 && chartCanvas.value) {
+    // Use requestAnimationFrame to avoid stack overflow
+    requestAnimationFrame(() => {
+      try {
+        // Create non-reactive copies to avoid dependency issues
+        const labels = chartData.value.map(item => 
+          item.timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })
+        );
+        
+        const data = chartData.value.map(item => item.value);
+        const stats = {...waterLevelStats.value};
+        
+        chart.value.data.labels = labels;
+        chart.value.data.datasets[0].data = data;
+        
+        // Check if scales exist before trying to modify them
+        if (chart.value.options.scales && chart.value.options.scales.y) {
+          chart.value.options.scales.y.min = Math.max(0, Math.floor((stats.min || 0) * 0.95));
+          chart.value.options.scales.y.max = Math.min(100, Math.ceil((stats.max || 100) * 1.05));
+        }
+        
+        chart.value.update('none');
+      } catch (error) {
+        console.error('Error updating chart:', error);
+      }
+    });
   }
-}
+};
 
 const calculateWaterStatus = (level) => {
   if (level >= 80) return 'FULL'
@@ -1374,8 +1497,8 @@ const searchQuery = ref('')
 const itemsPerPage = ref(20)
 const currentPage = ref(1)
 const activeDropdown = ref(null)
-const sortKey = ref('id')
-const sortDirection = ref('asc')
+const sortKey = ref('date')
+const sortDirection = ref('desc')
 const activeFilters = ref({})
 
 const filterFields = [
@@ -1421,21 +1544,31 @@ const filteredData = computed(() => {
 const sortedData = computed(() => {
   if (!sortKey.value) return filteredData.value
 
-  return [...filteredData.value].sort((a, b) => {
-    let aValue = a[sortKey.value]
-    let bValue = b[sortKey.value]
-    
-    if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-    if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-    
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection.value === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
-    }
-    
-    return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
+  // Default sorting should be by timestamp descending (newest first)
+  const defaultSort = [...filteredData.value].sort((a, b) => {
+    return b.timestamp - a.timestamp
   })
+  
+  // If user has selected a different sort, use that instead
+  if (sortKey.value !== 'timestamp') {
+    return [...filteredData.value].sort((a, b) => {
+      let aValue = a[sortKey.value]
+      let bValue = b[sortKey.value]
+      
+      if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+      if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection.value === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+      
+      return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
+    })
+  }
+  
+  return defaultSort
 })
 
 const paginatedData = computed(() => {
@@ -1688,14 +1821,22 @@ watch([searchQuery, activeFilters, itemsPerPage], () => {
 })
 
 let unsubscribe = null
+const resizeObserverRef = ref(null);
+
+// Define handleResize outside to avoid recreation
+const handleResize = () => {
+  if (chart.value && chartCanvas.value) {
+    chart.value.resize();
+  }
+};
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   
-  fetchWaterLevelData()
+  // Replace the realtime listener with polling
+  unsubscribe = setupPollingListener()
   
-  unsubscribe = setupRealtimeListener()
-  
+  // Resize handler
   const handleResize = () => {
     if (chart.value) {
       chart.value.resize()
@@ -1719,12 +1860,14 @@ onUnmounted(() => {
     chart.value.destroy()
   }
   
+  // Clean up polling interval
   if (unsubscribe) {
     unsubscribe()
   }
   
   window.removeEventListener('resize', () => {})
 })
+
 </script>
   
 <style>

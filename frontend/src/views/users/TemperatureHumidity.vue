@@ -485,6 +485,9 @@ const humidityStats = ref({
   avg: '--'
 })
 
+let pollingInterval = null
+const POLLING_FREQUENCY = 5000 
+
 let PRINT_CHART_DATA_LIMIT = 0 
 
 const printTable = async () => {
@@ -1013,11 +1016,12 @@ const paginationNumbers = computed(() => {
 
 const dataCache = ref(null)
 
+
 const fetchTempHumidityData = async () => {
   try {
-    isLoading.value = true
+    // isLoading.value = true
     
-    // Use the correct endpoint - remove /api since your backend doesn't have it
+    // Use the correct endpoint
     const response = await api.get('/temperature-humidity/readings')
     const allReadings = response.data
     
@@ -1083,11 +1087,13 @@ const fetchTempHumidityData = async () => {
 
     dataCache.value = processedData
     
+    // Update the main data array
     tempHumidityData.value = processedData
     isLoading.value = false
     
+    // Update chart with all data
     initializeChartData(processedData)
-    PRINT_CHART_DATA_LIMIT = processedData.length 
+    PRINT_CHART_DATA_LIMIT = processedData.length
     
   } catch (error) {
     console.error("❌ Error fetching temperature and humidity data:", error)
@@ -1100,106 +1106,21 @@ const fetchTempHumidityData = async () => {
   }
 }
 
-const setupRealtimeListener = () => {
-  // Polling implementation for real-time updates
-  let pollingInterval = null
-  let lastPollTime = Date.now()
-  
-  const pollData = async () => {
-    try {
-      // Use the correct endpoint - remove /api since your backend doesn't have it
-      const response = await api.get('/temperature-humidity/readings/recent?hours=24')
-      const recentData = response.data
-      
-      if (recentData && recentData.length > 0) {
-        // Process recent data for chart updates
-        const processedData = recentData.map(item => {
-          let timestamp;
-          if (item.timestamp && typeof item.timestamp === 'object' && '_seconds' in item.timestamp) {
-            timestamp = new Date(item.timestamp._seconds * 1000 + item.timestamp._nanoseconds / 1000000)
-          } else if (item.timestamp && typeof item.timestamp === 'string') {
-            timestamp = new Date(item.timestamp)
-          } else {
-            timestamp = new Date()
-          }
-          
-          return {
-            timestamp: timestamp,
-            temperature: Number(item.temperature),
-            humidity: Number(item.humidity),
-            deviceId: item.device_id
-          }
-        })
-        
-        // Filter out duplicates and keep only new data
-        const newData = processedData.filter(newItem => {
-          return !chartData.value.some(existingItem => 
-            existingItem.timestamp.getTime() === newItem.timestamp.getTime() &&
-            existingItem.deviceId === newItem.deviceId
-          )
-        })
-        
-        if (newData.length > 0) {
-          // Update chart data (keep reasonable amount for performance)
-          chartData.value = [...chartData.value, ...newData].slice(-100)
-          
-          const latestReading = newData[newData.length - 1]
-          currentTempValue.value = latestReading.temperature.toFixed(2)
-          currentHumidityValue.value = latestReading.humidity.toFixed(2)
-          
-          const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          })
-          lastUpdated.value = formattedTime
-          
-          // Update statistics based on all chart data
-          const tempValues = chartData.value.map(item => item.temperature)
-          const humidityValues = chartData.value.map(item => item.humidity)
-          
-          if (tempValues.length > 0 && humidityValues.length > 0) {
-            tempStats.value = {
-              min: Math.min(...tempValues).toFixed(2),
-              max: Math.max(...tempValues).toFixed(2),
-              avg: (tempValues.reduce((sum, val) => sum + val, 0) / tempValues.length).toFixed(2)
-            }
-            
-            humidityStats.value = {
-              min: Math.min(...humidityValues).toFixed(2),
-              max: Math.max(...humidityValues).toFixed(2),
-              avg: (humidityValues.reduce((sum, val) => sum + val, 0) / humidityValues.length).toFixed(2)
-            }
-          }
-          
-          updateChart()
-        }
-      }
-      
-      lastPollTime = Date.now()
-      
-    } catch (error) {
-      console.error('Error polling recent data:', error)
-      
-      // If polling fails, try to reconnect
-      const timeSinceLastSuccess = Date.now() - lastPollTime
-      if (timeSinceLastSuccess > 30000) {
-        console.log('Reconnecting to server...')
-        fetchTempHumidityData()
-      }
-    }
+const setupPollingListener = () => {
+  // Clear any existing interval
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
   }
   
-  // Start polling every 5 seconds for real-time updates
-  pollingInterval = setInterval(pollData, 5000)
+  // Start polling immediately and then set interval
+  fetchTempHumidityData()
+  pollingInterval = setInterval(fetchTempHumidityData, POLLING_FREQUENCY)
   
-  // Initial poll
-  pollData()
-  
+  // Return cleanup function
   return () => {
     if (pollingInterval) {
       clearInterval(pollingInterval)
+      pollingInterval = null
     }
   }
 }
@@ -1280,7 +1201,10 @@ const fetchTimeRange = async (deviceId = null) => {
 }
 
 const initializeChartData = (data) => {
-  const initialChartData = data.slice(0, 20)
+  // Take the most recent 20 readings for the chart
+  const recentData = data.slice(-20)
+  
+  const chartDataPoints = recentData
     .filter(item => item.temperature !== '--' && item.humidity !== '--')
     .map(item => ({
       timestamp: item.rawTimestamp || new Date(),
@@ -1289,10 +1213,10 @@ const initializeChartData = (data) => {
     }))
     .sort((a, b) => a.timestamp - b.timestamp)
 
-  chartData.value = initialChartData
+  chartData.value = chartDataPoints
 
-  if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1]
+  if (chartDataPoints.length > 0) {
+    const latestReading = chartDataPoints[chartDataPoints.length - 1]
     currentTempValue.value = latestReading.temperature.toFixed(2)
     currentHumidityValue.value = latestReading.humidity.toFixed(2)
     
@@ -1304,14 +1228,15 @@ const initializeChartData = (data) => {
     })
     lastUpdated.value = formattedTime
     
-    const tempValues = initialChartData.map(item => item.temperature)
+    const tempValues = chartDataPoints.map(item => item.temperature)
+    const humidityValues = chartDataPoints.map(item => item.humidity)
+    
     tempStats.value = {
       min: Math.min(...tempValues).toFixed(2),
       max: Math.max(...tempValues).toFixed(2),
       avg: (tempValues.reduce((sum, val) => sum + val, 0) / tempValues.length).toFixed(2)
     }
     
-    const humidityValues = initialChartData.map(item => item.humidity)
     humidityStats.value = {
       min: Math.min(...humidityValues).toFixed(2),
       max: Math.max(...humidityValues).toFixed(2),
@@ -1510,7 +1435,14 @@ const initializeChart = () => {
 }
 
 const updateChart = () => {
-  if (chart.value && chartData.value.length > 0) {
+  // Check if chart exists and has data
+  if (!chart.value || !chartData.value.length) {
+    console.warn('Chart not available for update')
+    return false // Return false instead of reinitializing
+  }
+  
+  try {
+    // Update chart labels and data
     chart.value.data.labels = chartData.value.map(item => {
       return item.timestamp.toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -1520,16 +1452,31 @@ const updateChart = () => {
     })
     
     chart.value.data.datasets[0].data = chartData.value.map(item => item.temperature)
-    
     chart.value.data.datasets[1].data = chartData.value.map(item => item.humidity)
     
-    chart.value.options.scales['y-temperature'].min = Math.max(0, Math.floor(tempStats.value.min * 0.95))
-    chart.value.options.scales['y-temperature'].max = Math.ceil(tempStats.value.max * 1.05)
+    // Safely update scales if they exist
+    if (chart.value.options.scales && chart.value.options.scales['y-temperature']) {
+      const tempMin = parseFloat(tempStats.value.min) || 0
+      const tempMax = parseFloat(tempStats.value.max) || 50
+      chart.value.options.scales['y-temperature'].min = Math.max(0, Math.floor(tempMin * 0.95))
+      chart.value.options.scales['y-temperature'].max = Math.ceil(tempMax * 1.05)
+    }
     
-    chart.value.options.scales['y-humidity'].min = Math.max(0, Math.floor(humidityStats.value.min * 0.95))
-    chart.value.options.scales['y-humidity'].max = Math.min(100, Math.ceil(humidityStats.value.max * 1.05))
+    if (chart.value.options.scales && chart.value.options.scales['y-humidity']) {
+      const humidityMin = parseFloat(humidityStats.value.min) || 0
+      const humidityMax = parseFloat(humidityStats.value.max) || 100
+      chart.value.options.scales['y-humidity'].min = Math.max(0, Math.floor(humidityMin * 0.95))
+      chart.value.options.scales['y-humidity'].max = Math.min(100, Math.ceil(humidityMax * 1.05))
+    }
     
-    chart.value.update('none') 
+    // Update chart
+    chart.value.update('none')
+    return true
+    
+  } catch (error) {
+    console.error('Error in updateChart:', error)
+    // Don't reinitialize here - let the polling function handle it
+    return false
   }
 }
 
@@ -1858,9 +1805,11 @@ let unsubscribe = null
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   
-  fetchTempHumidityData()
+  // Replace WebSocket with polling (like SoilMoisture.vue)
+  const cleanup = setupPollingListener()
   
-  unsubscribe = setupRealtimeListener()
+  // Store cleanup function
+  unsubscribe = cleanup
   
   const handleResize = () => {
     if (chart.value) {
@@ -1885,8 +1834,14 @@ onUnmounted(() => {
     chart.value.destroy()
   }
   
+  // Clean up polling interval
   if (unsubscribe) {
     unsubscribe()
+  }
+  
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
   }
   
   window.removeEventListener('resize', () => {})

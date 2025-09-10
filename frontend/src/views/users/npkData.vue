@@ -510,14 +510,15 @@ import { Search, Filter, Download, ChevronDown, ChevronRight, ChevronLeft, Arrow
 import LoadingPage from '../layout/LoadingPage.vue'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, NumberValueElement } from 'docx'
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import api from '../../api/index.js'
-
 import Chart from 'chart.js/auto'
+import html2canvas from 'html2canvas';
 
 const npkData = ref([])
 const isLoading = ref(true)
+const chartsInitialized = ref(false)
 
 const nitrogenChartCanvas = ref(null)
 const phosphorusChartCanvas = ref(null)
@@ -531,26 +532,789 @@ const currentPhosphorusValue = ref('--')
 const currentPotassiumValue = ref('--')
 const lastUpdated = ref('--')
 const currentDate = ref('')
-const nitrogenStats = ref({
-  min: '--',
-  max: '--',
-  avg: '--'
-})
-const phosphorusStats = ref({
-  min: '--',
-  max: '--',
-  avg: '--'
-})
-const potassiumStats = ref({
-  min: '--',
-  max: '--',
-  avg: '--'
-})
+const nitrogenStats = ref({ min: '--', max: '--', avg: '--' })
+const phosphorusStats = ref({ min: '--', max: '--', avg: '--' })
+const potassiumStats = ref({ min: '--', max: '--', avg: '--' })
 
-import html2canvas from 'html2canvas';
-
+// Polling system
+const pollingInterval = ref(null)
+const pollingEnabled = ref(true)
+const pollingIntervalTime = ref(10000) // 10 seconds
+const isUpdating = ref(false)
+const dataCache = ref(null)
 let PRINT_CHART_DATA_LIMIT = 0;
 
+// Table controls
+const searchQuery = ref('')
+const itemsPerPage = ref(20) 
+const currentPage = ref(1)
+const activeDropdown = ref(null)
+const sortKey = ref('date')
+const sortDirection = ref('desc')
+const activeFilters = ref({})
+
+const filters = ref({
+  nitrogen: { min: '', max: '' },
+  phosphorus: { min: '', max: '' },
+  potassium: { min: '', max: '' }
+})
+
+const filterFields = [
+  { key: 'nitrogen', label: 'Nitrogen (mg/kg)' },
+  { key: 'phosphorus', label: 'Phosphorus (mg/kg)' },
+  { key: 'potassium', label: 'Potassium (mg/kg)' }
+]
+
+const headers = [
+  { key: 'id', label: 'ID' },
+  { key: 'nitrogen', label: 'Nitrogen (mg/kg)' },
+  { key: 'phosphorus', label: 'Phosphorus (mg/kg)' },
+  { key: 'potassium', label: 'Potassium (mg/kg)' },
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' }
+]
+
+const exportFormats = ['csv', 'pdf']
+
+// Real-time functions
+const realTime = async () => {
+  if (isUpdating.value) return;
+  
+  isUpdating.value = true;
+  
+  try {
+    console.log('🔄 Polling for new NPK data...')
+    await realTimeFetch()
+  } catch (error) {
+    console.error("❌ Error fetching NPK data:", error)
+  } finally {
+    isUpdating.value = false;
+  }
+}
+
+// const realTimeFetch = async () => {
+//   try {
+//     const response = await api.get('/npk-data')
+//     const responseData = response.data
+    
+//     console.log('✅ Data received:', responseData)
+
+//     if (Array.isArray(responseData)) {
+//       // Create a new array reference to trigger reactivity
+//       const processedData = responseData.map((reading, index) => {
+//         const timestamp = reading.timestamp?._seconds 
+//           ? new Date(reading.timestamp._seconds * 1000)
+//           : new Date(reading.timestamp || Date.now())
+        
+//         return {
+//           id: `${index}`, 
+//           nitrogen: reading.nitrogen?.toFixed(2) || '--',
+//           phosphorus: reading.phosphorus?.toFixed(2) || '--',
+//           potassium: reading.potassium?.toFixed(2) || '--',
+//           date: timestamp.toLocaleDateString(),
+//           time: timestamp.toLocaleTimeString(),
+//           rawTimestamp: timestamp,
+//           deviceId: reading.device_id || 'esp32-1',
+//           soilPh: reading.soilPh?.toFixed(2) || '--',
+//           timestampMs: timestamp.getTime()
+//         }
+//       })
+//       .sort((a, b) => b.timestampMs - a.timestampMs)
+//       .map(({ timestampMs, ...reading }) => reading)
+
+//       // Use Vue.set or create a new array to trigger reactivity
+//       npkData.value = [...processedData] // This creates a new array reference
+//       dataCache.value = [...processedData]
+      
+//       const validChartData = processedData
+//         .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
+//         .map(reading => ({
+//           timestamp: reading.rawTimestamp,
+//           nitrogen: Number(reading.nitrogen),
+//           phosphorus: Number(reading.phosphorus),
+//           potassium: Number(reading.potassium)
+//         }))
+//         .sort((a, b) => b.timestamp - a.timestamp)
+//         .slice(0, 20)
+      
+//       // Update chart data with new reference
+//       chartData.value = [...validChartData]
+//       initializeChartData([...validChartData])
+//       PRINT_CHART_DATA_LIMIT = processedData.length
+//     }
+    
+//   } catch (error) {
+//     console.error('❌ Fetch error:', error.message)
+//     // Ensure we maintain reactivity even on error
+//     npkData.value = dataCache.value ? [...dataCache.value] : []
+//   }
+// }
+
+const realTimeFetch = async () => {
+  try {
+    const response = await api.get('/npk-data')
+    const responseData = response.data
+    
+    console.log('✅ Data received:', responseData)
+
+    if (Array.isArray(responseData)) {
+      const processedData = responseData.map((reading, index) => {
+        const timestamp = reading.timestamp?._seconds 
+          ? new Date(reading.timestamp._seconds * 1000)
+          : new Date(reading.timestamp || Date.now())
+        
+        return {
+          id: `${index}`, 
+          nitrogen: reading.nitrogen?.toFixed(2) || '--',
+          phosphorus: reading.phosphorus?.toFixed(2) || '--',
+          potassium: reading.potassium?.toFixed(2) || '--',
+          date: timestamp.toLocaleDateString(),
+          time: timestamp.toLocaleTimeString(),
+          rawTimestamp: timestamp,
+          deviceId: reading.device_id || 'esp32-1',
+          soilPh: reading.soilPh?.toFixed(2) || '--',
+          timestampMs: timestamp.getTime()
+        }
+      })
+      .sort((a, b) => b.timestampMs - a.timestampMs)
+      .map(({ timestampMs, ...reading }) => reading)
+
+      // CRITICAL FIX: Replace the array completely to trigger reactivity
+      npkData.value = processedData
+      dataCache.value = processedData
+      
+      // Log the latest data to verify it's current
+      if (processedData.length > 0) {
+        console.log('📅 Latest record date:', processedData[0].date, processedData[0].time)
+      }
+      
+      const validChartData = processedData
+        .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
+        .map(reading => ({
+          timestamp: reading.rawTimestamp,
+          nitrogen: Number(reading.nitrogen),
+          phosphorus: Number(reading.phosphorus),
+          potassium: Number(reading.potassium)
+        }))
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 20)
+      
+      chartData.value = validChartData
+      initializeChartData(validChartData)
+      PRINT_CHART_DATA_LIMIT = processedData.length
+    }
+    
+  } catch (error) {
+    console.error('❌ Fetch error:', error.message)
+    npkData.value = dataCache.value || []
+  }
+}
+
+const startPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+  }
+  
+  pollingInterval.value = setInterval(async () => {
+    if (pollingEnabled.value && !isUpdating.value) {
+      await realTime()
+    }
+  }, pollingIntervalTime.value)
+}
+
+const stopPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+}
+
+// Chart functions
+const initializeChartData = (data) => {
+  const validChartData = data
+    .filter(item => {
+      const validN = item.nitrogen !== '--' && !isNaN(Number(item.nitrogen)) && Number(item.nitrogen) > 0
+      const validP = item.phosphorus !== '--' && !isNaN(Number(item.phosphorus)) && Number(item.phosphorus) > 0
+      const validK = item.potassium !== '--' && !isNaN(Number(item.potassium)) && Number(item.potassium) > 0
+      return validN && validP && validK
+    })
+    .map(item => ({
+      timestamp: item.timestamp || new Date(),
+      nitrogen: Number(item.nitrogen),
+      phosphorus: Number(item.phosphorus),
+      potassium: Number(item.potassium)
+    }))
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 20)
+
+  console.log(`📈 Chart data: ${validChartData.length} valid entries`)
+
+  chartData.value = validChartData
+
+  if (validChartData.length > 0) {
+    const latestReading = validChartData[0]
+    currentNitrogenValue.value = latestReading.nitrogen.toFixed(2)
+    currentPhosphorusValue.value = latestReading.phosphorus.toFixed(2)
+    currentPotassiumValue.value = latestReading.potassium.toFixed(2)
+    
+    const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+    lastUpdated.value = formattedTime
+    
+    const nitrogenValues = validChartData.map(item => item.nitrogen)
+    const phosphorusValues = validChartData.map(item => item.phosphorus)
+    const potassiumValues = validChartData.map(item => item.potassium)
+    
+    nitrogenStats.value = {
+      min: Math.min(...nitrogenValues).toFixed(2),
+      max: Math.max(...nitrogenValues).toFixed(2),
+      avg: (nitrogenValues.reduce((sum, val) => sum + val, 0) / nitrogenValues.length).toFixed(2)
+    }
+    
+    phosphorusStats.value = {
+      min: Math.min(...phosphorusValues).toFixed(2),
+      max: Math.max(...phosphorusValues).toFixed(2),
+      avg: (phosphorusValues.reduce((sum, val) => sum + val, 0) / phosphorusValues.length).toFixed(2)
+    }
+    
+    potassiumStats.value = {
+      min: Math.min(...potassiumValues).toFixed(2),
+      max: Math.max(...potassiumValues).toFixed(2),
+      avg: (potassiumValues.reduce((sum, val) => sum + val, 0) / potassiumValues.length).toFixed(2)
+    }
+  } else {
+    currentNitrogenValue.value = '--'
+    currentPhosphorusValue.value = '--'
+    currentPotassiumValue.value = '--'
+    lastUpdated.value = '--'
+    
+    nitrogenStats.value = { min: '--', max: '--', avg: '--' }
+    phosphorusStats.value = { min: '--', max: '--', avg: '--' }
+    potassiumStats.value = { min: '--', max: '--', avg: '--' }
+  }
+  
+  initializeChart()
+}
+
+const initializeChart = () => {
+  nextTick(() => {
+    setTimeout(() => {
+      try {
+        initializeNitrogenChart();
+        initializePhosphorusChart();
+        initializePotassiumChart();
+        chartsInitialized.value = true;
+      } catch (error) {
+        console.error('Error initializing charts:', error)
+      }
+    }, 300);
+  });
+}
+
+const initializeNitrogenChart = () => {
+  if (!nitrogenChartCanvas.value) {
+    console.warn('Nitrogen chart canvas not available');
+    return;
+  }
+  
+  const container = nitrogenChartCanvas.value.parentElement;
+  if (!container) {
+    console.warn('Nitrogen chart container not available');
+    return;
+  }
+  
+  if (nitrogenChart.value) {
+    try {
+      nitrogenChart.value.destroy();
+    } catch (error) {
+      console.warn('Error destroying nitrogen chart:', error);
+    }
+  }
+  
+  try {
+    const ctx = nitrogenChartCanvas.value.getContext('2d');
+    nitrogenChartCanvas.value.width = container.clientWidth;
+    nitrogenChartCanvas.value.height = container.clientHeight;
+    
+    // Safe min/max calculation
+    const minVal = nitrogenStats.value.min !== '--' ? parseFloat(nitrogenStats.value.min) : 0;
+    const maxVal = nitrogenStats.value.max !== '--' ? parseFloat(nitrogenStats.value.max) : 100;
+    
+    nitrogenChart.value = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.value.map(item => {
+          return item.timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }),
+        datasets: [{
+          label: 'Nitrogen (mg/kg)',
+          data: chartData.value.map(item => item.nitrogen),
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#22c55e',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        animation: {
+          duration: 750,
+          easing: 'easeOutQuart'
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: Math.max(0, (minVal || 0) * 0.9),
+            max: (maxVal || 100) * 1.1,
+            ticks: {
+              font: { size: 11 },
+              color: '#22c55e',
+              padding: 8
+            },
+            grid: {
+              color: 'rgba(34, 197, 94, 0.1)',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 10 },
+              maxRotation: 45,
+              color: '#64748b'
+            },
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#22c55e',
+            bodyColor: '#22c55e',
+            borderColor: '#22c55e',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { size: 12, weight: '600' },
+            bodyFont: { size: 12 },
+            callbacks: {
+              label: function(context) {
+                return `${context.raw.toFixed(2)} mg/kg`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing nitrogen chart:', error);
+  }
+}
+
+const initializePhosphorusChart = () => {
+  if (!phosphorusChartCanvas.value) {
+    console.warn('Phosphorus chart canvas not available');
+    return;
+  }
+  
+  const container = phosphorusChartCanvas.value.parentElement;
+  if (!container) {
+    console.warn('Phosphorus chart container not available');
+    return;
+  }
+  
+  if (phosphorusChart.value) {
+    try {
+      phosphorusChart.value.destroy();
+    } catch (error) {
+    }
+  }
+  
+  try {
+    const ctx = phosphorusChartCanvas.value.getContext('2d');
+    phosphorusChartCanvas.value.width = container.clientWidth;
+    phosphorusChartCanvas.value.height = container.clientHeight;
+    
+    const minVal = phosphorusStats.value.min !== '--' ? parseFloat(phosphorusStats.value.min) : 0;
+    const maxVal = phosphorusStats.value.max !== '--' ? parseFloat(phosphorusStats.value.max) : 100;
+    
+    phosphorusChart.value = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.value.map(item => {
+          return item.timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }),
+        datasets: [{
+          label: 'Phosphorus (mg/kg)',
+          data: chartData.value.map(item => item.phosphorus),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#3b82f6',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        animation: {
+          duration: 750,
+          easing: 'easeOutQuart'
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: Math.max(0, (minVal || 0) * 0.9),
+            max: (maxVal || 100) * 1.1,
+            ticks: {
+              font: { size: 11 },
+              color: '#3b82f6',
+              padding: 8
+            },
+            grid: {
+              color: 'rgba(59, 130, 246, 0.1)',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 10 },
+              maxRotation: 45,
+              color: '#64748b'
+            },
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#3b82f6',
+            bodyColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { size: 12, weight: '600' },
+            bodyFont: { size: 12 },
+            callbacks: {
+              label: function(context) {
+                return `${context.raw.toFixed(2)} mg/kg`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing phosphorus chart:', error);
+  }
+}
+
+const initializePotassiumChart = () => {
+  if (!potassiumChartCanvas.value) {
+    console.warn('Potassium chart canvas not available');
+    return;
+  }
+  
+  const container = potassiumChartCanvas.value.parentElement;
+  if (!container) {
+    console.warn('Potassium chart container not available');
+    return;
+  }
+  
+  if (potassiumChart.value) {
+    try {
+      potassiumChart.value.destroy();
+    } catch (error) {
+      console.warn('Error destroying potassium chart:', error);
+    }
+  }
+  
+  try {
+    const ctx = potassiumChartCanvas.value.getContext('2d');
+    potassiumChartCanvas.value.width = container.clientWidth;
+    potassiumChartCanvas.value.height = container.clientHeight;
+    
+    const minVal = potassiumStats.value.min !== '--' ? parseFloat(potassiumStats.value.min) : 0;
+    const maxVal = potassiumStats.value.max !== '--' ? parseFloat(potassiumStats.value.max) : 100;
+    
+    potassiumChart.value = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.value.map(item => {
+          return item.timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }),
+        datasets: [{
+          label: 'Potassium (mg/kg)',
+          data: chartData.value.map(item => item.potassium),
+          borderColor: '#a855f7',
+          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#a855f7',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        animation: {
+          duration: 750,
+          easing: 'easeOutQuart'
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: Math.max(0, (minVal || 0) * 0.9),
+            max: (maxVal || 100) * 1.1,
+            ticks: {
+              font: { size: 11 },
+              color: '#a855f7',
+              padding: 8
+            },
+            grid: {
+              color: 'rgba(168, 85, 247, 0.1)',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 10 },
+              maxRotation: 45,
+              color: '#64748b'
+            },
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#a855f7',
+            bodyColor: '#a855f7',
+            borderColor: '#a855f7',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { size: 12, weight: '600' },
+            bodyFont: { size: 12 },
+            callbacks: {
+              label: function(context) {
+                return `${context.raw.toFixed(2)} mg/kg`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing potassium chart:', error);
+  }
+}
+
+const handleResize = () => {
+  if (nitrogenChart.value && nitrogenChartCanvas.value) {
+    const container = nitrogenChartCanvas.value.parentElement;
+    if (container) {
+      nitrogenChartCanvas.value.width = container.clientWidth;
+      nitrogenChartCanvas.value.height = container.clientHeight;
+      try {
+        nitrogenChart.value.resize();
+      } catch (error) {
+        console.warn('Error resizing nitrogen chart:', error);
+      }
+    }
+  }
+  
+  if (phosphorusChart.value && phosphorusChartCanvas.value) {
+    const container = phosphorusChartCanvas.value.parentElement;
+    if (container) {
+      phosphorusChartCanvas.value.width = container.clientWidth;
+      phosphorusChartCanvas.value.height = container.clientHeight;
+      try {
+        phosphorusChart.value.resize();
+      } catch (error) {
+        console.warn('Error resizing phosphorus chart:', error);
+      }
+    }
+  }
+  
+  if (potassiumChart.value && potassiumChartCanvas.value) {
+    const container = potassiumChartCanvas.value.parentElement;
+    if (container) {
+      potassiumChartCanvas.value.width = container.clientWidth;
+      potassiumChartCanvas.value.height = container.clientHeight;
+      try {
+        potassiumChart.value.resize();
+      } catch (error) {
+        console.warn('Error resizing potassium chart:', error);
+      }
+    }
+  }
+}
+
+const updateNitrogenChart = () => {
+  if (!nitrogenChart.value || !chartData.value || chartData.value.length === 0) {
+    return;
+  }
+  
+  try {
+    nitrogenChart.value.data.labels = chartData.value.map(item => {
+      return item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    })
+    
+    nitrogenChart.value.data.datasets[0].data = chartData.value.map(item => item.nitrogen)
+    
+    const minVal = nitrogenStats.value.min !== '--' ? parseFloat(nitrogenStats.value.min) : 0;
+    const maxVal = nitrogenStats.value.max !== '--' ? parseFloat(nitrogenStats.value.max) : 100;
+    
+    if (!isNaN(minVal) && !isNaN(maxVal)) {
+      nitrogenChart.value.options.scales.y.min = Math.max(0, minVal * 0.9)
+      nitrogenChart.value.options.scales.y.max = maxVal * 1.1
+    }
+    
+    nitrogenChart.value.update('none')
+  } catch (error) {
+    console.error('Error updating nitrogen chart:', error)
+  }
+}
+
+const updatePhosphorusChart = () => {
+  if (!phosphorusChart.value || !chartData.value || chartData.value.length === 0) {
+    return;
+  }
+  
+  try {
+    phosphorusChart.value.data.labels = chartData.value.map(item => {
+      return item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    })
+    
+    phosphorusChart.value.data.datasets[0].data = chartData.value.map(item => item.phosphorus)
+    
+    const minVal = phosphorusStats.value.min !== '--' ? parseFloat(phosphorusStats.value.min) : 0;
+    const maxVal = phosphorusStats.value.max !== '--' ? parseFloat(phosphorusStats.value.max) : 100;
+    
+    if (!isNaN(minVal) && !isNaN(maxVal)) {
+      phosphorusChart.value.options.scales.y.min = Math.max(0, minVal * 0.9)
+      phosphorusChart.value.options.scales.y.max = maxVal * 1.1
+    }
+    
+    phosphorusChart.value.update('none')
+  } catch (error) {
+    console.error('Error updating phosphorus chart:', error)
+  }
+}
+
+const updatePotassiumChart = () => {
+  if (!potassiumChart.value || !chartData.value || chartData.value.length === 0) {
+    return;
+  }
+  
+  try {
+    potassiumChart.value.data.labels = chartData.value.map(item => {
+      return item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    })
+    
+    potassiumChart.value.data.datasets[0].data = chartData.value.map(item => item.potassium)
+    
+    const minVal = potassiumStats.value.min !== '--' ? parseFloat(potassiumStats.value.min) : 0;
+    const maxVal = potassiumStats.value.max !== '--' ? parseFloat(potassiumStats.value.max) : 100;
+    
+    if (!isNaN(minVal) && !isNaN(maxVal)) {
+      potassiumChart.value.options.scales.y.min = Math.max(0, minVal * 0.9)
+      potassiumChart.value.options.scales.y.max = maxVal * 1.1
+    }
+    
+    potassiumChart.value.update('none')
+  } catch (error) {
+    console.error('Error updating potassium chart:', error)
+  }
+}
+
+const updateChart = () => {
+  updateNitrogenChart()
+  updatePhosphorusChart()
+  updatePotassiumChart()
+}
+
+const debounce = (func, wait) => {
+  let timeout
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
+
+const debouncedUpdateChart = debounce(updateChart, 300)
+
+// Keep all your existing functions for table operations, filtering, searching, etc.
+// ... (all your existing table-related functions remain the same)
+
+// Your existing printTable function remains the same
 const printTable = async () => {
   activeDropdown.value = null;
   
@@ -717,8 +1481,9 @@ const printTable = async () => {
     document.body.removeChild(tempContainer);
     generatePrintHTML('', npkRows, formattedDate, now, 0);
   }
-};
+}
 
+// Your existing generatePrintHTML function remains the same  
 const generatePrintHTML = (combinedChartImage, npkRows, formattedDate, now, chartRecordCount) => {
   const tableContent = `
     <!DOCTYPE html>
@@ -1013,8 +1778,9 @@ const generatePrintHTML = (combinedChartImage, npkRows, formattedDate, now, char
       printWindow.print();
     }
   };
-};
+}
 
+// Your existing paginationNumbers computed property remains the same
 const paginationNumbers = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
@@ -1030,646 +1796,7 @@ const paginationNumbers = computed(() => {
   }
 })
 
-const dataCache = ref(null)
-
-const fetchNPKData = async () => {
-  try {
-    isLoading.value = true
-
-    const response = await api.get('/npk-data')
-    const responseData = response.data
-    
-    console.log('✅ Data received:', responseData)
-
-    if (Array.isArray(responseData)) {
-      const processedData = responseData.map((reading, index) => {
-        const timestamp = reading.timestamp?._seconds 
-          ? new Date(reading.timestamp._seconds * 1000)
-          : new Date(reading.timestamp || Date.now())
-        
-        return {
-          id: `${index}`, 
-          nitrogen: reading.nitrogen?.toFixed(2) || '--',
-          phosphorus: reading.phosphorus?.toFixed(2) || '--',
-          potassium: reading.potassium?.toFixed(2) || '--',
-          date: timestamp.toLocaleDateString(),
-          time: timestamp.toLocaleTimeString(),
-          rawTimestamp: timestamp,
-          deviceId: reading.device_id || 'esp32-1',
-          soilPh: reading.soilPh?.toFixed(2) || '--',
-          timestampMs: timestamp.getTime()
-        }
-      })
-      .sort((a, b) => b.timestampMs - a.timestampMs)
-      .map(({ timestampMs, ...reading }) => reading)
-
-      console.log('📊 Processed data (newest first):', processedData)
-
-      npkData.value = processedData
-      dataCache.value = processedData
-      
-      const chartData = processedData
-        .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
-        .map(reading => ({
-          timestamp: reading.rawTimestamp,
-          nitrogen: Number(reading.nitrogen),
-          phosphorus: Number(reading.phosphorus),
-          potassium: Number(reading.potassium)
-        }))
-      
-      initializeChartData(chartData)
-
-      PRINT_CHART_DATA_LIMIT = processedData.length
-    }
-    
-  } catch (error) {
-    console.error('❌ Fetch error:', error.message)
-    npkData.value = dataCache.value || []
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const setupRealtimeListener = () => {
-  let pollingInterval = null
-  
-  const startPolling = () => {
-    pollingInterval = setInterval(async () => {
-      try {
-        const response = await api.get(`/npk-data/recent?hours=1&limit=20`)
-        const newData = response.data
-        
-        if (Array.isArray(newData) && newData.length > 0) {
-          processNewData(newData)
-        }
-      } catch (error) {
-        console.error('Polling error:', error)
-      }
-    }, 5000)
-  }
-  
-  const processNewData = (newData) => {
-    const chartFormattedData = newData
-      .filter(item => item.nitrogen && item.phosphorus && item.potassium)
-      .map(item => {
-        const timestamp = item.timestamp?._seconds 
-          ? new Date(item.timestamp._seconds * 1000)
-          : new Date(item.timestamp || Date.now())
-        
-        return {
-          timestamp: timestamp,
-          nitrogen: Number(item.nitrogen),
-          phosphorus: Number(item.phosphorus),
-          potassium: Number(item.potassium)
-        }
-      })
-      // Sort descending (newest first)
-      .sort((a, b) => b.timestamp - a.timestamp)
-    
-    if (chartFormattedData.length === 0) return
-    
-    // Merge and keep newest 20
-    const updatedChartData = [...chartFormattedData, ...chartData.value]
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 20)
-    
-    chartData.value = updatedChartData
-    
-    // Update values - newest is first
-    if (updatedChartData.length > 0) {
-      const latestReading = updatedChartData[0]
-      currentNitrogenValue.value = latestReading.nitrogen.toFixed(2)
-      currentPhosphorusValue.value = latestReading.phosphorus.toFixed(2)
-      currentPotassiumValue.value = latestReading.potassium.toFixed(2)
-      lastUpdated.value = latestReading.timestamp.toLocaleTimeString()
-      
-      // Update stats...
-    }
-    
-    updateChart()
-  }
-  
-  startPolling()
-  
-  return () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-    }
-  }
-}
-
-const chartsInitialized = ref(false);
-
-const initializeChartData = (data) => {
-  // Take only valid data for charts
-  const validChartData = data
-    .filter(item => {
-      const validN = item.nitrogen !== '--' && !isNaN(Number(item.nitrogen)) && Number(item.nitrogen) > 0
-      const validP = item.phosphorus !== '--' && !isNaN(Number(item.phosphorus)) && Number(item.phosphorus) > 0
-      const validK = item.potassium !== '--' && !isNaN(Number(item.potassium)) && Number(item.potassium) > 0
-      return validN && validP && validK
-    })
-    .map(item => ({
-      timestamp: item.rawTimestamp || new Date(),
-      nitrogen: Number(item.nitrogen),
-      phosphorus: Number(item.phosphorus),
-      potassium: Number(item.potassium)
-    }))
-    // Changed to sort in descending order (newest first)
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 20)
-
-  console.log(`📈 Chart data: ${validChartData.length} valid entries`)
-
-  // Set chart data
-  chartData.value = validChartData
-
-  // Set initial current values and stats only if we have valid data
-  if (validChartData.length > 0) {
-    // Since we're now sorting newest first, the first element is the latest
-    const latestReading = validChartData[0]
-    currentNitrogenValue.value = latestReading.nitrogen.toFixed(2)
-    currentPhosphorusValue.value = latestReading.phosphorus.toFixed(2)
-    currentPotassiumValue.value = latestReading.potassium.toFixed(2)
-    
-    const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-    lastUpdated.value = formattedTime
-    
-    // Calculate stats only from valid data
-    const nitrogenValues = validChartData.map(item => item.nitrogen)
-    const phosphorusValues = validChartData.map(item => item.phosphorus)
-    const potassiumValues = validChartData.map(item => item.potassium)
-    
-    nitrogenStats.value = {
-      min: Math.min(...nitrogenValues).toFixed(2),
-      max: Math.max(...nitrogenValues).toFixed(2),
-      avg: (nitrogenValues.reduce((sum, val) => sum + val, 0) / nitrogenValues.length).toFixed(2)
-    }
-    
-    phosphorusStats.value = {
-      min: Math.min(...phosphorusValues).toFixed(2),
-      max: Math.max(...phosphorusValues).toFixed(2),
-      avg: (phosphorusValues.reduce((sum, val) => sum + val, 0) / phosphorusValues.length).toFixed(2)
-    }
-    
-    potassiumStats.value = {
-      min: Math.min(...potassiumValues).toFixed(2),
-      max: Math.max(...potassiumValues).toFixed(2),
-      avg: (potassiumValues.reduce((sum, val) => sum + val, 0) / potassiumValues.length).toFixed(2)
-    }
-  } else {
-    // Reset stats if no valid data
-    currentNitrogenValue.value = '--'
-    currentPhosphorusValue.value = '--'
-    currentPotassiumValue.value = '--'
-    lastUpdated.value = '--'
-    
-    nitrogenStats.value = { min: '--', max: '--', avg: '--' }
-    phosphorusStats.value = { min: '--', max: '--', avg: '--' }
-    potassiumStats.value = { min: '--', max: '--', avg: '--' }
-  }
-  
-  // Initialize the chart
-  initializeChart()
-}
-
-
-const initializeChart = () => {
-  nextTick(() => {
-    // Small delay to ensure DOM is fully rendered
-    setTimeout(() => {
-      initializeNitrogenChart();
-      initializePhosphorusChart();
-      initializePotassiumChart();
-      chartsInitialized.value = true;
-    }, 100);
-  });
-}
-
-const initializeNitrogenChart = () => {
-  if (nitrogenChartCanvas.value) {
-    if (nitrogenChart.value) {
-      nitrogenChart.value.destroy()
-    }
-    
-    const ctx = nitrogenChartCanvas.value.getContext('2d')
-    const container = nitrogenChartCanvas.value.parentElement;
-    nitrogenChartCanvas.value.width = container.clientWidth;
-    nitrogenChartCanvas.value.height = container.clientHeight;
-    
-    nitrogenChart.value = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.value.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [{
-          label: 'Nitrogen (mg/kg)',
-          data: chartData.value.map(item => item.nitrogen),
-          borderColor: '#22c55e',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#22c55e',
-          pointBorderWidth: 2,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(nitrogenStats.value.min * 0.9)),
-            max: Math.ceil(nitrogenStats.value.max * 1.1),
-            ticks: {
-              font: { size: 11 },
-              color: '#22c55e',
-              padding: 8
-            },
-            grid: {
-              color: 'rgba(34, 197, 94, 0.1)',
-              drawBorder: false
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              maxRotation: 45,
-              color: '#64748b'
-            },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#22c55e',
-            bodyColor: '#22c55e',
-            borderColor: '#22c55e',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
-            displayColors: false,
-            titleFont: { size: 12, weight: '600' },
-            bodyFont: { size: 12 },
-            callbacks: {
-              label: function(context) {
-                return `${context.raw.toFixed(2)} mg/kg`;
-              }
-            }
-          }
-        }
-      }
-    })
-  }
-}
-
-const initializePhosphorusChart = () => {
-  if (phosphorusChartCanvas.value) {
-    if (phosphorusChart.value) {
-      phosphorusChart.value.destroy()
-    }
-    
-    const ctx = phosphorusChartCanvas.value.getContext('2d')
-    const container = phosphorusChartCanvas.value.parentElement;
-    phosphorusChartCanvas.value.width = container.clientWidth;
-    phosphorusChartCanvas.value.height = container.clientHeight;
-    
-    phosphorusChart.value = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.value.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [{
-          label: 'Phosphorus (mg/kg)',
-          data: chartData.value.map(item => item.phosphorus),
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#3b82f6',
-          pointBorderWidth: 2,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(phosphorusStats.value.min * 0.9)),
-            max: Math.ceil(phosphorusStats.value.max * 1.1),
-            ticks: {
-              font: { size: 11 },
-              color: '#3b82f6',
-              padding: 8
-            },
-            grid: {
-              color: 'rgba(59, 130, 246, 0.1)',
-              drawBorder: false
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              maxRotation: 45,
-              color: '#64748b'
-            },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#3b82f6',
-            bodyColor: '#3b82f6',
-            borderColor: '#3b82f6',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
-            displayColors: false,
-            titleFont: { size: 12, weight: '600' },
-            bodyFont: { size: 12 },
-            callbacks: {
-              label: function(context) {
-                return `${context.raw.toFixed(2)} mg/kg`;
-              }
-            }
-          }
-        }
-      }
-    })
-  }
-}
-
-const initializePotassiumChart = () => {
-  if (potassiumChartCanvas.value) {
-    if (potassiumChart.value) {
-      potassiumChart.value.destroy()
-    }
-    
-    const ctx = potassiumChartCanvas.value.getContext('2d')
-    const container = potassiumChartCanvas.value.parentElement;
-    potassiumChartCanvas.value.width = container.clientWidth;
-    potassiumChartCanvas.value.height = container.clientHeight;
-    
-    potassiumChart.value = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.value.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [{
-          label: 'Potassium (mg/kg)',
-          data: chartData.value.map(item => item.potassium),
-          borderColor: '#a855f7',
-          backgroundColor: 'rgba(168, 85, 247, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#a855f7',
-          pointBorderWidth: 2,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(potassiumStats.value.min * 0.9)),
-            max: Math.ceil(potassiumStats.value.max * 1.1),
-            ticks: {
-              font: { size: 11 },
-              color: '#a855f7',
-              padding: 8
-            },
-            grid: {
-              color: 'rgba(168, 85, 247, 0.1)',
-              drawBorder: false
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              maxRotation: 45,
-              color: '#64748b'
-            },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#a855f7',
-            bodyColor: '#a855f7',
-            borderColor: '#a855f7',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
-            displayColors: false,
-            titleFont: { size: 12, weight: '600' },
-            bodyFont: { size: 12 },
-            callbacks: {
-              label: function(context) {
-                return `${context.raw.toFixed(2)} mg/kg`;
-              }
-            }
-          }
-        }
-      }
-    })
-  }
-}
-
-const handleResize = () => {
-  if (nitrogenChart.value) {
-    const container = nitrogenChartCanvas.value.parentElement;
-    nitrogenChartCanvas.value.width = container.clientWidth;
-    nitrogenChartCanvas.value.height = container.clientHeight;
-    nitrogenChart.value.resize();
-  }
-  // Repeat for other charts
-  if (phosphorusChart.value) {
-    const container = phosphorusChartCanvas.value.parentElement;
-    phosphorusChartCanvas.value.width = container.clientWidth;
-    phosphorusChartCanvas.value.height = container.clientHeight;
-    phosphorusChart.value.resize();
-  }
-  if (potassiumChart.value) {
-    const container = potassiumChartCanvas.value.parentElement;
-    potassiumChartCanvas.value.width = container.clientWidth;
-    potassiumChartCanvas.value.height = container.clientHeight;
-    potassiumChart.value.resize();
-  }
-}
-
-const updateChart = () => {
-  updateNitrogenChart()
-  updatePhosphorusChart()
-  updatePotassiumChart()
-}
-
-const updateNitrogenChart = () => {
-  if (nitrogenChart.value && chartData.value.length > 0) {
-    nitrogenChart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    nitrogenChart.value.data.datasets[0].data = chartData.value.map(item => item.nitrogen)
-    nitrogenChart.value.options.scales.y.min = Math.max(0, Math.floor(nitrogenStats.value.min * 0.9))
-    nitrogenChart.value.options.scales.y.max = Math.ceil(nitrogenStats.value.max * 1.1)
-    nitrogenChart.value.update('none')
-  }
-}
-
-const updatePhosphorusChart = () => {
-  if (phosphorusChart.value && chartData.value.length > 0) {
-    phosphorusChart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    phosphorusChart.value.data.datasets[0].data = chartData.value.map(item => item.phosphorus)
-    phosphorusChart.value.options.scales.y.min = Math.max(0, Math.floor(phosphorusStats.value.min * 0.9))
-    phosphorusChart.value.options.scales.y.max = Math.ceil(phosphorusStats.value.max * 1.1)
-    phosphorusChart.value.update('none')
-  }
-}
-
-const updatePotassiumChart = () => {
-  if (potassiumChart.value && chartData.value.length > 0) {
-    potassiumChart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    potassiumChart.value.data.datasets[0].data = chartData.value.map(item => item.potassium)
-    potassiumChart.value.options.scales.y.min = Math.max(0, Math.floor(potassiumStats.value.min * 0.9))
-    potassiumChart.value.options.scales.y.max = Math.ceil(potassiumStats.value.max * 1.1)
-    potassiumChart.value.update('none')
-  }
-}
-
-const getNitrogenTextClass = (nitrogen) => {
-  const nitrogenValue = parseFloat(nitrogen)
-  if (nitrogenValue >= 50) return 'text-green-600'
-  if (nitrogenValue >= 30) return 'text-green-500'
-  if (nitrogenValue >= 20) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const getPhosphorusTextClass = (phosphorus) => {
-  const phosphorusValue = parseFloat(phosphorus)
-  if (phosphorusValue >= 120) return 'text-blue-600'
-  if (phosphorusValue >= 80) return 'text-blue-500'
-  if (phosphorusValue >= 50) return 'text-sky-600'
-  return 'text-red-600'
-}
-
-const getPotassiumTextClass = (potassium) => {
-  const potassiumValue = parseFloat(potassium)
-  if (potassiumValue >= 140) return 'text-purple-600'
-  if (potassiumValue >= 100) return 'text-purple-500'
-  if (potassiumValue >= 80) return 'text-indigo-600'
-  return 'text-red-600'
-}
-
-const filters = ref({
-  nitrogen: { min: '', max: '' },
-  phosphorus: { min: '', max: '' },
-  potassium: { min: '', max: '' }
-})
-
-const searchQuery = ref('')
-const itemsPerPage = ref(20) 
-const currentPage = ref(1)
-const activeDropdown = ref(null)
-const sortKey = ref('date')
-const sortDirection = ref('asc')
-const activeFilters = ref({})
-
-const filterFields = [
-  { key: 'nitrogen', label: 'Nitrogen (mg/kg)' },
-  { key: 'phosphorus', label: 'Phosphorus (mg/kg)' },
-  { key: 'potassium', label: 'Potassium (mg/kg)' }
-]
-
-const headers = [
-  { key: 'id', label: 'ID' },
-  { key: 'nitrogen', label: 'Nitrogen (mg/kg)' },
-  { key: 'phosphorus', label: 'Phosphorus (mg/kg)' },
-  { key: 'potassium', label: 'Potassium (mg/kg)' },
-  { key: 'date', label: 'Date' },
-  { key: 'time', label: 'Time' }
-]
-
-const exportFormats = ['csv', 'pdf']
-
+// Your existing filteredData computed property remains the same
 const filteredData = computed(() => {
   let result = [...npkData.value]
 
@@ -1696,6 +1823,7 @@ const filteredData = computed(() => {
   return result
 })
 
+// Your existing sortedData computed property remains the same  
 const sortedData = computed(() => {
   if (!sortKey.value) return filteredData.value
 
@@ -1716,39 +1844,42 @@ const sortedData = computed(() => {
   })
 })
 
+// Your existing paginatedData computed property remains the same
 const paginatedData = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage.value
   const endIndex = startIndex + itemsPerPage.value
   return sortedData.value.slice(startIndex, endIndex)
 })
 
+// Your existing totalPages computed property remains the same
 const totalPages = computed(() => {
   return Math.ceil(sortedData.value.length / itemsPerPage.value)
 })
 
-const displayedPages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const pages = []
+// Your existing UI methods remain the same
+const getNitrogenTextClass = (nitrogen) => {
+  const nitrogenValue = parseFloat(nitrogen)
+  if (nitrogenValue >= 50) return 'text-green-600'
+  if (nitrogenValue >= 30) return 'text-green-500'
+  if (nitrogenValue >= 20) return 'text-yellow-600'
+  return 'text-red-600'
+}
 
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
-  } else {
-    pages.push(1)
+const getPhosphorusTextClass = (phosphorus) => {
+  const phosphorusValue = parseFloat(phosphorus)
+  if (phosphorusValue >= 120) return 'text-blue-600'
+  if (phosphorusValue >= 80) return 'text-blue-500'
+  if (phosphorusValue >= 50) return 'text-sky-600'
+  return 'text-red-600'
+}
 
-    if (current <= 3) {
-      pages.push(2, 3, 4, 5, '...', total)
-    } else if (current >= total - 2) {
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
-    } else {
-      pages.push('...', current - 1, current, current + 1, '...', total)
-    }
-  }
-
-  return pages
-})
+const getPotassiumTextClass = (potassium) => {
+  const potassiumValue = parseFloat(potassium)
+  if (potassiumValue >= 140) return 'text-purple-600'
+  if (potassiumValue >= 100) return 'text-purple-500'
+  if (potassiumValue >= 80) return 'text-indigo-600'
+  return 'text-red-600'
+}
 
 const toggleDropdown = (dropdownName) => {
   if (activeDropdown.value === dropdownName) {
@@ -1759,7 +1890,7 @@ const toggleDropdown = (dropdownName) => {
 }
 
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.relative')) {
+   if (!event.target.closest('.relative')) {
     activeDropdown.value = null
   }
 }
@@ -1799,7 +1930,7 @@ const setSortKey = (key) => {
 }
 
 const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
+   if (currentPage.value < totalPages.value) {
     currentPage.value++
   }
 }
@@ -1966,18 +2097,35 @@ const exportData = async (format) => {
   activeDropdown.value = null
 }
 
+const updateCurrentDate = () => {
+  const now = new Date()
+  currentDate.value = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+// Watchers
 watch([searchQuery, activeFilters, itemsPerPage], () => {
   currentPage.value = 1
 })
 
-let unsubscribe = null
+// Add this watcher to reset to first page when new data arrives
+watch(npkData, () => {
+  currentPage.value = 1
+}, { deep: true })
 
+// Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
-  
-  fetchNPKData();
-  
-  unsubscribe = setupRealtimeListener();
+
+  // Initial data fetch
+  realTimeFetch().then(() => {
+    isLoading.value = false;
+    // Start polling after initial data is loaded
+    startPolling();
+  });
   
   // Use ResizeObserver to handle container resizing
   const resizeObserver = new ResizeObserver(() => {
@@ -2006,17 +2154,21 @@ onMounted(() => {
   window.dateUpdateInterval = dateInterval;
 });
 
-// Update the onUnmounted lifecycle hook
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   
-  if (nitrogenChart.value) nitrogenChart.value.destroy();
-  if (phosphorusChart.value) phosphorusChart.value.destroy();
-  if (potassiumChart.value) potassiumChart.value.destroy();
+  // Clean up polling
+  stopPolling();
   
-  if (unsubscribe) {
-    unsubscribe();
-  }
+  // if (nitrogenChart.value) {
+  //   try { nitrogenChart.value.destroy(); } catch (e) {}
+  // }
+  // if (phosphorusChart.value) {
+  //   try { phosphorusChart.value.destroy(); } catch (e) {}
+  // }
+  // if (potassiumChart.value) {
+  //   try { potassiumChart.value.destroy(); } catch (e) {}
+  // }
   
   window.removeEventListener('resize', handleResize);
   
@@ -2024,16 +2176,6 @@ onUnmounted(() => {
     clearInterval(window.dateUpdateInterval);
   }
 });
-
-
-const updateCurrentDate = () => {
-  const now = new Date()
-  currentDate.value = now.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  })
-}
 </script>
   
 <style>

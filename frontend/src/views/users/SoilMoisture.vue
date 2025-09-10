@@ -476,6 +476,9 @@ const moistureStats = ref({
   avg: '--'
 })
 
+let pollingInterval = null
+const POLLING_FREQUENCY = 5000 
+
 let PRINT_CHART_DATA_LIMIT = 0
 
 const printTable = async () => {
@@ -975,7 +978,6 @@ const dataCache = ref(null)
 
 const fetchSoilMoistureData = async () => {
   try {
-    isLoading.value = true
     console.log('🌱 Fetching soil moisture data...')
 
     const response = await api.get(`/soil-moisture`, {
@@ -1054,10 +1056,12 @@ const fetchSoilMoistureData = async () => {
       }
     })
 
+    // Update the data - this will trigger reactive updates
     soilMoistureData.value = processedData
     dataCache.value = processedData
     isLoading.value = false
     
+    // Update chart with the latest data
     initializeChartData(processedData)
     PRINT_CHART_DATA_LIMIT = processedData.length
     
@@ -1066,45 +1070,26 @@ const fetchSoilMoistureData = async () => {
   } catch (error) {
     console.error("❌ Error fetching soil moisture data:", error)
     isLoading.value = false
-    soilMoistureData.value = []
+    // Don't clear the data on error, keep showing existing data
   }
 }
 
-
-let socket = null
-const setupRealtimeListener = () => {
-  try {
-    // Connect to WebSocket for real-time updates
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${wsProtocol}//${window.location.host.replace('3000', '8000')}/ws/soil-moisture`
-    
-    socket = new WebSocket(wsUrl)
-    
-    socket.onopen = () => {
-      console.log('WebSocket connected for real-time soil moisture updates')
+const setupPollingListener = () => {
+  // Clear any existing interval
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
+  
+  // Start polling immediately and then set interval
+  fetchSoilMoistureData()
+  pollingInterval = setInterval(fetchSoilMoistureData, POLLING_FREQUENCY)
+  
+  // Return cleanup function
+  return () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
     }
-    
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      processRealtimeData(data)
-    }
-    
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-    
-    socket.onclose = () => {
-      console.log('WebSocket connection closed')
-    }
-    
-    return () => {
-      if (socket) {
-        socket.close()
-      }
-    }
-  } catch (error) {
-    console.error('Error setting up WebSocket:', error)
-    return () => {} // Return empty cleanup function
   }
 }
 
@@ -1112,105 +1097,11 @@ let debounceTimer = null
 let lastUpdateTime = Date.now()
 let combinedRealtimeData = []
 
-const processRealtimeData = (data) => {
-  let timestamp
-  if (data.timestamp) {
-    if (typeof data.timestamp === 'string') {
-      timestamp = new Date(data.timestamp)
-    } else if (data.timestamp instanceof Date) {
-      timestamp = data.timestamp
-    } else {
-      timestamp = new Date()
-    }
-  } else {
-    timestamp = new Date()
-  }
-  
-  const newDataPoint = {
-    timestamp,
-    value: data.soilMoisture,
-    deviceId: data.deviceId || 'unknown'
-  }
-  
-  combinedRealtimeData.push(newDataPoint)
-  combinedRealtimeData = combinedRealtimeData.slice(-20) 
-  
-  chartData.value = combinedRealtimeData
-  
-  if (combinedRealtimeData.length > 0) {
-    const latestReading = combinedRealtimeData[combinedRealtimeData.length - 1]
-    currentMoistureValue.value = latestReading.value.toFixed(2)
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-    
-    const values = combinedRealtimeData.map(item => item.value)
-    moistureStats.value = {
-      min: Math.min(...values).toFixed(2),
-      max: Math.max(...values).toFixed(2),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
-    }
-  }
-  
-  requestAnimationFrame(() => {
-    updateChart()
-  })
-}
-
-const updateRealtimeData = (snapshot, deviceId) => {
-  const newData = snapshot.docs
-    .filter(doc => doc.data().soilMoisture !== undefined)
-    .map(doc => {
-      const data = doc.data()
-      const timestamp = data.timestamp instanceof Timestamp 
-        ? data.timestamp.toDate() 
-        : new Date(data.timestamp.seconds * 1000)
-      
-      return {
-        timestamp,
-        value: Number(data.soilMoisture),
-        deviceId
-      }
-    })
-  
-  combinedRealtimeData = combinedRealtimeData.filter(item => item.deviceId !== deviceId)
-  combinedRealtimeData.push(...newData)
-  
-  combinedRealtimeData.sort((a, b) => a.timestamp - b.timestamp)
-  combinedRealtimeData = combinedRealtimeData.slice(-20)
-  
-  chartData.value = combinedRealtimeData
-  
-  if (combinedRealtimeData.length > 0) {
-    const latestReading = combinedRealtimeData[combinedRealtimeData.length - 1]
-    currentMoistureValue.value = latestReading.value.toFixed(2)
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-    
-    const values = combinedRealtimeData.map(item => item.value)
-    moistureStats.value = {
-      min: Math.min(...values).toFixed(2),
-      max: Math.max(...values).toFixed(2),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
-    }
-  }
-  
-  requestAnimationFrame(() => {
-    updateChart()
-  })
-}
-
 const initializeChartData = (data) => {
-  const initialChartData = data.slice(0, 20)
+  // Take the most recent 20 readings for the chart
+  const recentData = data.slice(-20)
+  
+  const chartDataPoints = recentData
     .map(item => ({
       timestamp: item.rawTimestamp, 
       value: Number(item.soilMoisture),
@@ -1218,11 +1109,11 @@ const initializeChartData = (data) => {
     }))
     .sort((a, b) => a.timestamp - b.timestamp) 
   
-  chartData.value = initialChartData
-  combinedRealtimeData = initialChartData
+  chartData.value = chartDataPoints
+  combinedRealtimeData = chartDataPoints
   
-  if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1]
+  if (chartDataPoints.length > 0) {
+    const latestReading = chartDataPoints[chartDataPoints.length - 1]
     currentMoistureValue.value = latestReading.value.toFixed(2)
     
     lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
@@ -1232,7 +1123,7 @@ const initializeChartData = (data) => {
       hour12: true
     })
     
-    const values = initialChartData.map(item => item.value)
+    const values = chartDataPoints.map(item => item.value)
     moistureStats.value = {
       min: Math.min(...values).toFixed(2),
       max: Math.max(...values).toFixed(2),
@@ -1413,7 +1304,7 @@ const itemsPerPage = ref(20)
 const currentPage = ref(1)
 const activeDropdown = ref(null)
 const sortKey = ref('date')
-const sortDirection = ref('asc')
+const sortDirection = ref('desc')
 const activeFilters = ref({})
 
 const filterFields = [
@@ -1706,13 +1597,14 @@ let unsubscribe = null
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  fetchSoilMoistureData()
-  const cleanup = setupRealtimeListener()
+  
+  // Replace WebSocket with polling
+  const cleanup = setupPollingListener()
   
   // Store cleanup function
   unsubscribe = cleanup
   
-  // Resize handler (remains the same)
+  // Resize handler
   const handleResize = () => {
     if (chart.value) {
       chart.value.resize()
@@ -1729,6 +1621,7 @@ onMounted(() => {
   }
 })
 
+// Update the onUnmounted hook:
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   
@@ -1736,17 +1629,18 @@ onUnmounted(() => {
     chart.value.destroy()
   }
   
+  // Clean up polling interval
   if (unsubscribe) {
     unsubscribe()
   }
   
-  if (socket) {
-    socket.close()
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
   }
   
   window.removeEventListener('resize', () => {})
 })
-
 </script>
   
 <style>
