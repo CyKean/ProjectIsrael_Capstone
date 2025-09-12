@@ -19,7 +19,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import Toast from './Toast.vue'
 import { CheckCircle, Info, AlertTriangle, XCircle } from 'lucide-vue-next'
 
-const toastSound = '../../public/sounds/toast.wav'
+// const toastSound = '../../public/sounds/toast.wav'
+// const toastSound = 'sounds/toast.wav';
+const toastSound = '/sounds/toast.wav';
 const toasts = ref([]) // All currently visible toasts
 const toastQueue = ref([]) // Queue for pending toasts
 const isProcessingQueue = ref(false)

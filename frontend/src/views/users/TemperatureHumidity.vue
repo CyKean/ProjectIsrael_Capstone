@@ -328,9 +328,7 @@
                 <!-- Fixed Header -->
                 <thead class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
+                    
                     <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                       <div class="text-red-600">Temperature</div>
                       <div class="text-gray-400 text-[10px]">(°C)</div>
@@ -357,9 +355,7 @@
                     :key="index"
                     class="hover:bg-gray-50/50 transition-colors"
                   >
-                    <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                      <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                    </td>
+                    
                     <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
                       <div class="text-sm font-medium" :class="getTemperatureTextClass(row.temperature)">
                         {{ row.temperature }}°C
@@ -1306,10 +1302,7 @@ const initializeChart = () => {
             mode: 'index',
             intersect: false,
           },
-          animation: {
-            duration: 500, 
-            easing: 'easeOutQuart'
-          },
+          animation: false,
           layout: {
             padding: {
               top: 10,

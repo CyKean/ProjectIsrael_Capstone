@@ -369,9 +369,7 @@
                 <table class="min-w-full">
                   <thead>
                     <tr>
-                      <th class="w-[10%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
-                      </th>
+                     
                       <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-green-600">Nitrogen</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
@@ -406,9 +404,7 @@
                       :key="index"
                       class="hover:bg-gray-50 transition-colors"
                     >
-                      <td class="w-[10%] py-2.5 px-3 whitespace-nowrap">
-                        <div class="text-[9px] md:text-xs font-medium text-gray-700">{{ row.id }}</div>
-                      </td>
+                      
                       <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
                         <div class="text-[9px] md:text-xs font-semibold" :class="getNitrogenTextClass(row.nitrogen)">
                           {{ row.nitrogen }}
@@ -591,64 +587,6 @@ const realTime = async () => {
     isUpdating.value = false;
   }
 }
-
-// const realTimeFetch = async () => {
-//   try {
-//     const response = await api.get('/npk-data')
-//     const responseData = response.data
-    
-//     console.log('✅ Data received:', responseData)
-
-//     if (Array.isArray(responseData)) {
-//       // Create a new array reference to trigger reactivity
-//       const processedData = responseData.map((reading, index) => {
-//         const timestamp = reading.timestamp?._seconds 
-//           ? new Date(reading.timestamp._seconds * 1000)
-//           : new Date(reading.timestamp || Date.now())
-        
-//         return {
-//           id: `${index}`, 
-//           nitrogen: reading.nitrogen?.toFixed(2) || '--',
-//           phosphorus: reading.phosphorus?.toFixed(2) || '--',
-//           potassium: reading.potassium?.toFixed(2) || '--',
-//           date: timestamp.toLocaleDateString(),
-//           time: timestamp.toLocaleTimeString(),
-//           rawTimestamp: timestamp,
-//           deviceId: reading.device_id || 'esp32-1',
-//           soilPh: reading.soilPh?.toFixed(2) || '--',
-//           timestampMs: timestamp.getTime()
-//         }
-//       })
-//       .sort((a, b) => b.timestampMs - a.timestampMs)
-//       .map(({ timestampMs, ...reading }) => reading)
-
-//       // Use Vue.set or create a new array to trigger reactivity
-//       npkData.value = [...processedData] // This creates a new array reference
-//       dataCache.value = [...processedData]
-      
-//       const validChartData = processedData
-//         .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
-//         .map(reading => ({
-//           timestamp: reading.rawTimestamp,
-//           nitrogen: Number(reading.nitrogen),
-//           phosphorus: Number(reading.phosphorus),
-//           potassium: Number(reading.potassium)
-//         }))
-//         .sort((a, b) => b.timestamp - a.timestamp)
-//         .slice(0, 20)
-      
-//       // Update chart data with new reference
-//       chartData.value = [...validChartData]
-//       initializeChartData([...validChartData])
-//       PRINT_CHART_DATA_LIMIT = processedData.length
-//     }
-    
-//   } catch (error) {
-//     console.error('❌ Fetch error:', error.message)
-//     // Ensure we maintain reactivity even on error
-//     npkData.value = dataCache.value ? [...dataCache.value] : []
-//   }
-// }
 
 const realTimeFetch = async () => {
   try {
@@ -876,10 +814,7 @@ const initializeNitrogenChart = () => {
           mode: 'index',
           intersect: false,
         },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
+        animation: false,
         scales: {
           y: {
             beginAtZero: false,
@@ -990,10 +925,7 @@ const initializePhosphorusChart = () => {
           mode: 'index',
           intersect: false,
         },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
+        animation: false,
         scales: {
           y: {
             beginAtZero: false,
@@ -1105,10 +1037,7 @@ const initializePotassiumChart = () => {
           mode: 'index',
           intersect: false,
         },
-        animation: {
-          duration: 750,
-          easing: 'easeOutQuart'
-        },
+        animation: false,
         scales: {
           y: {
             beginAtZero: false,

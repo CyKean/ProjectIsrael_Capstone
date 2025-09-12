@@ -292,9 +292,7 @@
               <table class="min-w-full">
                 <thead>
                   <tr>
-                    <th class="w-[10%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium text-gray-500 uppercase tracking-wider border-b">
-                      ID
-                    </th>
+                    
                     <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-teal-600">Device ID</div>
                       <div class="text-gray-400 text-[10px]">IDENTIFIER</div>
@@ -329,9 +327,7 @@
                     :key="index"
                     class="border-b border-gray-50 last:border-0"
                   >
-                    <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                      <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                    </td>
+                    
                     <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
                       <div class="text-sm font-medium text-teal-600">{{ row.deviceId || '--' }}</div>
                     </td>
@@ -1307,10 +1303,7 @@ const initializeChart = () => {
           mode: 'index',
           intersect: false,
         },
-        animation: {
-          duration: 800,
-          easing: 'easeOutQuart'
-        },
+        animation: false,
         layout: {
           padding: {
             top: 20,

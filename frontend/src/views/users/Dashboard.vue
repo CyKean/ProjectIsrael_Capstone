@@ -1698,7 +1698,6 @@ const initNpkChart = () => {
   if (!performanceChartRef.value) return;
   
   try {
-    // Destroy existing chart instance if it exists
     if (performanceChartInstance.value) {
       performanceChartInstance.value.destroy();
       performanceChartInstance.value = null;
@@ -1733,7 +1732,7 @@ const initNpkChart = () => {
     const allValues = [...nitrogenData, ...phosphorusData, ...potassiumData];
     const maxValue = Math.max(...allValues, 50); // Minimum scale of 50
     
-    // Create the chart
+    // Create the chart - REMOVED ANIMATIONS
     performanceChartInstance.value = new Chart(performanceChartRef.value.getContext('2d'), {
       type: 'line',
       data: {
@@ -1838,27 +1837,26 @@ const initNpkChart = () => {
             }
           }
         },
+        // REMOVED ANIMATIONS COMPLETELY
         animation: {
-          duration: 500,
-          easing: 'easeOutQuart'
+          duration: 0 // No animation
+        },
+        transitions: {
+          active: {
+            animation: {
+              duration: 0
+            }
+          }
         }
       }
     });
     
-    console.log("NPK chart initialized successfully");
+    console.log("NPK chart initialized successfully (no animations)");
   } catch (error) {
     console.error("Error initializing NPK chart:", error);
-    // Create a fallback message if chart fails
-    if (performanceChartRef.value) {
-      const ctx = performanceChartRef.value.getContext('2d');
-      ctx.clearRect(0, 0, performanceChartRef.value.width, performanceChartRef.value.height);
-      ctx.font = "16px Arial";
-      ctx.fillStyle = "#999";
-      ctx.textAlign = "center";
-      ctx.fillText("Chart could not be loaded", performanceChartRef.value.width / 2, performanceChartRef.value.height / 2);
-    }
   }
 };
+
 
 watch(soilMoistureReadings, () => {
   if (soilMoistureChartRef.value) initSoilMoistureChart();
@@ -1877,7 +1875,12 @@ watch(soilPhReadings, () => {
 }, { deep: true });
 
 watch(npkReadings, () => {
-  if (performanceChartRef.value) initNpkChart();
+  if (performanceChartRef.value) {
+    initNpkChart();
+    if (performanceChartInstance.value) {
+      performanceChartInstance.value.update('none');
+    }
+  }
 }, { deep: true });
 
 const initAllCharts = () => {

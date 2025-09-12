@@ -346,9 +346,7 @@
               <table class="w-full min-w-[600px] table-fixed">
                 <thead class="sticky top-0 z-10 bg-gray-300 border-b border-gray-200">
                 <tr>
-                  <th class="w-[10%] py-3.5 px-4 text-left text-xs font-medium bg-gray-100 text-gray-800 uppercase tracking-wider">
-                    ID
-                  </th>
+                  
                   <th class="w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider">
                     <div class="text-emerald-600">Water Status</div>
                     <div class="text-gray-400 text-[10px]">CONDITION</div>
@@ -375,9 +373,7 @@
                     :key="index"
                     class="hover:bg-gray-50/50 transition-colors"
                   >
-                    <td class="w-[10%] px-4 py-3.5 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-700">{{ row.id }}</div>
-                  </td>
+                    
                   <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
                     <span 
                       :class="[
@@ -1356,10 +1352,7 @@ const initializeChart = () => {
             mode: 'index',
             intersect: false,
           },
-          animation: {
-            duration: 500, 
-            easing: 'easeOutQuart'
-          },
+          animation: false,
           layout: {
             padding: {
               top: 10,
