@@ -38,7 +38,7 @@
                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-[10px] md:text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
               >
                 <Printer class="h-4 w-4" />
-                <span class="hidden md:block">Print</span>
+                <span class="hidden md:block">Print All</span>
               </button>
               
               <div 

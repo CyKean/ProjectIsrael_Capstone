@@ -205,12 +205,12 @@
                 </div>
                 <h2 class="text-xs md:text-lg font-medium text-gray-800">Saved Schedules</h2>
               </div>
-              <div class="flex items-center gap-2 grid grid-cols-1 md:grid-cols-2">
+              <div class="flex flex-col gap-2 md:flex-row items-center">
                 <!-- View History Button -->
                 <button 
                   data-intro-history-button
                   @click="viewScheduleHistory()" 
-                  class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full px-2 py-1 md:px-4 md:py-2 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
+                  class="flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full md:h-[40px] md:w-[150px] px-2 py-1 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
                 >
                   <History class="w-4 h-4" />
                   <span>View History</span>
@@ -219,7 +219,7 @@
                 <button 
                   data-intro-schedule-button
                   @click="openScheduleModal()" 
-                  class="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-full px-2 py-1 md:px-4 md:py-2 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
+                  class="flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-full md:h-[40px] md:w-[150px] px-2 py-1 transition-all duration-300 shadow-sm hover:shadow-md text-[10px] md:text-sm"
                 >
                   <Plus class="w-4 h-4" />
                   <span>Add Schedule</span>
@@ -863,7 +863,7 @@
             <button 
               @click="wateringMode = 'weekly'" 
               :class="[
-                'px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all',
+                'px-3 py-1 md:h-[40px] md:py-2 rounded-full text-xs md:text-sm font-medium transition-all',
                 wateringMode === 'weekly' 
                   ? 'bg-green-500 text-white shadow-sm' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

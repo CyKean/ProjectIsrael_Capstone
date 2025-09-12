@@ -159,7 +159,7 @@
       <div class="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row min-h-0">
         
         <!-- FIXED: Live Graph Container - Fixed width that doesn't expand -->
-        <div class="w-full md:w-1/3 lg:w-1/3 md:min-w-[300px] md:max-w-[400px] border-r border-gray-200 bg-white p-4 overflow-y-auto flex-shrink-0">
+        <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[33.333%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-xs md:text-sm font-semibold text-gray-700">Live Soil pH</h3>
             <p class="text-[10px] md:text-xs text-gray-500">Real-time monitoring</p>
