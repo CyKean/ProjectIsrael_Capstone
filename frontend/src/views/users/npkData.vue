@@ -405,25 +405,25 @@
                       class="hover:bg-gray-50 transition-colors"
                     >
                       
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-3 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold" :class="getNitrogenTextClass(row.nitrogen)">
                           {{ row.nitrogen }}
                         </div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold" :class="getPhosphorusTextClass(row.phosphorus)">
                           {{ row.phosphorus }}
                         </div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold" :class="getPotassiumTextClass(row.potassium)">
                           {{ row.potassium }}
                         </div>
                       </td>
-                      <td class="w-[15%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[15%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-medium text-gray-700">{{ row.date }}</div>
                       </td>
-                      <td class="w-[15%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[15%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-medium text-gray-700">{{ row.time }}</div>
                       </td>
                     </tr>
@@ -2112,6 +2112,10 @@ canvas {
   display: block;
   max-width: 100%;
   height: auto;
+}
+
+tr {
+  border-bottom: 1px solid #cbcbcb !important;
 }
 
 .chart-container {

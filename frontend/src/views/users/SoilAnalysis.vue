@@ -175,7 +175,7 @@
             <!-- Mobile Card View (shown on small screens) -->
             <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
               <div v-for="(row, index) in paginatedESP32_1_Data" :key="index" 
-                  class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  class="bg-gray-50 rounded-lg p-3">
                 <div class="flex justify-between items-start mb-2">
                   <div>
                     <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
@@ -216,22 +216,22 @@
                 <table class="min-w-full table-fixed">
                   <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                     <tr>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="border-b border-gray-200 w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date & Time
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="border-b border-gray-200 w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-green-600">Nitrogen</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="border-b border-gray-200 w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-blue-600">Phosphorus</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="border-b border-gray-200 w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-purple-600">Potassium</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="border-b border-gray-200 w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-orange-600">pH</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(level)</div>
                       </th>
@@ -244,20 +244,20 @@
                       :key="index"
                       class="hover:bg-gray-50 transition-colors"
                     >
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[10px] md:text-xs font-medium text-gray-900">{{ row.date }}</div>
                         <div class="text-[7px] md:text-[10px] text-gray-500">{{ row.time }}</div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[10px] md:text-xs font-semibold text-green-600">{{ row.nitrogen }}</div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[10px] md:text-xs font-semibold text-blue-600">{{ row.phosphorus }}</div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[10px] md:text-xs font-semibold text-purple-600">{{ row.potassium }}</div>
                       </td>
-                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[10px] md:text-xs font-semibold text-orange-600">{{ row.ph }}</div>
                       </td>
                     </tr>
@@ -434,7 +434,7 @@
             <!-- Mobile Card View (shown on small screens) -->
             <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
               <div v-for="(row, index) in paginatedESP32_2_Data" :key="index" 
-                  class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  class="bg-gray-50 rounded-lg p-3">
                 <div class="flex justify-between items-start mb-2">
                   <div>
                     <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
@@ -471,18 +471,18 @@
                 <table class="min-w-full table-fixed">
                   <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                     <tr>
-                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                         Date & Time
                       </th>
-                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                         <div class="text-red-600">Temperature</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(°C)</div>
                       </th>
-                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                         <div class="text-blue-600">Humidity</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(%)</div>
                       </th>
-                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[25%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                         <div class="text-cyan-600">Soil Moisture</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(%)</div>
                       </th>
@@ -495,17 +495,17 @@
                       :key="index"
                       class="hover:bg-gray-50 transition-colors"
                     >
-                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-medium text-gray-900">{{ row.date }}</div>
                         <div class="text-[7px] md:text-[10px] text-gray-500">{{ row.time }}</div>
                       </td>
-                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold text-red-600">{{ row.temperature }}</div>
                       </td>
-                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold text-blue-600">{{ row.humidity }}</div>
                       </td>
-                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap">
+                      <td class="w-[25%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-xs font-semibold text-cyan-600">{{ row.soilMoisture }}</div>
                       </td>
                     </tr>
@@ -1371,13 +1371,22 @@ onUnmounted(() => {
 /* Smooth transitions */
 .transition-colors { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
 
+tbody tr {
+  border-bottom: 1px solid #cbcbcb !important;
+}
+
+/* Remove right border from last cell in each row */
+tbody td:last-child {
+  border-right: none;
+}
+
 /* Table hover effects */
 tbody tr:hover { background-color: #f9fafb; }
 
 /* Responsive layout (unchanged) */
 @media (max-width: 1024px) {
   .flex-1 { width: 100%; }
-  .flex.gap-4 { flex-direction: column; gap: 1rem; }
+  .flex.gap-4 { flex-direction: column; gap: 1rem ; }
 }
 
 .text-9px { font-size: 9px; line-height: 1.2; }

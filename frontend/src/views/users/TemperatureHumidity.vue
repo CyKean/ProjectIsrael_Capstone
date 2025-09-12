@@ -356,20 +356,20 @@
                     class="hover:bg-gray-50/50 transition-colors"
                   >
                     
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium" :class="getTemperatureTextClass(row.temperature)">
                         {{ row.temperature }}°C
                       </div>
                     </td>
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium" :class="getHumidityTextClass(row.humidity)">
                         {{ row.humidity }}%
                       </div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>

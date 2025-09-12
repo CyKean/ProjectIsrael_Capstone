@@ -356,7 +356,7 @@
         <div class="flex flex-col md:flex-row grid grid-cols-1 md:flex overflow-y-auto">
           
           <!-- LEFT SIDE (1/4) - Filters, Search, Export -->
-          <div class="w-full md:w-1/4 border-r border-gray-100 bg-white p-2 mb-3 md:p-4 flex flex-col transition-all duration-300 ease-in-out" 
+          <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[22.222%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0" 
               :class="showFilters ? 'h-auto' : 'h-[50px] md:h-auto overflow-hidden'">
             
             <!-- Mobile toggle button for filters - IMPROVED VISIBILITY -->

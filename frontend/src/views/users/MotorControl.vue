@@ -328,10 +328,10 @@
                     class="border-b border-gray-50 last:border-0"
                   >
                     
-                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-teal-600">{{ row.deviceId || '--' }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <span 
                         :class="[
                           'px-3 py-1 rounded-full text-sm font-medium',
@@ -341,13 +341,13 @@
                         {{ row.status }}
                       </span>
                     </td>
-                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-blue-600">{{ row.user || '--' }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>

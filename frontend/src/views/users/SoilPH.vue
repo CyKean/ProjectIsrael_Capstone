@@ -370,10 +370,10 @@
                       :key="index"
                       class="border-b border-gray-50 last:border-0">
                     
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-orange-600">{{ row.soilPh }}</div>
                     </td>
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <span 
                         :class="[
                           'px-3 py-1 rounded-full text-xs font-medium',
@@ -385,10 +385,10 @@
                         {{ row.phStatus }}
                       </span>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>

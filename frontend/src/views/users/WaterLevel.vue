@@ -374,7 +374,7 @@
                     class="hover:bg-gray-50/50 transition-colors"
                   >
                     
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                     <span 
                       :class="[
                         'px-3 py-1 rounded-full text-xs font-medium',
@@ -387,15 +387,15 @@
                       {{ row.status }}
                     </span>
                   </td>
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap">
+                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                     <div class="text-sm font-medium text-blue-600">
                       {{ row.waterLevel }}%
                     </div>
                   </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                     <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                   </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap">
+                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
                     <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                   </td>
                   </tr>
