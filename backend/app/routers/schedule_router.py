@@ -3,8 +3,10 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
+import httpx
 from pydantic import BaseModel, Field
 from app.services.database import get_database
+from dependencies import get_esp32_ip
 
 router = APIRouter(prefix="/api", tags=["watering"])
 
@@ -109,14 +111,18 @@ def ensure_string_timestamp(timestamp):
     return str(timestamp)
 
 @router.post("/motor-status-ph")
-async def set_motor_status_philippine_time(status: dict):
-    """Set motor status with Philippine Time (UTC+8) and save to separate history document"""
+async def set_motor_status_philippine_time(status: dict, esp_ip: str = Depends(get_esp32_ip)):
+    """Set motor status with Philippine Time (UTC+8), save to database, and send to ESP32"""
     try:
+        print("🔧 Motor status function triggered - Starting execution")
+        
         db = await get_database()
         collection = db["motor_status"]
         
         new_status = status.get("status", False)
         source = status.get("source", "manual")
+        
+        print(f"📊 Received status: {new_status}, source: {source}")
         
         # Get current Philippine Time (UTC+8)
         utc_now = datetime.utcnow()
@@ -148,6 +154,7 @@ async def set_motor_status_philippine_time(status: dict):
             {"$set": update_data},
             upsert=True
         )
+        print("✅ Current status updated in database")
         
         # Add to history document - create it if it doesn't exist
         await collection.update_one(
@@ -166,21 +173,63 @@ async def set_motor_status_philippine_time(status: dict):
             },
             upsert=True  # This creates the document if it doesn't exist
         )
+        print("✅ History record added to database")
+        
+        # Send command to ESP32
+        esp32_response = None
+        try:
+            print("📡 Attempting to send command to ESP32...")
+            # Construct the endpoint with the actual IP
+            esp32_endpoint = f"http://{esp_ip}/motor-status"
+            
+            # Prepare data for ESP32
+            esp32_data = {
+                "status": new_status,
+                "source": source
+            }
+            
+            # Send HTTP request to ESP32
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(esp32_endpoint, json=esp32_data)
+                response.raise_for_status()
+
+            try:
+                esp32_response = response.json()
+            except ValueError:
+                esp32_response = response.text
+
+            print("✅ Successfully forwarded to ESP32.")
+            print(f"   ESP32 response: {esp32_response}")
+                
+        except httpx.RequestError as e:
+            print(f"❌ Network error when sending to ESP32: {e}")
+            esp32_response = {"error": f"Network error: {e}"}
+            
+        except httpx.HTTPStatusError as e:
+            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
+            print("📩 ESP32 response body:", e.response.text)
+            esp32_response = {"error": f"ESP32 error: {e.response.text}"}
         
         if not new_status:
             await cancel_ongoing_watering_schedules(db, source)
+            print("⏹️  Ongoing watering schedules cancelled (motor turned off)")
+        
+        print("🎉 Motor status function completed successfully")
         
         return {
             "message": "Motor status updated successfully",
             "timestamp": ph_time.isoformat() + "+08:00",  # String format
-            "formattedTime": ph_time.strftime("%a, %b %d, %I:%M %p")
+            "formattedTime": ph_time.strftime("%a, %b %d, %I:%M %p"),
+            "esp32_response": esp32_response,
+            "source": source
         }
         
     except Exception as e:
-        print(f"Error in set_motor_status_philippine_time: {str(e)}")
+        print(f"❌ Error in set_motor_status_philippine_time: {str(e)}")
+        print(f"   Error type: {type(e).__name__}")
         raise HTTPException(status_code=500, detail=f"Error setting motor status: {str(e)}")
 
-@router.post("/initialize-motor-history")
+@router.post("/motor-history")
 async def initialize_motor_history():
     """Initialize the motor history document if it doesn't exist"""
     try:

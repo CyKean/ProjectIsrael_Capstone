@@ -1984,32 +1984,16 @@ const sendWateringNotification = async (message, title, scheduleId, eventType, c
     return { success: true, skipped: true };
   }
   
-  const enhancedContext = {
-    ...contextData,
-    eventType: eventType,
-    scheduleId: scheduleId,
-    notificationTime: now.toISOString(),
-    notificationType: 'watering-schedule'
-  };
-
-  console.log('💧 Sending watering notification with context:', enhancedContext);
-
   const result = await sendNotification(
     message,
     title,
     eventType === 'start' ? 'info' : 'success',
     notificationKey,
-    enhancedContext,
-    false // ← DON'T include additional sensor data (preserve our context)
+    contextData
   );
   
   if (result.success) {
     lastWateringNotifications.value.set(notificationKey, now.getTime());
-    console.log('✅ Watering notification saved successfully');
-  } else if (result.skipped) {
-    console.log('⏩ Watering notification skipped (duplicate)');
-  } else {
-    console.error('❌ Failed to save watering notification');
   }
   
   return result;
@@ -2030,21 +2014,35 @@ const lastMotorCommand = ref({
 const processingSchedules = ref(new Set());
 const lastMotorCommands = ref(new Map());
 
+const motorStatusHistory = ref(new Map());
+
+// Update the updateMotorStatus function
 const updateMotorStatus = async (status, scheduleId, actionType = 'schedule') => {
-  const commandKey = `${status ? 'on' : 'off'}-${scheduleId}-${actionType}`;
+  const commandKey = `${scheduleId}-${actionType}-${status ? 'on' : 'off'}`;
   const now = Date.now();
   
+  // Check if we've sent this exact command recently (within 30 seconds)
   if (lastMotorCommands.value.has(commandKey)) {
     const lastSent = lastMotorCommands.value.get(commandKey);
-    if (now - lastSent < 10000) {
+    if (now - lastSent < 30000) { // 30-second cooldown for same command
       console.log(`⏩ Skipping duplicate motor command (recently sent): ${commandKey}`);
-      return true;
+      
+      // Still return the status for notification purposes, but don't send the command
+      return {
+        success: true,
+        skipped: true,
+        status: status
+      };
     }
   }
   
   if (motorControlLocks.value.has(commandKey)) {
     console.log(`⏩ Motor command already in progress: ${commandKey}`);
-    return true;
+    return {
+      success: true,
+      skipped: true,
+      status: status
+    };
   }
   
   motorControlLocks.value.set(commandKey, true);
@@ -2053,44 +2051,42 @@ const updateMotorStatus = async (status, scheduleId, actionType = 'schedule') =>
   try {
     console.log(`⚡ Turning motor ${status ? 'ON' : 'OFF'} for ${actionType}: ${scheduleId}`);
     
-    const response = await api.post('/devices/motor/control', {
-      status: status ? 'on' : 'off',
-      scheduleId: scheduleId || 'system-command'
+    // Use the new motor control endpoint with proper data format
+    // This endpoint already handles saving the status to history
+    const response = await api.post('/motor-status-ph', {
+      status: status, // This should be a boolean
+      source: `schedule-${scheduleId || 'system'}-${actionType}`,
+      device_id: 'main_motor'
     });
     
-    try {
-      console.log(`📡 Sending motor status to ESP32 via /api/motor_status/`);
-      const motorStatusResponse = await api.post('/motor_status/', {
-        status: status,
-        device_id: 'main_motor',
-        user: 'system',
-        timestamp: new Date().toISOString(),
-        formatted_time: new Date().toLocaleString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        source: `schedule-${scheduleId || 'system'}-${actionType}`
-      });
-      
-      console.log(`✅ Motor status sent to ESP32:`, motorStatusResponse.data);
-    } catch (motorStatusError) {
-      console.warn('⚠️ Failed to send motor status to ESP32, but continuing:', motorStatusError.message);
-    } 
-    
-    if (response.data && response.data.status === 'success') {
+    if (response.data && (response.data.message || response.data.status === 'success')) {
       console.log(`✅ Motor ${status ? 'started' : 'stopped'} successfully`);
-      return true;
+      
+      return {
+        success: true,
+        status: status
+      };
     }
     
     console.warn('Motor control returned non-success status:', response.data);
-    return false;
+    return {
+      success: false,
+      status: status
+    };
     
   } catch (error) {
     console.error('Motor control failed:', error);
-    return false;
+    
+    // Show error toast using your custom function
+    showToastMessage(
+      `Failed to ${status ? 'start' : 'stop'} motor: ${error.response?.data?.detail || error.message}`,
+      'error'
+    );
+    
+    return {
+      success: false,
+      status: status
+    };
   } finally {
     setTimeout(() => {
       motorControlLocks.value.delete(commandKey);
@@ -2132,12 +2128,6 @@ const processScheduleStart = async (schedule, currentDay) => {
   try {
     const sensorData = await getCachedSensorData();
     
-    // Extract environmental data
-    const waterLevelValue = sensorData.waterData?.waterLevel || 0;
-    const temperatureValue = sensorData.sensor2Data?.temperature || 0;
-    const humidityValue = sensorData.sensor2Data?.humidity || 0;
-    const soilMoistureValue = sensorData.sensor2Data?.soilMoisture || 0;
-    
     const now = new Date();
     const formattedTime = now.toLocaleString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
@@ -2165,9 +2155,14 @@ const processScheduleStart = async (schedule, currentDay) => {
     }
     
     console.log(`⚡ Turning motor ON for schedule ${scheduleId}`);
-    const motorSuccess = await updateMotorStatus(true, scheduleId, 'schedule-start');
+    const motorResult = await updateMotorStatus(true, scheduleId, 'schedule-start');
     
-    if (motorSuccess) {
+    // Show notification regardless of whether the command was sent or skipped
+    const motorSuccess = motorResult.success;
+    
+    if (motorResult.skipped) {
+      console.log(`⏩ Motor command skipped (duplicate) for schedule ${scheduleId}`);
+    } else if (motorSuccess) {
       console.log(`✅ Motor started for schedule ${scheduleId}`);
     } else {
       console.error(`❌ Failed to start motor for schedule ${scheduleId}`);
@@ -2185,25 +2180,7 @@ const processScheduleStart = async (schedule, currentDay) => {
       motorSuccess: motorSuccess,
       zone: 'Greenhouse 1',
       mode: 'auto',
-      waterLevelAtStart: waterLevelValue,
-      
-      // Add environmental data to context
-      environment: {
-        temperature: temperatureValue,
-        humidity: humidityValue,
-        soilMoisture: soilMoistureValue,
-        waterLevel: waterLevelValue,
-        timestamp: now.toISOString()
-      },
-      
-      // Store environmental data for comparison at end time
-      environmentalData: {
-        temperature: temperatureValue,
-        humidity: humidityValue,
-        soilMoisture: soilMoistureValue,
-        waterLevel: waterLevelValue,
-        timestamp: now.toISOString()
-      }
+      waterLevelAtStart: sensorData.waterData?.waterLevel
     });
     
     const notificationResult = await sendWateringNotification(
@@ -2229,16 +2206,7 @@ const processScheduleStart = async (schedule, currentDay) => {
       currentDay: currentDay,
       motorStarted: motorSuccess,
       notificationSent: notificationResult.success,
-      contextData: context,
-      
-      // Store environmental data for comparison at end time
-      environmentalData: {
-        temperature: temperatureValue,
-        humidity: humidityValue,
-        soilMoisture: soilMoistureValue,
-        waterLevel: waterLevelValue,
-        timestamp: now.toISOString()
-      }
+      contextData: context
     };
     
     if (scheduleTimers.value[scheduleId]) {
@@ -2256,6 +2224,7 @@ const processScheduleStart = async (schedule, currentDay) => {
   }
 };
 
+// Update the processScheduleEnd function
 const processScheduleEnd = async (schedule, currentDay, startTime) => {
   const scheduleId = schedule.id;
   const scheduleKey = `${schedule.id}-${currentDay}`;
@@ -2263,15 +2232,6 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
   try {
     const sensorData = await getCachedSensorData();
     const endTime = Date.now();
-    
-    // Extract environmental data at end time
-    const waterLevelValue = sensorData.waterData?.waterLevel || 0;
-    const temperatureValue = sensorData.sensor2Data?.temperature || 0;
-    const humidityValue = sensorData.sensor2Data?.humidity || 0;
-    const soilMoistureValue = sensorData.sensor2Data?.soilMoisture || 0;
-    
-    // Get environmental data from start time
-    const startEnvironmentalData = activeSchedules.value[scheduleId]?.environmentalData || {};
     
     const now = new Date();
     const formattedTime = now.toLocaleString('en-US', {
@@ -2300,9 +2260,14 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
     }
     
     console.log(`🛑 Stopping motor for schedule ${scheduleId}`);
-    const motorSuccess = await updateMotorStatus(false, scheduleId, 'schedule-end');
+    const motorResult = await updateMotorStatus(false, scheduleId, 'schedule-end');
     
-    if (motorSuccess) {
+    // Show notification regardless of whether the command was sent or skipped
+    const motorSuccess = motorResult.success;
+    
+    if (motorResult.skipped) {
+      console.log(`⏩ Motor command skipped (duplicate) for schedule ${scheduleId}`);
+    } else if (motorSuccess) {
       console.log(`✅ Motor stopped for schedule ${scheduleId}`);
     } else {
       console.error(`❌ Failed to stop motor for schedule ${scheduleId}`);
@@ -2322,35 +2287,8 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
       motorSuccess: motorSuccess,
       zone: 'Greenhouse 1',
       mode: 'auto',
-      waterLevelAtStart: startEnvironmentalData.waterLevel || 0,
-      remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor deactivation failed',
-      
-      // Add environmental data to context
-      environment: {
-        temperature: temperatureValue,
-        humidity: humidityValue,
-        soilMoisture: soilMoistureValue,
-        waterLevel: waterLevelValue,
-        timestamp: now.toISOString()
-      },
-      
-      // Add environmental data from start time for comparison
-      environmentAtStart: {
-        temperature: startEnvironmentalData.temperature || 0,
-        humidity: startEnvironmentalData.humidity || 0,
-        soilMoisture: startEnvironmentalData.soilMoisture || 0,
-        waterLevel: startEnvironmentalData.waterLevel || 0,
-        timestamp: startEnvironmentalData.timestamp || 'N/A'
-      },
-      
-      // Calculate changes between start and end
-      changes: {
-        soilMoistureChange: soilMoistureValue - (startEnvironmentalData.soilMoisture || 0),
-        temperatureChange: temperatureValue - (startEnvironmentalData.temperature || 0),
-        humidityChange: humidityValue - (startEnvironmentalData.humidity || 0),
-        waterLevelChange: waterLevelValue - (startEnvironmentalData.waterLevel || 0),
-        durationMinutes: Math.round((endTime - startTime) / 60000)
-      }
+      waterLevelAtStart: sensorData.waterData?.waterLevel,
+      remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor deactivation failed'
     });
     
     const notificationResult = await sendWateringNotification(
@@ -2391,6 +2329,8 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
     processingSchedules.value.delete(scheduleKey);
   }
 };
+
+
 
 const saveToHistory = async (schedule, startTime, endTime, day) => {
   try {
@@ -2634,6 +2574,8 @@ onMounted(async () => {
     Object.values(scheduleTimers.value).forEach(timer => clearTimeout(timer));
     stopPolling();
     stopSensorDataPolling(); // Stop sensor data polling
+    lastMotorCommands.value.clear();
+    motorControlLocks.value.clear();
   });
 });
 
