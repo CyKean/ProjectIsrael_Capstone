@@ -1217,6 +1217,59 @@ const navigateToRecalibration = async (device) => {
   }
 }
 
+// const testConnection = async () => {
+//   if (!isValidIP(esp32Config.ipAddress)) {
+//     showToastMessage('Please enter a valid IP address', 'error');
+//     return;
+//   }
+
+//   try {
+//     showLoadingModal.value = true;
+    
+//     // Use backend route to test ESP32 connection
+//     const response = await api.get(`/esp32/test-connection`, {
+//       params: { ip_address: esp32Config.ipAddress }
+//     });
+
+//     if (response.data.success) {
+//       showToastMessage('Connection successful! ' + response.data.message, 'success');
+//       connectionStatus.connected = true;
+//       connectionStatus.lastSeen = new Date().toLocaleTimeString();
+      
+//       // Update connection details from response
+//       if (response.data.signal_strength) {
+//         deviceInternetStatus.connectionStrength = response.data.signal_strength;
+//       }
+//     } else {
+//       showToastMessage('Connection failed: ' + response.data.message, 'error');
+//       connectionStatus.connected = false;
+//       connectionStatus.lastSeen = 'Connection failed';
+//     }
+    
+//     return response.data;
+//   } catch (error) {
+//     console.error('Connection test failed:', error);
+    
+//     connectionStatus.connected = false;
+//     connectionStatus.lastSeen = 'Connection failed';
+    
+//     let errorMessage = 'Connection test failed';
+    
+//     if (error.code === 'ECONNABORTED') {
+//       errorMessage = 'Connection timeout - device may be offline or unreachable';
+//     } else if (error.response) {
+//       errorMessage = `Error: ${error.response.data?.detail || error.response.statusText}`;
+//     } else if (error.message) {
+//       errorMessage = error.message;
+//     }
+    
+//     showToastMessage(errorMessage, 'error');
+//     return null;
+//   } finally {
+//     showLoadingModal.value = false;
+//   }
+// }
+
 const testConnection = async () => {
   if (!isValidIP(esp32Config.ipAddress)) {
     showToastMessage('Please enter a valid IP address', 'error');
@@ -1226,34 +1279,30 @@ const testConnection = async () => {
   try {
     showLoadingModal.value = true;
     
-    // Check backend connection first with shorter timeout
-    const backendPing = await api.get(`/system/ping`, { timeout: 3000 });
-    if (!backendPing.data?.success) {
-      throw new Error('Backend service unavailable');
-    }
-    
-    // Use backend proxy to test ESP32 connection with shorter timeout
-    const connectionTest = await api.get(`/esp32/test-connection`, {
-      params: { ip_address: esp32Config.ipAddress },
-      timeout: 8000  // Increased to 8 seconds to account for backend processing
+    // Use backend ping route to test ESP32 connection
+    const response = await api.get(`/esp32/ping`, {
+      params: { ip_address: esp32Config.ipAddress }
     });
 
-    showToastMessage('Connection successful to both backend and ESP32', 'success');
-    
-    // Update connection status dynamically
-    connectionStatus.connected = true;
-    connectionStatus.lastSeen = new Date().toLocaleTimeString();
-    
-    // Update WiFi signal strength
-    if (connectionTest.data.signal_strength) {
-      wifiDetails.signalStrength = connectionTest.data.signal_strength;
+    if (response.data.success) {
+      showToastMessage(response.data.message || 'Connection successful!', 'success');
+      connectionStatus.connected = true;
+      connectionStatus.lastSeen = new Date().toLocaleTimeString();
+      
+      // Update response time if available
+      if (response.data.response_time_ms) {
+        deviceInternetStatus.latency = response.data.response_time_ms;
+      }
+    } else {
+      showToastMessage(response.data.message || 'Connection failed', 'error');
+      connectionStatus.connected = false;
+      connectionStatus.lastSeen = 'Connection failed';
     }
     
-    return connectionTest.data;
+    return response.data;
   } catch (error) {
     console.error('Connection test failed:', error);
     
-    // Update connection status on error
     connectionStatus.connected = false;
     connectionStatus.lastSeen = 'Connection failed';
     
@@ -1470,6 +1519,69 @@ const fetchSavedIP = async () => {
 //   }
 // };
 
+// const showDeviceInfo = async () => {
+//   if (!isValidIP(esp32Config.ipAddress)) {
+//     showToastMessage('Please enter a valid IP address', 'error');
+//     return;
+//   }
+
+//   try {
+//     showLoadingModal.value = true;
+    
+//     // Get backend info
+//     const backendInfo = await api.get(`/system/info`);
+    
+//     // Get ESP32 info through backend
+//     const espInfo = await api.get(`/esp32/device-info`, {
+//       params: { ip_address: esp32Config.ipAddress },
+//       timeout: 5000
+//     });
+
+//     const info = {
+//       backend: {
+//         version: backendInfo.data.version,
+//         status: 'running',
+//         uptime: formatUptime(backendInfo.data.uptime),
+//         lastESP32Contact: espInfo.data.last_contact || 'unknown'
+//       },
+//       esp32: {
+//         model: espInfo.data.model || 'ESP32',
+//         firmware: espInfo.data.firmware || 'unknown',
+//         macAddress: espInfo.data.mac || 'unknown',
+//         flashSize: espInfo.data.flash || 'unknown',
+//         freeHeap: espInfo.data.free_heap || 'unknown',
+//         uptime: formatUptime(espInfo.data.uptime),
+//         sensors: espInfo.data.sensors || [],
+//         sensorReadings: espInfo.data.sensor_readings || {}
+//       }
+//     };
+    
+//     showToastMessage(
+//       `Device Info: ${info.esp32.model}, Firmware ${info.esp32.firmware}, ${info.esp32.flashSize} Flash`,
+//       'success'
+//     );
+    
+//     console.log('Device Information:', info);
+//     return info;
+//   } catch (error) {
+//     console.error('Failed to get device info:', error);
+    
+//     let errorMessage = 'Failed to retrieve device information';
+//     if (error.response) {
+//       errorMessage += `: ${error.response.data?.detail || error.response.statusText}`;
+//     } else if (error.code === 'ECONNABORTED') {
+//       errorMessage = 'Connection timed out (5s)';
+//     } else {
+//       errorMessage += `: ${error.message}`;
+//     }
+    
+//     showToastMessage(errorMessage, 'error');
+//     return null;
+//   } finally {
+//     showLoadingModal.value = false;
+//   }
+// };
+
 const showDeviceInfo = async () => {
   if (!isValidIP(esp32Config.ipAddress)) {
     showToastMessage('Please enter a valid IP address', 'error');
@@ -1479,41 +1591,43 @@ const showDeviceInfo = async () => {
   try {
     showLoadingModal.value = true;
     
-    // Get backend info
-    const backendInfo = await api.get(`/system/info`);
-    
-    // Get ESP32 info through backend
-    const espInfo = await api.get(`/esp32/device-info`, {
-      params: { ip_address: esp32Config.ipAddress },
-      timeout: 5000
+    // Use backend info route to get ESP32 device info
+    const response = await api.get(`/esp32/device-info`, {
+      params: { ip_address: esp32Config.ipAddress }
     });
 
-    const info = {
-      backend: {
-        version: backendInfo.data.version,
-        status: 'running',
-        uptime: formatUptime(backendInfo.data.uptime),
-        lastESP32Contact: espInfo.data.last_contact || 'unknown'
-      },
-      esp32: {
-        model: espInfo.data.model || 'ESP32',
-        firmware: espInfo.data.firmware || 'unknown',
-        macAddress: espInfo.data.mac || 'unknown',
-        flashSize: espInfo.data.flash || 'unknown',
-        freeHeap: espInfo.data.free_heap || 'unknown',
-        uptime: formatUptime(espInfo.data.uptime),
-        sensors: espInfo.data.sensors || [],
-        sensorReadings: espInfo.data.sensor_readings || {}
+    const deviceInfo = response.data;
+    
+    if (deviceInfo.success) {
+      showToastMessage(deviceInfo.message || 'Device information retrieved', 'success');
+      
+      // Update connection status
+      connectionStatus.connected = true;
+      connectionStatus.lastSeen = new Date().toLocaleTimeString();
+      
+      console.log('Device Information:', deviceInfo);
+      
+      // Create a formatted info message with all available details
+      let infoMessage = `Device: ${deviceInfo.model}\n`;
+      infoMessage += `Firmware: ${deviceInfo.firmware}\n`;
+      infoMessage += `IP: ${deviceInfo.ip_address}\n`;
+      infoMessage += `MAC: ${deviceInfo.mac}\n`;
+      infoMessage += `Flash Size: ${deviceInfo.flash_size}\n`;
+      infoMessage += `Free Heap: ${deviceInfo.free_heap}\n`;
+      infoMessage += `Uptime: ${formatUptime(deviceInfo.uptime)}\n`;
+      
+      if (deviceInfo.sensors && deviceInfo.sensors.length > 0) {
+        infoMessage += `Sensors: ${deviceInfo.sensors.join(', ')}\n`;
       }
-    };
-    
-    showToastMessage(
-      `Device Info: ${info.esp32.model}, Firmware ${info.esp32.firmware}, ${info.esp32.flashSize} Flash`,
-      'success'
-    );
-    
-    console.log('Device Information:', info);
-    return info;
+      
+      // Show detailed info in console
+      console.info('Detailed Device Info:\n' + infoMessage);
+      
+      return deviceInfo;
+    } else {
+      showToastMessage(deviceInfo.message || 'Failed to retrieve device information', 'error');
+      return null;
+    }
   } catch (error) {
     console.error('Failed to get device info:', error);
     
@@ -1521,7 +1635,7 @@ const showDeviceInfo = async () => {
     if (error.response) {
       errorMessage += `: ${error.response.data?.detail || error.response.statusText}`;
     } else if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Connection timed out (5s)';
+      errorMessage = 'Connection timed out';
     } else {
       errorMessage += `: ${error.message}`;
     }

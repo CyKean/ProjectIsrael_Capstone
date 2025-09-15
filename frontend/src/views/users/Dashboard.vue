@@ -328,12 +328,12 @@
                   Motor was <span class="text-purple-700 font-bold">ON</span> for <span class="text-purple-700 font-bold">{{ motorOnPercentage.toFixed(1) }}%</span> of the week
                 </p>
                 <p class="text-xs md:text-sm text-purple-600 mt-1">
-                  Total runtime: {{ (motorOnPercentage * 1.68).toFixed(1) }} hours
+                  Total runtime: {{ ((motorOnPercentage / 100) * (7 * 24)).toFixed(1) }} hours
                 </p>
               </div>
 
               <!-- Weekly Breakdown -->
-              <div class="mt-4">
+              <div class="mt-4" v-if="weeklyData && weeklyData.length > 0">
                 <h4 class="text-[10px] md:text-xs font-semibold text-purple-700 mb-2">Weekly Breakdown</h4>
                 <div class="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-1">
                   <div v-for="(day, index) in weeklyData" :key="index" class="flex flex-col items-center">
@@ -344,8 +344,12 @@
                       ></div>
                     </div>
                     <span class="text-[10px] text-purple-600 mt-1">{{ day.label }}</span>
+                    <span class="text-[8px] text-purple-400">{{ day.percentage.toFixed(0) }}%</span>
                   </div>
                 </div>
+              </div>
+              <div v-else class="mt-4 text-center">
+                <p class="text-xs text-purple-400">No weekly data available</p>
               </div>
             </div>
             <div v-else class="h-full flex items-center justify-center bg-gray-50 rounded-lg">
@@ -1174,15 +1178,159 @@ const fetchLatestWaterLevel = async () => {
   }
 };
 
+// const fetchMotorStatusData = async () => {
+//   try {
+//     // Get current motor status
+//     const statusResponse = await api.get('/motor-status/current');
+//     motorStatus.value = statusResponse.data.status || false;
+
+//     // Get history logs
+//     const historyResponse = await api.get('/motor-status/history');
+//     let logs = historyResponse.data;
+
+//     console.log('Motor history data:', logs);
+
+//     // Ensure logs is an array
+//     if (!Array.isArray(logs)) {
+//       console.warn('Motor history API did not return an array:', logs);
+//       weeklyData.value = [];
+//       motorOnPercentage.value = 0;
+//       return;
+//     }
+
+//     // Convert timestamp strings to Date objects and sort by timestamp
+//     logs = logs.map(log => {
+//       let timestamp;
+//       if (typeof log.timestamp === 'string') {
+//         timestamp = new Date(log.timestamp);
+//       } else {
+//         timestamp = new Date();
+//       }
+      
+//       return {
+//         ...log,
+//         timestamp: timestamp,
+//         status: Boolean(log.status) // Ensure boolean
+//       };
+//     }).sort((a, b) => a.timestamp - b.timestamp); // Sort chronologically
+
+//     console.log('Processed motor history logs:', logs);
+
+//     if (logs.length === 0) {
+//       console.log('No motor history data available');
+//       weeklyData.value = [];
+//       motorOnPercentage.value = 0;
+//       return;
+//     }
+
+//     // Calculate total ON time for the week
+//     const now = new Date();
+//     const startOfWeek = new Date(now);
+//     startOfWeek.setDate(now.getDate() - now.getDay());
+//     startOfWeek.setHours(0, 0, 0, 0);
+
+//     let totalOnTimeMs = 0;
+//     let lastStatus = false;
+//     let lastTimestamp = startOfWeek;
+
+//     // Calculate ON time from status changes
+//     for (let i = 0; i < logs.length; i++) {
+//       const log = logs[i];
+      
+//       // Only consider logs from this week
+//       if (log.timestamp < startOfWeek) {
+//         lastTimestamp = startOfWeek;
+//         lastStatus = log.status;
+//         continue;
+//       }
+
+//       if (lastStatus) {
+//         totalOnTimeMs += log.timestamp - lastTimestamp;
+//       }
+
+//       lastStatus = log.status;
+//       lastTimestamp = log.timestamp;
+//     }
+
+//     // Add time from last status change to now if motor was ON
+//     if (lastStatus) {
+//       totalOnTimeMs += now - lastTimestamp;
+//     }
+
+//     const totalWeekTimeMs = now - startOfWeek;
+//     motorOnPercentage.value = totalWeekTimeMs > 0 ? (totalOnTimeMs / totalWeekTimeMs) * 100 : 0;
+
+//     console.log('Total ON time:', totalOnTimeMs / 1000 / 60 / 60, 'hours');
+//     console.log('Total week time:', totalWeekTimeMs / 1000 / 60 / 60, 'hours');
+//     console.log('ON percentage:', motorOnPercentage.value);
+
+//     // Calculate daily breakdown
+//     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+//     const dailyPercentages = Array(7).fill(0);
+
+//     for (let day = 0; day < 7; day++) {
+//       const dayStart = new Date(startOfWeek);
+//       dayStart.setDate(startOfWeek.getDate() + day);
+//       const dayEnd = new Date(dayStart);
+//       dayEnd.setDate(dayStart.getDate() + 1);
+
+//       let dayOnTimeMs = 0;
+//       let dayLastStatus = false;
+//       let dayLastTimestamp = dayStart;
+
+//       for (let i = 0; i < logs.length; i++) {
+//         const log = logs[i];
+        
+//         if (log.timestamp < dayStart) {
+//           dayLastTimestamp = dayStart;
+//           dayLastStatus = log.status;
+//           continue;
+//         }
+
+//         if (log.timestamp > dayEnd) break;
+
+//         if (dayLastStatus) {
+//           dayOnTimeMs += log.timestamp - dayLastTimestamp;
+//         }
+
+//         dayLastStatus = log.status;
+//         dayLastTimestamp = log.timestamp;
+//       }
+
+//       // Add time from last status change to end of day if motor was ON
+//       if (dayLastStatus) {
+//         dayOnTimeMs += Math.min(dayEnd, now) - dayLastTimestamp;
+//       }
+
+//       const dayTotalTimeMs = Math.min(dayEnd, now) - dayStart;
+//       dailyPercentages[day] = dayTotalTimeMs > 0 ? (dayOnTimeMs / dayTotalTimeMs) * 100 : 0;
+//     }
+
+//     weeklyData.value = dailyPercentages.map((percentage, index) => ({
+//       label: dayLabels[index],
+//       percentage: percentage
+//     }));
+
+//     console.log('Daily percentages:', weeklyData.value);
+
+//   } catch (error) {
+//     console.error('Error fetching motor status and history:', error);
+//     weeklyData.value = [];
+//     motorOnPercentage.value = 0;
+//   }
+// };
+
 const fetchMotorStatusData = async () => {
   try {
     // Get current motor status
     const statusResponse = await api.get('/motor-status/current');
     motorStatus.value = statusResponse.data.status || false;
 
-    // Get history logs
-    const historyResponse = await api.get('/motor-status/history?week_only=true');
-    const logs = historyResponse.data;
+    // Get all history logs (backend won't filter by week)
+    const historyResponse = await api.get('/motor-status/history?week_only=false');
+    let logs = historyResponse.data;
+
+    console.log('Raw motor history data:', logs);
 
     // Ensure logs is an array
     if (!Array.isArray(logs)) {
@@ -1192,43 +1340,136 @@ const fetchMotorStatusData = async () => {
       return;
     }
 
-    // Filter this week's logs
+    // Convert timestamp strings to Date objects
+    logs = logs.map(log => {
+      let timestamp;
+      if (typeof log.timestamp === 'string') {
+        timestamp = new Date(log.timestamp);
+      } else if (log.timestamp instanceof Date) {
+        timestamp = log.timestamp;
+      } else {
+        timestamp = new Date();
+      }
+      
+      return {
+        ...log,
+        timestamp: timestamp,
+        status: Boolean(log.status) // Ensure boolean
+      };
+    }).sort((a, b) => a.timestamp - b.timestamp); // Sort chronologically
+
+    console.log('Processed motor history logs:', logs);
+
+    if (logs.length === 0) {
+      console.log('No motor history data available');
+      weeklyData.value = [];
+      motorOnPercentage.value = 0;
+      return;
+    }
+
+    // Calculate start of week (Sunday)
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // Sunday is day 0 in JavaScript (0=Sunday, 1=Monday, ..., 6=Saturday)
+    const daysSinceSunday = now.getDay(); // 0-6 where 0 is Sunday
+    startOfWeek.setDate(now.getDate() - daysSinceSunday);
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const thisWeekLogs = logs.filter(log => {
-      const ts = new Date(log.timestamp || now);
-      return ts >= startOfWeek;
-    });
+    console.log('Start of week (Sunday):', startOfWeek);
+    console.log('Now:', now);
 
-    // Compute % of time ON per day
-    const dailyOnCounts = Array(7).fill(0);
-    const dailyTotalLogs = Array(7).fill(0);
+    // Filter logs for this week only (starting from Sunday)
+    const thisWeekLogs = logs.filter(log => log.timestamp >= startOfWeek);
+    console.log('This week logs (since Sunday):', thisWeekLogs);
 
-    thisWeekLogs.forEach(log => {
-      const ts = new Date(log.timestamp || now);
-      const dayIndex = ts.getDay();
-      dailyTotalLogs[dayIndex]++;
-      if (log.status === true) {
-        dailyOnCounts[dayIndex]++;
+    if (thisWeekLogs.length === 0) {
+      console.log('No motor history data for this week');
+      weeklyData.value = [];
+      motorOnPercentage.value = 0;
+      return;
+    }
+
+    // Calculate total ON time for the week
+    let totalOnTimeMs = 0;
+    let lastStatus = false;
+    let lastTimestamp = startOfWeek;
+
+    // Calculate ON time from status changes
+    for (let i = 0; i < thisWeekLogs.length; i++) {
+      const log = thisWeekLogs[i];
+      
+      if (lastStatus) {
+        totalOnTimeMs += log.timestamp - lastTimestamp;
+        console.log(`ON period: ${lastTimestamp} to ${log.timestamp} = ${(log.timestamp - lastTimestamp) / 1000 / 60} minutes`);
       }
-    });
 
+      lastStatus = log.status;
+      lastTimestamp = log.timestamp;
+    }
+
+    // Add time from last status change to now if motor was ON
+    if (lastStatus) {
+      totalOnTimeMs += now - lastTimestamp;
+      console.log(`Final ON period: ${lastTimestamp} to ${now} = ${(now - lastTimestamp) / 1000 / 60} minutes`);
+    }
+
+    const totalWeekTimeMs = now - startOfWeek;
+    motorOnPercentage.value = totalWeekTimeMs > 0 ? (totalOnTimeMs / totalWeekTimeMs) * 100 : 0;
+
+    console.log('Total ON time:', (totalOnTimeMs / 1000 / 60 / 60).toFixed(2), 'hours');
+    console.log('Total week time:', (totalWeekTimeMs / 1000 / 60 / 60).toFixed(2), 'hours');
+    console.log('ON percentage:', motorOnPercentage.value.toFixed(2), '%');
+
+    // Calculate daily breakdown (Sunday to Saturday)
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dailyPercentages = dailyOnCounts.map((onCount, index) => ({
+    const dailyPercentages = Array(7).fill(0);
+
+    for (let day = 0; day < 7; day++) {
+      const dayStart = new Date(startOfWeek);
+      dayStart.setDate(startOfWeek.getDate() + day);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayStart.getDate() + 1);
+
+      let dayOnTimeMs = 0;
+      let dayLastStatus = false;
+      let dayLastTimestamp = dayStart;
+
+      for (let i = 0; i < thisWeekLogs.length; i++) {
+        const log = thisWeekLogs[i];
+        
+        if (log.timestamp < dayStart) {
+          dayLastTimestamp = dayStart;
+          dayLastStatus = log.status;
+          continue;
+        }
+
+        if (log.timestamp > dayEnd) break;
+
+        if (dayLastStatus) {
+          dayOnTimeMs += log.timestamp - dayLastTimestamp;
+        }
+
+        dayLastStatus = log.status;
+        dayLastTimestamp = log.timestamp;
+      }
+
+      // Add time from last status change to end of day if motor was ON
+      if (dayLastStatus) {
+        dayOnTimeMs += Math.min(dayEnd, now) - dayLastTimestamp;
+      }
+
+      const dayTotalTimeMs = Math.min(dayEnd, now) - dayStart;
+      dailyPercentages[day] = dayTotalTimeMs > 0 ? (dayOnTimeMs / dayTotalTimeMs) * 100 : 0;
+      
+      console.log(`Day ${dayLabels[day]}: ON ${(dayOnTimeMs / 1000 / 60 / 60).toFixed(2)}h of ${(dayTotalTimeMs / 1000 / 60 / 60).toFixed(2)}h = ${dailyPercentages[day].toFixed(2)}%`);
+    }
+
+    weeklyData.value = dailyPercentages.map((percentage, index) => ({
       label: dayLabels[index],
-      percentage: dailyTotalLogs[index] > 0 ? (onCount / dailyTotalLogs[index]) * 100 : 0
+      percentage: percentage
     }));
 
-    weeklyData.value = dailyPercentages;
-
-    // Calculate overall weekly ON percentage
-    const totalOnLogsForWeek = dailyOnCounts.reduce((sum, count) => sum + count, 0);
-    const totalLogsForWeek = dailyTotalLogs.reduce((sum, count) => sum + count, 0);
-    
-    motorOnPercentage.value = totalLogsForWeek > 0 ? (totalOnLogsForWeek / totalLogsForWeek) * 100 : 0;
+    console.log('Daily percentages:', weeklyData.value);
 
   } catch (error) {
     console.error('Error fetching motor status and history:', error);
@@ -1916,6 +2157,38 @@ const destroyAllCharts = () => {
   });
 };
 
+const motorStatusPollingInterval = ref(null);
+const isMotorStatusPolling = ref(false);
+
+// Polling function
+const startMotorStatusPolling = () => {
+  if (motorStatusPollingInterval.value) {
+    clearInterval(motorStatusPollingInterval.value);
+  }
+  
+  isMotorStatusPolling.value = true;
+  
+  // Fetch immediately first
+  fetchMotorStatusData();
+  
+  // Then set up polling every 30 seconds (adjust as needed)
+  motorStatusPollingInterval.value = setInterval(() => {
+    fetchMotorStatusData();
+  }, 30000); // 30 seconds
+  
+  console.log('Motor status polling started');
+};
+
+// Stop polling function
+const stopMotorStatusPolling = () => {
+  if (motorStatusPollingInterval.value) {
+    clearInterval(motorStatusPollingInterval.value);
+    motorStatusPollingInterval.value = null;
+  }
+  isMotorStatusPolling.value = false;
+  console.log('Motor status polling stopped');
+};
+
 onMounted(async () => {
   isLoading.value = true;
   isWeatherLoading.value = true;
@@ -1938,7 +2211,8 @@ onMounted(async () => {
     
     setTimeout(() => {
       initAllCharts();
-      
+      startMotorStatusPolling();
+
       // debugData();
       // debugApiResponse();
     }, 100);
@@ -2139,6 +2413,7 @@ onBeforeUnmount(() => {
   } catch (e) {
     console.warn('Error while destroying chart:', e);
   }
+  stopMotorStatusPolling(); 
 
   clearInterval(intervalId);
   firestoreListenersUnsubscribers.value.forEach(unsubscribe => unsubscribe());

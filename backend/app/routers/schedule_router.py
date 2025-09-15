@@ -527,10 +527,139 @@ async def get_soil_moisture():
         print(f"Error in get_soil_moisture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching soil moisture: {str(e)}")
 
+@router.post("/watering-schedules")
+async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
+    """Create a new watering schedule and send to ESP32"""
+    try:
+        db = await get_database()
+        collection = db["watering_schedules"]
+        
+        # Check for duplicate schedules
+        duplicate_check = await check_duplicate_schedule(schedule, None, db)
+        if duplicate_check:
+            raise HTTPException(status_code=400, detail="A conflicting schedule already exists at this time")
+        
+        # Determine which subcollection to add to based on mode
+        mode = schedule.get("mode", "weekly")
+        subcollection = "weekly"
+        if mode == "daily":
+            subcollection = "daily"
+        elif mode == "one-time":
+            subcollection = "one_time"
+        
+        # Format dateTime for display
+        dateTime = ""
+        scheduled_time = schedule.get("scheduledTime")
+        
+        if mode == "one-time" and scheduled_time:
+            try:
+                # Handle both milliseconds and seconds timestamps
+                if scheduled_time > 1000000000000:  # Likely milliseconds
+                    schedule_date = datetime.fromtimestamp(scheduled_time / 1000)
+                else:  # Likely seconds
+                    schedule_date = datetime.fromtimestamp(scheduled_time)
+                dateTime = schedule_date.strftime("%a, %b %d, %I:%M %p")
+            except Exception as e:
+                print(f"Error parsing scheduled time: {e}")
+                dateTime = "Invalid time"
+        elif mode in ["daily", "weekly"]:
+            hour = schedule.get("hour", 0)
+            minute = schedule.get("minute", 0)
+            display_hour = hour % 12
+            if display_hour == 0:
+                display_hour = 12
+            am_pm = "AM" if hour < 12 else "PM"
+            dateTime = f"{display_hour:02d}:{minute:02d} {am_pm}"
+        
+        # For one-time schedules, ensure scheduledTime is stored correctly
+        if mode == "one-time" and scheduled_time:
+            # Convert to milliseconds if it's in seconds
+            if scheduled_time < 1000000000000:  # Likely seconds
+                scheduled_time = scheduled_time * 1000
+        
+        # Create schedule data with Firebase timestamp format
+        schedule_data = {
+            "_id": str(ObjectId()),
+            "duration": schedule.get("duration", 0),
+            "days": schedule.get("days", []),
+            "skipIfRain": schedule.get("skipIfRain", False),
+            "notifyWatering": schedule.get("notifyWatering", True),
+            "waterFlowRate": schedule.get("waterFlowRate", "medium"),
+            "scheduledTime": scheduled_time,
+            "dateTime": dateTime,
+            "completed": False,
+            "createdAt": {
+                "_seconds": int(datetime.utcnow().timestamp()),
+                "_nanoseconds": 0
+            },
+            "updatedAt": {
+                "_seconds": int(datetime.utcnow().timestamp()),
+                "_nanoseconds": 0
+            }
+        }
+        
+        # Add to the appropriate subcollection
+        await collection.update_one(
+            {"_id": "schedules_root"},
+            {"$push": {subcollection: schedule_data}},
+            upsert=True
+        )
+        
+        # Send schedule to ESP32
+        esp32_response = None
+        try:
+            print("📡 Attempting to send schedule to ESP32...")
+            esp32_endpoint = f"http://{esp_ip}/watering-schedule"
+            
+            # Prepare data for ESP32 (simplified format)
+            esp32_schedule_data = {
+                "id": schedule_data["_id"],
+                "mode": mode,
+                "duration": schedule_data["duration"],
+                "scheduledTime": schedule_data["scheduledTime"],
+                "waterFlowRate": schedule_data["waterFlowRate"]
+            }
+            
+            # Add days for weekly schedules
+            if mode == "weekly":
+                esp32_schedule_data["days"] = schedule_data["days"]
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(esp32_endpoint, json=esp32_schedule_data)
+                response.raise_for_status()
+
+            try:
+                esp32_response = response.json()
+            except ValueError:
+                esp32_response = response.text
+
+            print("✅ Successfully sent schedule to ESP32.")
+            print(f"   ESP32 response: {esp32_response}")
+                
+        except httpx.RequestError as e:
+            print(f"❌ Network error when sending schedule data to ESP32: {e}")
+            esp32_response = {"error": f"Network error: {e}"}
+            
+        except httpx.HTTPStatusError as e:
+            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
+            print("📩 ESP32 response body:", e.response.text)
+            esp32_response = {"error": f"ESP32 error: {e.response.text}"}
+        
+        return {
+            "id": schedule_data["_id"], 
+            "message": "Schedule created successfully",
+            "esp32_response": esp32_response
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in create_schedule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating schedule: {str(e)}")
 
 @router.put("/watering-schedules/{schedule_id}")
-async def update_schedule(schedule_id: str, schedule: dict):
-    """Update an existing watering schedule"""
+async def update_schedule(schedule_id: str, schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
+    """Update an existing watering schedule and send to ESP32"""
     try:
         db = await get_database()
         collection = db["watering_schedules"]
@@ -588,7 +717,50 @@ async def update_schedule(schedule_id: str, schedule: dict):
             {"$set": update_query}
         )
         
-        return {"message": "Schedule updated successfully"}
+        # Send updated schedule to ESP32
+        esp32_response = None
+        try:
+            print("📡 Attempting to send updated schedule to ESP32...")
+            esp32_endpoint = f"http://{esp_ip}/watering-schedule"
+            
+            # Prepare data for ESP32
+            esp32_schedule_data = {
+                "id": schedule_id,
+                "mode": found_subcollection.replace("_", "-") if found_subcollection == "one_time" else found_subcollection,
+                "duration": schedule.get("duration", 0),
+                "scheduledTime": schedule.get("scheduledTime"),
+                "waterFlowRate": schedule.get("waterFlowRate", "medium")
+            }
+            
+            # Add days for weekly schedules
+            if found_subcollection == "weekly":
+                esp32_schedule_data["days"] = schedule.get("days", [])
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.put(esp32_endpoint, json=esp32_schedule_data)
+                response.raise_for_status()
+
+            try:
+                esp32_response = response.json()
+            except ValueError:
+                esp32_response = response.text
+
+            print("✅ Successfully sent updated schedule to ESP32.")
+            print(f"   ESP32 response: {esp32_response}")
+                
+        except httpx.RequestError as e:
+            print(f"❌ Network error when sending updated schedule to ESP32: {e}")
+            esp32_response = {"error": f"Network error: {e}"}
+            
+        except httpx.HTTPStatusError as e:
+            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
+            print("📩 ESP32 response body:", e.response.text)
+            esp32_response = {"error": f"ESP32 error: {e.response.text}"}
+        
+        return {
+            "message": "Schedule updated successfully",
+            "esp32_response": esp32_response
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -596,8 +768,8 @@ async def update_schedule(schedule_id: str, schedule: dict):
         raise HTTPException(status_code=500, detail=f"Error updating schedule: {str(e)}")
 
 @router.delete("/watering-schedules/{schedule_id}")
-async def delete_schedule(schedule_id: str):
-    """Delete a watering schedule"""
+async def delete_schedule(schedule_id: str, esp_ip: str = Depends(get_esp32_ip)):
+    """Delete a watering schedule and notify ESP32"""
     try:
         db = await get_database()
         collection = db["watering_schedules"]
@@ -628,12 +800,149 @@ async def delete_schedule(schedule_id: str):
             {"$pull": {found_subcollection: {"_id": schedule_id}}}
         )
         
-        return {"message": "Schedule deleted successfully"}
+        # Notify ESP32 about deleted schedule
+        esp32_response = None
+        try:
+            print("📡 Attempting to notify ESP32 about deleted schedule...")
+            esp32_endpoint = f"http://{esp_ip}/watering-schedule/{schedule_id}"
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.delete(esp32_endpoint)
+                response.raise_for_status()
+
+            try:
+                esp32_response = response.json()
+            except ValueError:
+                esp32_response = response.text
+
+            print("✅ Successfully notified ESP32 about deleted schedule.")
+            print(f"   ESP32 response: {esp32_response}")
+                
+        except httpx.RequestError as e:
+            print(f"❌ Network error when notifying ESP32 about deleted schedule: {e}")
+            esp32_response = {"error": f"Network error: {e}"}
+            
+        except httpx.HTTPStatusError as e:
+            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
+            print("📩 ESP32 response body:", e.response.text)
+            esp32_response = {"error": f"ESP32 error: {e.response.text}"}
+        
+        return {
+            "message": "Schedule deleted successfully",
+            "esp32_response": esp32_response
+        }
     except HTTPException:
         raise
     except Exception as e:
         print(f"Error in delete_schedule: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error deleting schedule: {str(e)}")
+
+# @router.put("/watering-schedules/{schedule_id}")
+# async def update_schedule(schedule_id: str, schedule: dict):
+#     """Update an existing watering schedule"""
+#     try:
+#         db = await get_database()
+#         collection = db["watering_schedules"]
+        
+#         # Find the schedule in all subcollections
+#         root_doc = await collection.find_one({"_id": "schedules_root"})
+#         if not root_doc:
+#             raise HTTPException(status_code=404, detail="Schedule not found")
+        
+#         # Find which subcollection contains the schedule
+#         subcollections = ["daily", "weekly", "one_time"]
+#         found_subcollection = None
+#         found_index = -1
+        
+#         for subcollection in subcollections:
+#             schedules = root_doc.get(subcollection, [])
+#             for idx, s in enumerate(schedules):
+#                 if s.get("_id") == schedule_id:
+#                     found_subcollection = subcollection
+#                     found_index = idx
+#                     break
+#             if found_subcollection:
+#                 break
+        
+#         if not found_subcollection or found_index == -1:
+#             raise HTTPException(status_code=404, detail="Schedule not found")
+        
+#         # Check for duplicate schedules (excluding the current one being edited)
+#         if await check_duplicate_schedule(schedule, schedule_id, db):
+#             raise HTTPException(status_code=400, detail="A conflicting schedule already exists at this time")
+        
+#         # Update the schedule
+#         update_data = {
+#             "duration": schedule.get("duration", 0),
+#             "days": schedule.get("days", []),
+#             "skipIfRain": schedule.get("skipIfRain", False),
+#             "notifyWatering": schedule.get("notifyWatering", True),
+#             "waterFlowRate": schedule.get("waterFlowRate", "medium"),
+#             "scheduledTime": schedule.get("scheduledTime"),
+#             "dateTime": schedule.get("dateTime"),
+#             "updatedAt": {
+#                 "_seconds": int(datetime.utcnow().timestamp()),
+#                 "_nanoseconds": 0
+#             }
+#         }
+        
+#         # Update the specific schedule in the subcollection
+#         update_query = {
+#             f"{found_subcollection}.{found_index}.{key}": value 
+#             for key, value in update_data.items()
+#         }
+        
+#         await collection.update_one(
+#             {"_id": "schedules_root"},
+#             {"$set": update_query}
+#         )
+        
+#         return {"message": "Schedule updated successfully"}
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         print(f"Error in update_schedule: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error updating schedule: {str(e)}")
+
+# @router.delete("/watering-schedules/{schedule_id}")
+# async def delete_schedule(schedule_id: str):
+#     """Delete a watering schedule"""
+#     try:
+#         db = await get_database()
+#         collection = db["watering_schedules"]
+        
+#         # Find which subcollection contains the schedule
+#         root_doc = await collection.find_one({"_id": "schedules_root"})
+#         if not root_doc:
+#             raise HTTPException(status_code=404, detail="Schedule not found")
+        
+#         subcollections = ["daily", "weekly", "one_time"]
+#         found_subcollection = None
+        
+#         for subcollection in subcollections:
+#             schedules = root_doc.get(subcollection, [])
+#             for s in schedules:
+#                 if s.get("_id") == schedule_id:
+#                     found_subcollection = subcollection
+#                     break
+#             if found_subcollection:
+#                 break
+        
+#         if not found_subcollection:
+#             raise HTTPException(status_code=404, detail="Schedule not found")
+        
+#         # Remove the schedule from the subcollection
+#         await collection.update_one(
+#             {"_id": "schedules_root"},
+#             {"$pull": {found_subcollection: {"_id": schedule_id}}}
+#         )
+        
+#         return {"message": "Schedule deleted successfully"}
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         print(f"Error in delete_schedule: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error deleting schedule: {str(e)}")
 
 @router.post("/motor-status")
 async def set_motor_status(status: dict):
@@ -753,90 +1062,135 @@ async def cancel_ongoing_watering_schedules(db, cancellation_reason):
     except Exception as e:
         print(f"Error in cancel_ongoing_watering_schedules: {str(e)}")
 
-@router.post("/watering-schedules")
-async def create_schedule(schedule: dict):
-    """Create a new watering schedule"""
-    try:
-        db = await get_database()
-        collection = db["watering_schedules"]
+# @router.post("/watering-schedules")
+# async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
+#     """Create a new watering schedule and send to ESP32"""
+#     try:
+#         db = await get_database()
+#         collection = db["watering_schedules"]
         
-        # Check for duplicate schedules
-        duplicate_check = await check_duplicate_schedule(schedule, None, db)
-        if duplicate_check:
-            raise HTTPException(status_code=400, detail="A conflicting schedule already exists at this time")
+#         # Check for duplicate schedules
+#         duplicate_check = await check_duplicate_schedule(schedule, None, db)
+#         if duplicate_check:
+#             raise HTTPException(status_code=400, detail="A conflicting schedule already exists at this time")
         
-        # Determine which subcollection to add to based on mode
-        mode = schedule.get("mode", "weekly")
-        subcollection = "weekly"
-        if mode == "daily":
-            subcollection = "daily"
-        elif mode == "one-time":
-            subcollection = "one_time"
+#         # Determine which subcollection to add to based on mode
+#         mode = schedule.get("mode", "weekly")
+#         subcollection = "weekly"
+#         if mode == "daily":
+#             subcollection = "daily"
+#         elif mode == "one-time":
+#             subcollection = "one_time"
         
-        # Format dateTime for display
-        dateTime = ""
-        scheduled_time = schedule.get("scheduledTime")
+#         # Format dateTime for display
+#         dateTime = ""
+#         scheduled_time = schedule.get("scheduledTime")
         
-        if mode == "one-time" and scheduled_time:
-            try:
-                # Handle both milliseconds and seconds timestamps
-                if scheduled_time > 1000000000000:  # Likely milliseconds
-                    schedule_date = datetime.fromtimestamp(scheduled_time / 1000)
-                else:  # Likely seconds
-                    schedule_date = datetime.fromtimestamp(scheduled_time)
-                dateTime = schedule_date.strftime("%a, %b %d, %I:%M %p")
-            except Exception as e:
-                print(f"Error parsing scheduled time: {e}")
-                dateTime = "Invalid time"
-        elif mode in ["daily", "weekly"]:
-            hour = schedule.get("hour", 0)
-            minute = schedule.get("minute", 0)
-            display_hour = hour % 12
-            if display_hour == 0:
-                display_hour = 12
-            am_pm = "AM" if hour < 12 else "PM"
-            dateTime = f"{display_hour:02d}:{minute:02d} {am_pm}"
+#         if mode == "one-time" and scheduled_time:
+#             try:
+#                 # Handle both milliseconds and seconds timestamps
+#                 if scheduled_time > 1000000000000:  # Likely milliseconds
+#                     schedule_date = datetime.fromtimestamp(scheduled_time / 1000)
+#                 else:  # Likely seconds
+#                     schedule_date = datetime.fromtimestamp(scheduled_time)
+#                 dateTime = schedule_date.strftime("%a, %b %d, %I:%M %p")
+#             except Exception as e:
+#                 print(f"Error parsing scheduled time: {e}")
+#                 dateTime = "Invalid time"
+#         elif mode in ["daily", "weekly"]:
+#             hour = schedule.get("hour", 0)
+#             minute = schedule.get("minute", 0)
+#             display_hour = hour % 12
+#             if display_hour == 0:
+#                 display_hour = 12
+#             am_pm = "AM" if hour < 12 else "PM"
+#             dateTime = f"{display_hour:02d}:{minute:02d} {am_pm}"
         
-        # For one-time schedules, ensure scheduledTime is stored correctly
-        if mode == "one-time" and scheduled_time:
-            # Convert to milliseconds if it's in seconds
-            if scheduled_time < 1000000000000:  # Likely seconds
-                scheduled_time = scheduled_time * 1000
+#         # For one-time schedules, ensure scheduledTime is stored correctly
+#         if mode == "one-time" and scheduled_time:
+#             # Convert to milliseconds if it's in seconds
+#             if scheduled_time < 1000000000000:  # Likely seconds
+#                 scheduled_time = scheduled_time * 1000
         
-        # Create schedule data with Firebase timestamp format
-        schedule_data = {
-            "_id": str(ObjectId()),
-            "duration": schedule.get("duration", 0),
-            "days": schedule.get("days", []),
-            "skipIfRain": schedule.get("skipIfRain", False),
-            "notifyWatering": schedule.get("notifyWatering", True),
-            "waterFlowRate": schedule.get("waterFlowRate", "medium"),
-            "scheduledTime": scheduled_time,
-            "dateTime": dateTime,
-            "completed": False,
-            "createdAt": {
-                "_seconds": int(datetime.utcnow().timestamp()),
-                "_nanoseconds": 0
-            },
-            "updatedAt": {
-                "_seconds": int(datetime.utcnow().timestamp()),
-                "_nanoseconds": 0
-            }
-        }
+#         # Create schedule data with Firebase timestamp format
+#         schedule_data = {
+#             "_id": str(ObjectId()),
+#             "duration": schedule.get("duration", 0),
+#             "days": schedule.get("days", []),
+#             "skipIfRain": schedule.get("skipIfRain", False),
+#             "notifyWatering": schedule.get("notifyWatering", True),
+#             "waterFlowRate": schedule.get("waterFlowRate", "medium"),
+#             "scheduledTime": scheduled_time,
+#             "dateTime": dateTime,
+#             "completed": False,
+#             "createdAt": {
+#                 "_seconds": int(datetime.utcnow().timestamp()),
+#                 "_nanoseconds": 0
+#             },
+#             "updatedAt": {
+#                 "_seconds": int(datetime.utcnow().timestamp()),
+#                 "_nanoseconds": 0
+#             }
+#         }
         
-        # Add to the appropriate subcollection
-        await collection.update_one(
-            {"_id": "schedules_root"},
-            {"$push": {subcollection: schedule_data}},
-            upsert=True
-        )
+#         # Add to the appropriate subcollection
+#         await collection.update_one(
+#             {"_id": "schedules_root"},
+#             {"$push": {subcollection: schedule_data}},
+#             upsert=True
+#         )
         
-        return {"id": schedule_data["_id"], "message": "Schedule created successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error in create_schedule: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error creating schedule: {str(e)}")
+#         # Send schedule to ESP32
+#         esp32_response = None
+#         try:
+#             print("📡 Attempting to send schedule to ESP32...")
+#             esp32_endpoint = f"http://{esp_ip}/watering-schedule"
+            
+#             # Prepare data for ESP32 (simplified format)
+#             esp32_schedule_data = {
+#                 "id": schedule_data["_id"],
+#                 "mode": mode,
+#                 "duration": schedule_data["duration"],
+#                 "scheduledTime": schedule_data["scheduledTime"],
+#                 "waterFlowRate": schedule_data["waterFlowRate"]
+#             }
+            
+#             # Add days for weekly schedules
+#             if mode == "weekly":
+#                 esp32_schedule_data["days"] = schedule_data["days"]
+            
+#             async with httpx.AsyncClient(timeout=5.0) as client:
+#                 response = await client.post(esp32_endpoint, json=esp32_schedule_data)
+#                 response.raise_for_status()
+
+#             try:
+#                 esp32_response = response.json()
+#             except ValueError:
+#                 esp32_response = response.text
+
+#             print("✅ Successfully sent schedule to ESP32.")
+#             print(f"   ESP32 response: {esp32_response}")
+                
+#         except httpx.RequestError as e:
+#             print(f"❌ Network error when sending schedule data to ESP32: {e}")
+#             esp32_response = {"error": f"Network error: {e}"}
+            
+#         except httpx.HTTPStatusError as e:
+#             print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
+#             print("📩 ESP32 response body:", e.response.text)
+#             esp32_response = {"error": f"ESP32 error: {e.response.text}"}
+        
+#         return {
+#             "id": schedule_data["_id"], 
+#             "message": "Schedule created successfully",
+#             "esp32_response": esp32_response
+#         }
+        
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         print(f"Error in create_schedule: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error creating schedule: {str(e)}")
 
 # Enhanced duplicate checking function
 async def check_duplicate_schedule(new_schedule, exclude_schedule_id, db):

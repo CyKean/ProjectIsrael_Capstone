@@ -1859,6 +1859,19 @@ const processScheduleUpdates = (updatedSchedules, mode, changes) => {
   schedulesCache.value = schedulesCache.value.filter(s => s.mode !== mode);
   
   updatedSchedules.forEach(schedule => {
+    if (schedule.mode === 'weekly' && schedule.days) {
+      // Convert days object to array for easier checking
+      schedule.daysArray = Object.entries(schedule.days)
+        .filter(([_, value]) => value === true)
+        .map(([key, _]) => parseInt(key));
+      
+      console.log('Weekly schedule processed:', {
+        id: schedule.id,
+        days: schedule.days,
+        daysArray: schedule.daysArray
+      });
+    }
+
     schedulesCache.value.push(schedule);
   });
   
@@ -1925,7 +1938,11 @@ const getCachedSensorData = async () => {
 const checkSchedules = async () => {
   try {
     const now = new Date();
-    const currentDay = (now.getDay() + 6) % 7; 
+    // Get current day of week (0-6, where 0 is Sunday)
+    const currentDayOfWeek = now.getDay(); 
+    // Convert to your expected format (Monday = 0, Sunday = 6)
+    const currentDay = (currentDayOfWeek + 6) % 7;
+    
     const currentTime = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
     
     for (const schedule of schedulesCache.value) {
@@ -1954,7 +1971,26 @@ const checkSchedules = async () => {
         shouldRun = true;
         timeMatch = Math.abs(currentTime - schedule.scheduledTime) < 2000;
       } else if (schedule.mode === 'weekly') {
-        shouldRun = schedule.daysArray?.includes(currentDay) ?? false;
+        // Debug logging to see what's happening with weekly schedules
+        console.log('Weekly schedule check:', {
+          scheduleId: schedule.id,
+          scheduleDays: schedule.days,
+          currentDay: currentDay,
+          currentDayName: getDayName(currentDay),
+          daysArray: schedule.daysArray,
+          currentTime: currentTime,
+          scheduledTime: schedule.scheduledTime,
+          timeDiff: Math.abs(currentTime - schedule.scheduledTime)
+        });
+        
+        // Check if the current day is in the schedule's days
+        // Weekly schedules use days object like {0: true, 3: true, 4: true} for Mon, Thu, Fri
+        if (schedule.days) {
+          shouldRun = schedule.days[currentDay] === true;
+        } else if (schedule.daysArray) {
+          shouldRun = schedule.daysArray.includes(currentDay);
+        }
+        
         timeMatch = shouldRun && Math.abs(currentTime - schedule.scheduledTime) < 2000;
       } else if (schedule.mode === 'one-time') {
         const scheduleDate = new Date(schedule.scheduledTime);
@@ -1963,7 +1999,7 @@ const checkSchedules = async () => {
       }
       
       if (shouldRun && timeMatch && !activeSchedules.value[schedule.id]) {
-        console.log(`✅ Starting ${schedule.mode} schedule ${schedule.id}`);
+        console.log(`✅ Starting ${schedule.mode} schedule ${schedule.id} on day ${currentDay}`);
         processingSchedules.value.add(scheduleKey);
         lastProcessedScheduleTimes.value[scheduleKey] = now.getTime();
         processScheduleStart(schedule, currentDay);
@@ -1973,6 +2009,58 @@ const checkSchedules = async () => {
     console.error('Schedule check error:', error);
   }
 };
+
+// const checkSchedules = async () => {
+//   try {
+//     const now = new Date();
+//     const currentDay = (now.getDay() + 6) % 7; 
+//     const currentTime = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
+    
+//     for (const schedule of schedulesCache.value) {
+//       if (!schedule.notifyWatering || schedule.completed) continue;
+      
+//       const scheduleKey = `${schedule.id}-${currentDay}`;
+      
+//       if (processingSchedules.value.has(scheduleKey)) {
+//         continue;
+//       }
+      
+//       if (lastProcessedScheduleTimes.value[scheduleKey]) {
+//         const lastProcessed = new Date(lastProcessedScheduleTimes.value[scheduleKey]);
+//         const todayStart = new Date(now);
+//         todayStart.setHours(0, 0, 0, 0);
+        
+//         if (lastProcessed >= todayStart) {
+//           continue;
+//         }
+//       }
+      
+//       let shouldRun = false;
+//       let timeMatch = false;
+      
+//       if (schedule.mode === 'daily') {
+//         shouldRun = true;
+//         timeMatch = Math.abs(currentTime - schedule.scheduledTime) < 2000;
+//       } else if (schedule.mode === 'weekly') {
+//         shouldRun = schedule.daysArray?.includes(currentDay) ?? false;
+//         timeMatch = shouldRun && Math.abs(currentTime - schedule.scheduledTime) < 2000;
+//       } else if (schedule.mode === 'one-time') {
+//         const scheduleDate = new Date(schedule.scheduledTime);
+//         shouldRun = scheduleDate.toDateString() === now.toDateString();
+//         timeMatch = shouldRun && Math.abs(now.getTime() - schedule.scheduledTime) < 2000;
+//       }
+      
+//       if (shouldRun && timeMatch && !activeSchedules.value[schedule.id]) {
+//         console.log(`✅ Starting ${schedule.mode} schedule ${schedule.id}`);
+//         processingSchedules.value.add(scheduleKey);
+//         lastProcessedScheduleTimes.value[scheduleKey] = now.getTime();
+//         processScheduleStart(schedule, currentDay);
+//       }
+//     }
+//   } catch (error) {
+//     console.error('Schedule check error:', error);
+//   }
+// };
 
 const sendWateringNotification = async (message, title, scheduleId, eventType, contextData = {}) => {
   const now = new Date();
@@ -2224,7 +2312,6 @@ const processScheduleStart = async (schedule, currentDay) => {
   }
 };
 
-// Update the processScheduleEnd function
 const processScheduleEnd = async (schedule, currentDay, startTime) => {
   const scheduleId = schedule.id;
   const scheduleKey = `${schedule.id}-${currentDay}`;
@@ -2307,6 +2394,9 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
       console.error('❌ Failed to save end notification');
     }
     
+    // Save to history - ADD THIS LINE
+    await saveToHistory(schedule, startTime, currentDay);
+    
     if (schedule.mode === 'one-time') {
       console.log('📝 Marking one-time schedule as completed...');
       const completionSuccess = await markScheduleCompleted(scheduleId);
@@ -2330,18 +2420,187 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
   }
 };
 
+// Update the processScheduleEnd function
+// const processScheduleEnd = async (schedule, currentDay, startTime) => {
+//   const scheduleId = schedule.id;
+//   const scheduleKey = `${schedule.id}-${currentDay}`;
+  
+//   try {
+//     const sensorData = await getCachedSensorData();
+//     const endTime = Date.now();
+    
+//     const now = new Date();
+//     const formattedTime = now.toLocaleString('en-US', {
+//       weekday: 'short', month: 'short', day: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit'
+//     });
+    
+//     let typeLabel, message;
+//     switch (schedule.mode) {
+//       case 'one-time':
+//         typeLabel = 'One-time';
+//         message = `One-time watering completed at ${formattedTime}`;
+//         break;
+//       case 'daily':
+//         typeLabel = 'Daily';
+//         message = `Daily watering completed at ${formattedTime}`;
+//         break;
+//       case 'weekly':
+//         typeLabel = 'Weekly';
+//         const dayName = getDayName(currentDay);
+//         message = `Weekly watering (${dayName}) completed at ${formattedTime}`;
+//         break;
+//       default:
+//         typeLabel = 'Scheduled';
+//         message = `Watering completed at ${formattedTime}`;
+//     }
+    
+//     console.log(`🛑 Stopping motor for schedule ${scheduleId}`);
+//     const motorResult = await updateMotorStatus(false, scheduleId, 'schedule-end');
+    
+//     // Show notification regardless of whether the command was sent or skipped
+//     const motorSuccess = motorResult.success;
+    
+//     if (motorResult.skipped) {
+//       console.log(`⏩ Motor command skipped (duplicate) for schedule ${scheduleId}`);
+//     } else if (motorSuccess) {
+//       console.log(`✅ Motor stopped for schedule ${scheduleId}`);
+//     } else {
+//       console.error(`❌ Failed to stop motor for schedule ${scheduleId}`);
+//     }
+    
+//     const context = await formatNotificationContextWithLatestData('watering-schedule', {
+//       scheduleType: schedule.mode,
+//       duration: schedule.duration,
+//       scheduleId: scheduleId,
+//       motorStatus: motorSuccess ? 'off' : 'unknown',
+//       endTime: formattedTime,
+//       endTimestamp: endTime,
+//       startTimestamp: startTime,
+//       totalDuration: endTime - startTime,
+//       dayOfWeek: currentDay,
+//       action: 'end',
+//       motorSuccess: motorSuccess,
+//       zone: 'Greenhouse 1',
+//       mode: 'auto',
+//       waterLevelAtStart: sensorData.waterData?.waterLevel,
+//       remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor deactivation failed'
+//     });
+    
+//     const notificationResult = await sendWateringNotification(
+//       message,
+//       `${typeLabel} Watering Completed`,
+//       scheduleId,
+//       'end',
+//       context
+//     );
+    
+//     if (notificationResult.success) {
+//       console.log('✅ End notification saved successfully');
+//     } else if (notificationResult.skipped) {
+//       console.log('⏩ End notification skipped (duplicate)');
+//     } else {
+//       console.error('❌ Failed to save end notification');
+//     }
+    
+//     if (schedule.mode === 'one-time') {
+//       console.log('📝 Marking one-time schedule as completed...');
+//       const completionSuccess = await markScheduleCompleted(scheduleId);
+      
+//       if (completionSuccess) {
+//         console.log(`✅ Schedule ${scheduleId} marked as completed`);
+//       } else {
+//         console.error(`❌ Failed to mark schedule ${scheduleId} as completed`);
+//       }
+//     }
+    
+//     console.log(`✅ Schedule ${scheduleId} completed successfully`);
+    
+//   } catch (error) {
+//     console.error(`❌ Error completing schedule ${scheduleId}:`, error);
+//   } finally {
+//     delete activeSchedules.value[scheduleId];
+//     delete scheduleTimers.value[scheduleId];
+//     delete scheduleProcessingStatus.value[scheduleId];
+//     processingSchedules.value.delete(scheduleKey);
+//   }
+// };
 
 
-const saveToHistory = async (schedule, startTime, endTime, day) => {
+// const saveToHistory = async (schedule, startTime, endTime, day) => {
+//   try {
+//     console.log('💾 Saving schedule to history:', schedule.id);
+    
+//     const historyData = {
+//       scheduleId: schedule.id,
+//       mode: schedule.mode,
+//       originalScheduledTime: schedule.scheduledTime,
+//       actualStartTime: startTime,
+//       completedAt: endTime,
+//       duration: schedule.duration,
+//       days: schedule.days || {},
+//       dayOfWeek: schedule.mode === 'weekly' ? day : null,
+//       notifyWatering: schedule.notifyWatering !== false,
+//       skipIfRain: schedule.skipIfRain || false,
+//       waterFlowRate: schedule.waterFlowRate || 'medium'
+//     };
+    
+//     console.log('📤 Sending history data to schedules_root:', historyData);
+    
+//     const response = await api.post('/schedules/history', historyData);
+    
+//     if (response.data && response.data.status === 'success') {
+//       console.log('✅ Schedule saved to history in schedules_root document');
+      
+//       setTimeout(async () => {
+//         try {
+//           const historyResponse = await api.get('/schedules/history?limit=5');
+//           if (historyResponse.data && Array.isArray(historyResponse.data)) {
+//             const recentEntry = historyResponse.data.find(entry => 
+//               entry.scheduleId === schedule.id && entry.completedAt === endTime
+//             );
+//             if (recentEntry) {
+//               console.log('✅ Schedule history verified in schedules_root');
+//             } else {
+//               console.warn('⚠️ Schedule history not found in recent entries');
+//             }
+//           }
+//         } catch (verifyError) {
+//           console.warn('Could not verify schedule history:', verifyError);
+//         }
+//       }, 1000);
+      
+//       return true;
+//     }
+    
+//     return false;
+//   } catch (error) {
+//     console.error('❌ Error saving to schedule history:', error);
+    
+//     // Log detailed error information
+//     if (error.response) {
+//       console.error('Error response:', error.response.data);
+//       console.error('Error status:', error.response.status);
+//     }
+    
+//     return false;
+//   }
+// };
+
+const saveToHistory = async (schedule, startTime, day) => {
   try {
     console.log('💾 Saving schedule to history:', schedule.id);
+    
+    // Convert startTime to milliseconds timestamp
+    const startTimestamp = typeof startTime === 'object' ? startTime.getTime() : startTime;
+    const endTimestamp = Date.now(); // Current time as end time
     
     const historyData = {
       scheduleId: schedule.id,
       mode: schedule.mode,
       originalScheduledTime: schedule.scheduledTime,
-      actualStartTime: startTime,
-      completedAt: endTime,
+      actualStartTime: startTimestamp,
+      completedAt: endTimestamp,
       duration: schedule.duration,
       days: schedule.days || {},
       dayOfWeek: schedule.mode === 'weekly' ? day : null,
@@ -2352,29 +2611,11 @@ const saveToHistory = async (schedule, startTime, endTime, day) => {
     
     console.log('📤 Sending history data to schedules_root:', historyData);
     
+    // Use the correct endpoint from your FastAPI router
     const response = await api.post('/schedules/history', historyData);
     
     if (response.data && response.data.status === 'success') {
       console.log('✅ Schedule saved to history in schedules_root document');
-      
-      setTimeout(async () => {
-        try {
-          const historyResponse = await api.get('/schedules/history?limit=5');
-          if (historyResponse.data && Array.isArray(historyResponse.data)) {
-            const recentEntry = historyResponse.data.find(entry => 
-              entry.scheduleId === schedule.id && entry.completedAt === endTime
-            );
-            if (recentEntry) {
-              console.log('✅ Schedule history verified in schedules_root');
-            } else {
-              console.warn('⚠️ Schedule history not found in recent entries');
-            }
-          }
-        } catch (verifyError) {
-          console.warn('Could not verify schedule history:', verifyError);
-        }
-      }, 1000);
-      
       return true;
     }
     

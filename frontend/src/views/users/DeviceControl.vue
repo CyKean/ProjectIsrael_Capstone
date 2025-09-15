@@ -1916,7 +1916,6 @@ const formatScheduleDateTime = (schedule) => {
   })
 }
 
-
 // =============================================
 // EXISTING FUNCTIONS (PRESERVED)
 // =============================================
@@ -3527,6 +3526,7 @@ const formatHistoryItem = (schedule) => {
     flowRateText: schedule.waterFlowRate?.toUpperCase() || 'MEDIUM'
   };
 };
+
 onMounted(async () => {
   // Test backend connection first
   const isConnected = await testBackendConnection()
@@ -3547,6 +3547,7 @@ onMounted(async () => {
     // Start real-time polling for motor status
     startMotorStatusPolling()
     startMotorActivitiesPolling()
+    startRealTimeUpdates()
     
     // Set up polling for other data (less frequent)
     setInterval(() => {
