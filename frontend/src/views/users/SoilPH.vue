@@ -334,19 +334,19 @@
                 <thead>
                   <tr>
                     
-                    <th class="w-[20%] md:w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] md:w-[25%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-orange-600">Soil pH</div>
                       <div class="text-gray-400 text-[10px]">pH LEVEL</div>
                     </th>
-                    <th class="w-[20%] md:w-[25%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] md:w-[25%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-orange-600">pH Status</div>
                       <div class="text-gray-400 text-[10px]">CONDITION</div>
                     </th>
-                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Date</div>
                       <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
                     </th>
-                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Time</div>
                       <div class="text-gray-400 text-[10px]">HH:MM:SS</div>
                     </th>
@@ -370,10 +370,10 @@
                       :key="index"
                       class="border-b border-gray-50 last:border-0">
                     
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[25%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-orange-600">{{ row.soilPh }}</div>
                     </td>
-                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[25%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <span 
                         :class="[
                           'px-3 py-1 rounded-full text-xs font-medium',
@@ -385,10 +385,10 @@
                         {{ row.phStatus }}
                       </span>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>

@@ -821,101 +821,105 @@
               </button>
             </div>
             
-            <!-- Action Buttons - Mobile Responsive Layout -->
-            <div class="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
-              <!-- Select Button -->
-              <button 
-                @click="toggleSelectMode"
-                :disabled="isLoading"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                :class="isSelectMode 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-gray-100 text-gray-700'"
-              >
-                <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                <span class="hidden md:block">{{ isSelectMode ? 'Cancel' : 'Select' }}</span>
-              </button>
+            <div>
+              <!-- Action Buttons - Mobile Responsive Layout -->
+              <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
+                <!-- Select Button -->
+                <button 
+                  @click="toggleSelectMode"
+                  :disabled="isLoading"
+                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  :class="isSelectMode 
+                    ? 'bg-red-500 text-white' 
+                    : 'bg-gray-100 text-gray-700'"
+                >
+                  <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                  <span class="hidden md:block">{{ isSelectMode ? 'Cancel' : 'Select' }}</span>
+                </button>
 
-              <!-- Delete Selected Button -->
-              <button 
-                v-if="isSelectMode && selectedNotifications.size > 0"
-                @click="deleteSelectedNotifications"
-                :disabled="isLoading"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                <span class="hidden md:block">Delete ({{ selectedNotifications.size }})</span>
-                <span class="block md:hidden">({{ selectedNotifications.size }})</span>
-              </button>
+                <!-- Delete Selected Button -->
+                <button 
+                  v-if="isSelectMode && selectedNotifications.size > 0"
+                  @click="deleteSelectedNotifications"
+                  :disabled="isLoading"
+                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                  <span class="hidden md:block">Delete ({{ selectedNotifications.size }})</span>
+                  <span class="block md:hidden">({{ selectedNotifications.size }})</span>
+                </button>
 
-              <!-- Archive Toggle Button -->
-              <button 
-                @click="toggleArchiveView"
-                :disabled="isLoading"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                :class="showArchived 
-                  ? 'bg-orange-500 text-white' 
-                  : 'bg-gray-100 text-gray-700'"
-              >
-                <component :is="showArchived ? Bell : Archive" class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                <span class="hidden md:block">{{ showArchived ? 'Active' : 'Archived' }}</span>
-              </button>
-              
-              <button 
-                v-if="!showArchived"
-                @click="markAllAsRead"
-                :disabled="isLoading"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                <span class="hidden md:block">Mark All</span>
-              </button>
+                <!-- Archive Toggle Button -->
+                <button 
+                  @click="toggleArchiveView"
+                  :disabled="isLoading"
+                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  :class="showArchived 
+                    ? 'bg-orange-500 text-white' 
+                    : 'bg-gray-100 text-gray-700'"
+                >
+                  <component :is="showArchived ? Bell : Archive" class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                  <span class="hidden md:block">{{ showArchived ? 'Active' : 'Archived' }}</span>
+                </button>
+                
+                <button 
+                  v-if="!showArchived"
+                  @click="markAllAsRead"
+                  :disabled="isLoading"
+                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                  <span class="hidden md:block">Mark All</span>
+                </button>
 
-              <button 
-                v-if="!showArchived && !isSelectMode"
-                @click="confirmDeleteAll"
-                :disabled="isLoading || currentNotifications.length === 0"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                <span class="hidden md:block">Delete All</span>
-              </button>
-            </div>
+                <button 
+                  v-if="!showArchived && !isSelectMode"
+                  @click="confirmDeleteAll"
+                  :disabled="isLoading || currentNotifications.length === 0"
+                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                  <span class="hidden md:block">Delete All</span>
+                </button>
+              </div>
 
-            <!-- Enhanced Filters and Search - Mobile Responsive -->
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-              <!-- Filter Buttons - Mobile optimized scrollable -->
-              <div class="flex items-center justify-start gap-1 sm:gap-2 overflow-x-auto scrollbar-hide min-w-0 pb-1">
-                <div class="flex items-center gap-1 sm:gap-2 flex-nowrap">
-                  <button 
-                    v-for="filter in (showArchived ? archivedFilters : filters)" 
-                    :key="filter.value"
-                    @click="activeFilter = filter.value"
-                    :disabled="isLoading"
-                    :class="[
-                      'px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0',
-                      activeFilter === filter.value 
-                        ? 'bg-emerald-500 text-white shadow-sm' 
-                        : 'bg-white text-gray-700 border border-gray-200'
-                    ]"
-                  >
-                    {{ filter.label }}
-                  </button>
+              <!-- Enhanced Filters and Search - Mobile Responsive -->
+              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+                <!-- Filter Buttons - Mobile optimized scrollable -->
+                <div class="flex items-center justify-start gap-1 sm:gap-2 overflow-x-auto scrollbar-hide min-w-0 pb-1">
+                  <div class="flex items-center gap-1 sm:gap-2 flex-nowrap">
+                    <button 
+                      v-for="filter in (showArchived ? archivedFilters : filters)" 
+                      :key="filter.value"
+                      @click="activeFilter = filter.value"
+                      :disabled="isLoading"
+                      :class="[
+                        'px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0',
+                        activeFilter === filter.value 
+                          ? 'bg-emerald-500 text-white shadow-sm' 
+                          : 'bg-white text-gray-700 border border-gray-200'
+                      ]"
+                    >
+                      {{ filter.label }}
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Search Bar - Mobile responsive -->
-              <div class="relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                
+                <!-- Search Bar - Mobile responsive -->
+                <div class="relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                  </div>
+                  <input 
+                    type="text"
+                    v-model="searchQuery"
+                    :disabled="isLoading"
+                    :placeholder="showArchived ? 'Search archived...' : 'Search notifications...'"
+                    class="w-full pl-8 sm:pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                 </div>
-                <input 
-                  type="text"
-                  v-model="searchQuery"
-                  :disabled="isLoading"
-                  :placeholder="showArchived ? 'Search archived...' : 'Search notifications...'"
-                  class="w-full pl-8 sm:pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                />
               </div>
             </div>
           </div>

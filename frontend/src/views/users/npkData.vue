@@ -370,23 +370,23 @@
                   <thead>
                     <tr>
                      
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-green-600">Nitrogen</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-blue-600">Phosphorus</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-purple-600">Potassium</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
                       </th>
-                      <th class="w-[15%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[15%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-gray-600">Date</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">MMM DD, YYYY</div>
                       </th>
-                      <th class="w-[15%] py-2.5 px-3 text-left text-[9px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th class="w-[15%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-gray-600">Time</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">HH:MM:SS</div>
                       </th>
@@ -406,25 +406,25 @@
                     >
                       
                       <td class="w-[20%] py-3 px-3 whitespace-nowrap border-b border-gray-200">
-                        <div class="text-[9px] md:text-xs font-semibold" :class="getNitrogenTextClass(row.nitrogen)">
+                        <div class="text-[9px] md:text-[15px] font-semibold" :class="getNitrogenTextClass(row.nitrogen)">
                           {{ row.nitrogen }}
                         </div>
                       </td>
                       <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
-                        <div class="text-[9px] md:text-xs font-semibold" :class="getPhosphorusTextClass(row.phosphorus)">
+                        <div class="text-[9px] md:text-[15px] font-semibold" :class="getPhosphorusTextClass(row.phosphorus)">
                           {{ row.phosphorus }}
                         </div>
                       </td>
                       <td class="w-[20%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
-                        <div class="text-[9px] md:text-xs font-semibold" :class="getPotassiumTextClass(row.potassium)">
+                        <div class="text-[9px] md:text-[15px] font-semibold" :class="getPotassiumTextClass(row.potassium)">
                           {{ row.potassium }}
                         </div>
                       </td>
                       <td class="w-[15%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
-                        <div class="text-[9px] md:text-xs font-medium text-gray-700">{{ row.date }}</div>
+                        <div class="text-[9px] md:text-[15px] font-medium text-gray-700">{{ row.date }}</div>
                       </td>
                       <td class="w-[15%] py-2.5 px-3 whitespace-nowrap border-b border-gray-200">
-                        <div class="text-[9px] md:text-xs font-medium text-gray-700">{{ row.time }}</div>
+                        <div class="text-[9px] md:text-[15px] font-medium text-gray-700">{{ row.time }}</div>
                       </td>
                     </tr>
                     

@@ -559,3 +559,64 @@ async def get_user_by_phone(phone_number: str, db=Depends(get_database)):
             "authType": user.get("authType")
         }
     }
+
+# Add this endpoint to your existing user_router.py
+@router.get("/by-phone/{phone_number}")
+async def get_user_by_phone_complete(phone_number: str, db=Depends(get_database)):
+    """
+    Get complete user data by phone number (handles any phone format)
+    """
+    users_collection = db["users"]
+    
+    # Try different phone number formats
+    phone_variations = []
+    
+    # Original format
+    phone_variations.append(phone_number)
+    
+    # E.164 format
+    formatted_phone = to_e164_format(phone_number)
+    if formatted_phone:
+        phone_variations.append(formatted_phone)
+    
+    # Remove any non-digit characters and try different prefixes
+    cleaned_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    if cleaned_phone.startswith("63"):
+        phone_variations.append("+" + cleaned_phone)
+        phone_variations.append("0" + cleaned_phone[2:])
+    elif cleaned_phone.startswith("0"):
+        phone_variations.append("+63" + cleaned_phone[1:])
+        phone_variations.append("63" + cleaned_phone[1:])
+    
+    # Remove duplicates
+    phone_variations = list(set(phone_variations))
+    
+    # Search for user with any of these phone number variations
+    user = None
+    for phone_variant in phone_variations:
+        user = await users_collection.find_one({"phoneNumber": phone_variant})
+        if user:
+            break
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Return complete user data
+    return {
+        "user": {
+            "id": str(user.get("_id")),
+            "_id": str(user.get("_id")),
+            "name": user.get("name"),
+            "phoneNumber": user.get("phoneNumber"),
+            "avatar": user.get("avatar"),
+            "authType": user.get("authType"),
+            "verified": user.get("verified", False),
+            "email": user.get("email", ""),
+            "profilePicture": user.get("profilePicture", ""),
+            "createdAt": user.get("createdAt"),
+            "updatedAt": user.get("updatedAt"),
+            # FIX: Check if password/pin fields exist and are not empty
+            "hasPassword": bool(user.get("password")),  # True if password exists
+            "hasPin": bool(user.get("pin"))  # True if pin exists
+        }
+    }

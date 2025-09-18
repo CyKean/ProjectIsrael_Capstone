@@ -446,12 +446,9 @@ const handleLogin = async () => {
     })
 
     if (response.data.success) {
-      userStore.setUser(response.data.user)
-      localStorage.setItem('user', JSON.stringify({
-        user: response.data.user,
-        userId: response.data.user._id
-      }))
-
+      // Use the enhanced setUser method which will fetch complete user data
+      await userStore.setUser(response.data.user);
+      
       window.showToast('Login successful!', 'success')
       router.push('/app/dashboard')
     } else {

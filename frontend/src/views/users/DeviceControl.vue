@@ -356,7 +356,7 @@
         <div class="flex flex-col md:flex-row grid grid-cols-1 md:flex overflow-y-auto">
           
           <!-- LEFT SIDE (1/4) - Filters, Search, Export -->
-          <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[22.222%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0" 
+          <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[31.111%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0" 
               :class="showFilters ? 'h-auto' : 'h-[50px] md:h-auto overflow-hidden'">
             
             <!-- Mobile toggle button for filters - IMPROVED VISIBILITY -->
@@ -2121,7 +2121,7 @@ const filteredPastSchedules = computed(() => {
     })
   }
 
-  // Filter by start date if specified
+  // Filter by start date if specified (only when startDate has a value)
   if (historyFilters.value.startDate) {
     const startDate = new Date(historyFilters.value.startDate)
     startDate.setHours(0, 0, 0, 0)
@@ -2132,7 +2132,7 @@ const filteredPastSchedules = computed(() => {
   }
 
   // Always filter up to today at 23:59:59
-   const endDate = new Date()
+  const endDate = new Date()
   endDate.setHours(23, 59, 59, 999)
   
   filtered = filtered.filter(schedule => {
@@ -2156,6 +2156,62 @@ const filteredPastSchedules = computed(() => {
 
   return filtered
 })
+
+// const filteredPastSchedules = computed(() => {
+//   let filtered = [...pastSchedules.value]
+
+//   if (searchQuery.value) {
+//     const query = searchQuery.value.toLowerCase()
+//     filtered = filtered.filter(schedule => {
+//       const searchString = [
+//         schedule.mode,
+//         schedule.duration?.toString(),
+//         schedule.waterFlowRate,
+//         schedule.dateTime,
+//         getDayName(schedule.dayOfWeek),
+//         schedule.skipIfRain?.toString(),
+//         schedule.notifyWatering?.toString()
+//       ].join(' ').toLowerCase()
+      
+//       return searchString.includes(query)
+//     })
+//   }
+
+//   // Filter by start date if specified
+//   if (historyFilters.value.startDate) {
+//     const startDate = new Date(historyFilters.value.startDate)
+//     startDate.setHours(0, 0, 0, 0)
+//     filtered = filtered.filter(schedule => {
+//       const scheduleDate = new Date(schedule.completedAt)
+//       return scheduleDate >= startDate
+//     })
+//   }
+
+//   // Always filter up to today at 23:59:59
+//    const endDate = new Date()
+//   endDate.setHours(23, 59, 59, 999)
+  
+//   filtered = filtered.filter(schedule => {
+//     const scheduleDate = new Date(schedule.completedAt)
+//     return scheduleDate <= endDate
+//   })
+
+//   if (historyFilters.value.scheduleType !== 'all') {
+//     filtered = filtered.filter(schedule => schedule.mode === historyFilters.value.scheduleType)
+//   }
+
+//   if (historyFilters.value.duration !== 'all') {
+//     if (historyFilters.value.duration === 'short') {
+//       filtered = filtered.filter(schedule => schedule.duration < 10)
+//     } else if (historyFilters.value.duration === 'medium') {
+//       filtered = filtered.filter(schedule => schedule.duration >= 10 && schedule.duration <= 30)
+//     } else if (historyFilters.value.duration === 'long') {
+//       filtered = filtered.filter(schedule => schedule.duration > 30)
+//     }
+//   }
+
+//   return filtered
+// })
 
 const formattedSchedules = (schedulesArray) => {
   return schedulesArray.map(schedule => formatHistoryItem(schedule));
@@ -2242,7 +2298,7 @@ const viewScheduleHistory = () => {
   
   historyFilters.value = {
     ...historyFilters.value,
-    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+    startDate: '',
     endDate: currentDateFormatted.value // Use computed current date
   }
 

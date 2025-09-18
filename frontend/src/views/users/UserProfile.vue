@@ -207,18 +207,25 @@
                       <div>
                         <h4 class="text-sm font-semibold text-gray-900">Change Password</h4>
                         <p class="text-xs text-gray-500">Update your account password</p>
+                        
                       </div>
                     </div>
                     
                     <!-- Show Get Started button only when form is not visible -->
                     <button 
-                      v-if="!showPasswordSection"
-                      @click="togglePasswordSection"
-                      :disabled="isPasswordDisabled || isLoadingPassword"
-                      class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {{ isLoadingPassword ? 'Updating...' : (isPasswordDisabled ? 'Password login not active' : 'Get Started') }}
-                    </button>
+  v-if="!showPasswordSection"
+  @click="togglePasswordSection"
+  :disabled="isPasswordDisabled || isLoadingPassword || !isAuthTypeLoaded"
+  class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+>
+  {{ 
+    !isAuthTypeLoaded ? 'Loading...' :
+    isLoadingPassword ? 'Updating...' : 
+    isPasswordDisabled ? 'Not Active' : 
+    'Get Started' 
+  }}
+</button>
+
                     
                     <!-- Password Form with Show/Hide and TOP BORDER LINE -->
                     <div 
@@ -322,14 +329,20 @@
                     </div>
                     
                     <!-- Show Get Started button only when form is not visible -->
-                    <button 
-                      v-if="!showPinSection"
-                      @click="togglePinSection"
-                      :disabled="isPinDisabled || isLoadingPin"
-                      class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {{ isLoadingPin ? 'Updating...' : (isPinDisabled ? 'PIN login not active' : 'Get Started') }}
-                    </button>
+                    <!-- PIN Card Button -->
+<button 
+  v-if="!showPinSection"
+  @click="togglePinSection"
+  :disabled="isPinDisabled || isLoadingPin || !isAuthTypeLoaded"
+  class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+>
+  {{ 
+    !isAuthTypeLoaded ? 'Loading...' :
+    isLoadingPin ? 'Updating...' : 
+    isPinDisabled ? 'Not Active' : 
+    'Get Started' 
+  }}
+</button>
                     
                     <!-- Pin Form with TOP BORDER LINE -->
                     <div 
@@ -687,13 +700,16 @@ const showTour = ref(false)
 const router = useRouter()
 const userStore = useUserStore()
 
-const user = computed(() => userStore.user)
+const user = computed(() => {
+  const storeUser = userStore.user;
+  const localUser = JSON.parse(localStorage.getItem('user'))?.user;
+  return storeUser || localUser || {};
+});
+
 const userId = computed(() => {
-  return userStore.userId || 
-         userStore.user?.id || 
-         userStore.user?._id ||
-         JSON.parse(localStorage.getItem('user'))?.userId;
-})
+  return user.value?.id || user.value?._id || user.value?.userId;
+});
+
 
 watch(userId, (newId) => {
   console.log('User ID changed:', newId)
@@ -757,9 +773,6 @@ const profileData = reactive({
   phone: ''
 })
 
-const isPasswordDisabled = computed(() => user.value?.authType === 'pin')
-const isPinDisabled = computed(() => user.value?.authType === 'password')
-
 const canSave = computed(() => {
   return isEditMode.value && hasChanges.value
 })
@@ -805,22 +818,22 @@ const pinForm = reactive({
   confirm: ''
 })
 
-watch(() => userStore.user, (newUser) => {
+watch(() => user.value, (newUser) => {
   if (newUser) {
-    profileData.name = newUser.name || ''
-    profileData.phone = newUser.phoneNumber || ''
+    profileData.name = newUser.name || '';
+    profileData.phone = newUser.phoneNumber || '';
     originalData.value = {
       name: profileData.name,
       phone: profileData.phone
-    }
+    };
     
     if (newUser.avatar) {
       selectedAvatar.value = avatarOptions.value.find(
         opt => opt.id === newUser.avatar.id
-      ) || avatarOptions.value[0]
+      ) || avatarOptions.value[0];
     }
   }
-}, { immediate: true })
+}, { immediate: true, deep: true });
 
 
 const toggleEditMode = () => {
@@ -883,16 +896,24 @@ const saveProfile = async () => {
   }
 
   try {
+    // Format the phone number to E.164 format
+    const formattedPhone = toE164(phone);
+    if (!formattedPhone) {
+      showToastMessage('Invalid phone number format');
+      isLoadingProfile.value = false;
+      return;
+    }
+
     const response = await api.put(`/users/${userId.value}`, {
       name: name,
-      phoneNumber: phone,
+      phoneNumber: formattedPhone, // Use formatted phone
       avatar: selectedAvatar.value
     });
 
     const updatedUser = {
-      ...userStore.user,
+      ...user.value,
       name: name,
-      phoneNumber: phone,
+      phoneNumber: formattedPhone,
       avatar: selectedAvatar.value
     };
 
@@ -902,7 +923,7 @@ const saveProfile = async () => {
       userId: userId.value
     }));
 
-    originalData.value = { name, phone };
+    originalData.value = { name, phone: formattedPhone };
     hasChanges.value = false;
     isEditMode.value = false;
     
@@ -910,7 +931,9 @@ const saveProfile = async () => {
   } catch (err) {
     console.error('Update error:', err);
     
-    if (err.response?.status === 404) {
+    if (err.response?.status === 400) {
+      showToastMessage(err.response.data.detail || 'Phone number may already be in use');
+    } else if (err.response?.status === 404) {
       showToastMessage('User record not found in database');
     } else {
       showToastMessage('Failed to update profile. Please try again.');
@@ -1517,26 +1540,124 @@ const executeLogout = () => {
   userStore.logout()
 }
 
+const fetchUserByPhoneNumber = async () => {
+  try {
+    const userPhone = user.value?.phoneNumber;
+    
+    if (!userPhone) {
+      console.error('No phone number available to fetch user data');
+      return null;
+    }
+
+    console.log('Fetching user data for phone:', userPhone);
+    
+    // Use the endpoint that returns complete user data including authType
+    const response = await api.get(`/users/by-phone/${userPhone}`);
+    const userData = response.data.user;
+    
+    console.log('Complete user data fetched - authType:', userData?.authType);
+    
+    // Update the user store with the complete data including authType
+    if (userStore.setUser) {
+      userStore.setUser(userData);
+    }
+    
+    // Also update localStorage to persist the authType
+    localStorage.setItem('user', JSON.stringify({
+      user: userData,
+      userId: userData.id || userData._id
+    }));
+    
+    return userData;
+  } catch (error) {
+    console.error('Error fetching user data by phone number:', error);
+    showToastMessage('Failed to load user data. Please refresh the page.', 'failed');
+    return null;
+  }
+};
+
+const isPasswordDisabled = computed(() => {
+  return !(user.value?.authType === 'password' || user.value?.hasPassword);
+});
+
+const isPinDisabled = computed(() => {
+  return !(user.value?.authType === 'pin' || user.value?.hasPin);
+});
+
+
+const isAuthTypeLoaded = computed(() => {
+  return !!user.value?.authType;
+});
+
+const debugAuthLogic = () => {
+  console.log('=== AUTH TYPE DEBUG ===');
+  console.log('User authType:', user.value?.authType);
+  console.log('isPasswordDisabled:', isPasswordDisabled.value);
+  console.log('isPinDisabled:', isPinDisabled.value);
+  console.log('Password button should be:', isPasswordDisabled.value ? 'DISABLED' : 'ENABLED');
+  console.log('PIN button should be:', isPinDisabled.value ? 'DISABLED' : 'ENABLED');
+  
+  if (user.value?.authType === 'password') {
+    console.log('✓ User uses PASSWORD - Only Password button should be active');
+  } else if (user.value?.authType === 'pin') {
+    console.log('✓ User uses PIN - Only PIN button should be active');
+  } else {
+    console.log('❓ Unknown authType:', user.value?.authType);
+  }
+};
+
+watch(() => user.value?.authType, (newAuthType) => {
+  if (newAuthType) {
+    console.log('=== AUTH TYPE UPDATED ===');
+    console.log('User authType:', newAuthType);
+    console.log('isPasswordDisabled:', isPasswordDisabled.value);
+    console.log('isPinDisabled:', isPinDisabled.value);
+    console.log('Password button should be:', isPasswordDisabled.value ? 'DISABLED' : 'ENABLED');
+    console.log('PIN button should be:', isPinDisabled.value ? 'DISABLED' : 'ENABLED');
+  }
+}, { immediate: true });
+
 let unsubscribeAuthType = null
 
 onMounted(async () => {
-  if (!userStore.isAuthenticated) {
-    await userStore.loadUser()
+ if (!userStore.isAuthenticated) {
+    await userStore.loadUser();
   }
 
-  if (userStore.user?.avatar) {
+  // If user data is incomplete, fetch it from the server
+  if (user.value && (!user.value.name || !user.value.phoneNumber || !user.value.authType)) {
+    const completeUserData = await fetchUserByPhoneNumber();
+    
+    if (completeUserData) {
+      // Update local state with the complete data
+      profileData.name = completeUserData.name || '';
+      profileData.phone = completeUserData.phoneNumber || '';
+      
+      if (completeUserData.avatar) {
+        selectedAvatar.value = avatarOptions.value.find(
+          opt => opt.id === completeUserData.avatar.id
+        ) || avatarOptions.value[0];
+      }
+      
+      // Debug after data is loaded
+      debugAuthLogic();
+    }
+  } else if (user.value?.authType) {
+    // Debug if authType is already available
+    debugAuthLogic();
+  }
+
+  if (user.value?.avatar) {
     selectedAvatar.value = avatarOptions.value.find(
-      opt => opt.id === userStore.user.avatar.id
-    ) || avatarOptions.value[0]
+      opt => opt.id === user.value.avatar.id
+    ) || avatarOptions.value[0];
   }
 
-  if (userStore.user?.authType === 'pin') {
-    showPasswordSection.value = false
-  } else if (userStore.user?.authType === 'password') {
-    showPinSection.value = false
-  }
+  // Ensure sections are closed by default
+  showPasswordSection.value = false;
+  showPinSection.value = false;
+});
 
-})
 </script>
 
 <style scoped>

@@ -293,23 +293,23 @@
                 <thead>
                   <tr>
                     
-                    <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[15%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-teal-600">Device ID</div>
                       <div class="text-gray-400 text-[10px]">IDENTIFIER</div>
                     </th>
-                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-purple-600">Motor Status</div>
                       <div class="text-gray-400 text-[10px]">ON/OFF</div>
                     </th>
-                    <th class="w-[15%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[15%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-blue-600">User</div>
                       <div class="text-gray-400 text-[10px]">CONTROLLER</div>
                     </th>
-                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Date</div>
                       <div class="text-gray-400 text-[10px]">MMM DD, YYYY</div>
                     </th>
-                    <th class="w-[20%] py-3.5 px-4 text-left text-xs bg-gray-100 font-medium uppercase tracking-wider border-b">
+                    <th class="w-[20%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider border-b">
                       <div class="text-gray-600">Time</div>
                       <div class="text-gray-400 text-[10px]">HH:MM:SS AM/PM</div>
                     </th>
@@ -328,10 +328,10 @@
                     class="border-b border-gray-50 last:border-0"
                   >
                     
-                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[15%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-teal-600">{{ row.deviceId || '--' }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <span 
                         :class="[
                           'px-3 py-1 rounded-full text-sm font-medium',
@@ -341,13 +341,13 @@
                         {{ row.status }}
                       </span>
                     </td>
-                    <td class="w-[15%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[15%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-blue-600">{{ row.user || '--' }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
                     </td>
-                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap border-b border-gray-200">
+                    <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
                       <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
                     </td>
                   </tr>
