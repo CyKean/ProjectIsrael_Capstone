@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
 import httpx
+import json  
 from pydantic import BaseModel, Field
 from app.services.database import get_database
 from dependencies import get_esp32_ip
@@ -605,24 +606,46 @@ async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
             upsert=True
         )
         
-        # Send schedule to ESP32
+        # Send complete schedule data to ESP32
         esp32_response = None
+        esp32_schedule_data = None
         try:
             print("📡 Attempting to send schedule to ESP32...")
             esp32_endpoint = f"http://{esp_ip}/watering-schedule"
             
-            # Prepare data for ESP32 (simplified format)
+            # Prepare complete schedule data for ESP32
             esp32_schedule_data = {
                 "id": schedule_data["_id"],
                 "mode": mode,
                 "duration": schedule_data["duration"],
+                "days": schedule_data["days"],
+                "skipIfRain": schedule_data["skipIfRain"],
+                "notifyWatering": schedule_data["notifyWatering"],
+                "waterFlowRate": schedule_data["waterFlowRate"],
                 "scheduledTime": schedule_data["scheduledTime"],
-                "waterFlowRate": schedule_data["waterFlowRate"]
+                "dateTime": schedule_data["dateTime"],
+                "completed": schedule_data["completed"]
             }
             
-            # Add days for weekly schedules
-            if mode == "weekly":
-                esp32_schedule_data["days"] = schedule_data["days"]
+            # DEBUG: Print the data being sent to ESP32
+            print("=" * 80)
+            print("📤 DATA BEING SENT TO ESP32 (CREATE SCHEDULE)")
+            print("=" * 80)
+            print(f"Endpoint: {esp32_endpoint}")
+            print(f"Method: POST")
+            print(f"Schedule ID: {esp32_schedule_data['id']}")
+            print(f"Mode: {esp32_schedule_data['mode']}")
+            print(f"Duration: {esp32_schedule_data['duration']} minutes")
+            print(f"Days: {esp32_schedule_data['days']}")
+            print(f"Skip if rain: {esp32_schedule_data['skipIfRain']}")
+            print(f"Notify watering: {esp32_schedule_data['notifyWatering']}")
+            print(f"Water flow rate: {esp32_schedule_data['waterFlowRate']}")
+            print(f"Scheduled time: {esp32_schedule_data['scheduledTime']}")
+            print(f"Date time: {esp32_schedule_data['dateTime']}")
+            print(f"Completed: {esp32_schedule_data['completed']}")
+            print("Full JSON data:")
+            print(json.dumps(esp32_schedule_data, indent=2))
+            print("=" * 80)
             
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.post(esp32_endpoint, json=esp32_schedule_data)
@@ -637,12 +660,18 @@ async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
             print(f"   ESP32 response: {esp32_response}")
                 
         except httpx.RequestError as e:
-            print(f"❌ Network error when sending schedule data to ESP32: {e}")
+            print(f"❌ NETWORK ERROR - Data attempted to be sent:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Data: {json.dumps(esp32_schedule_data, indent=2) if esp32_schedule_data else 'No data prepared'}")
+            print(f"   Error: {e}")
             esp32_response = {"error": f"Network error: {e}"}
             
         except httpx.HTTPStatusError as e:
-            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
-            print("📩 ESP32 response body:", e.response.text)
+            print(f"❌ ESP32 HTTP ERROR - Data attempted to be sent:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Data: {json.dumps(esp32_schedule_data, indent=2) if esp32_schedule_data else 'No data prepared'}")
+            print(f"   Status code: {e.response.status_code}")
+            print(f"   Response body: {e.response.text}")
             esp32_response = {"error": f"ESP32 error: {e.response.text}"}
         
         return {
@@ -691,6 +720,37 @@ async def update_schedule(schedule_id: str, schedule: dict, esp_ip: str = Depend
         if await check_duplicate_schedule(schedule, schedule_id, db):
             raise HTTPException(status_code=400, detail="A conflicting schedule already exists at this time")
         
+        # Format dateTime for display
+        dateTime = ""
+        scheduled_time = schedule.get("scheduledTime")
+        mode = found_subcollection.replace("_", "-") if found_subcollection == "one_time" else found_subcollection
+        
+        if mode == "one-time" and scheduled_time:
+            try:
+                # Handle both milliseconds and seconds timestamps
+                if scheduled_time > 1000000000000:  # Likely milliseconds
+                    schedule_date = datetime.fromtimestamp(scheduled_time / 1000)
+                else:  # Likely seconds
+                    schedule_date = datetime.fromtimestamp(scheduled_time)
+                dateTime = schedule_date.strftime("%a, %b %d, %I:%M %p")
+            except Exception as e:
+                print(f"Error parsing scheduled time: {e}")
+                dateTime = "Invalid time"
+        elif mode in ["daily", "weekly"]:
+            hour = schedule.get("hour", 0)
+            minute = schedule.get("minute", 0)
+            display_hour = hour % 12
+            if display_hour == 0:
+                display_hour = 12
+            am_pm = "AM" if hour < 12 else "PM"
+            dateTime = f"{display_hour:02d}:{minute:02d} {am_pm}"
+        
+        # For one-time schedules, ensure scheduledTime is stored correctly
+        if mode == "one-time" and scheduled_time:
+            # Convert to milliseconds if it's in seconds
+            if scheduled_time < 1000000000000:  # Likely seconds
+                scheduled_time = scheduled_time * 1000
+        
         # Update the schedule
         update_data = {
             "duration": schedule.get("duration", 0),
@@ -698,8 +758,8 @@ async def update_schedule(schedule_id: str, schedule: dict, esp_ip: str = Depend
             "skipIfRain": schedule.get("skipIfRain", False),
             "notifyWatering": schedule.get("notifyWatering", True),
             "waterFlowRate": schedule.get("waterFlowRate", "medium"),
-            "scheduledTime": schedule.get("scheduledTime"),
-            "dateTime": schedule.get("dateTime"),
+            "scheduledTime": scheduled_time,
+            "dateTime": dateTime,
             "updatedAt": {
                 "_seconds": int(datetime.utcnow().timestamp()),
                 "_nanoseconds": 0
@@ -717,24 +777,46 @@ async def update_schedule(schedule_id: str, schedule: dict, esp_ip: str = Depend
             {"$set": update_query}
         )
         
-        # Send updated schedule to ESP32
+        # Send complete updated schedule to ESP32
         esp32_response = None
+        esp32_schedule_data = None
         try:
             print("📡 Attempting to send updated schedule to ESP32...")
             esp32_endpoint = f"http://{esp_ip}/watering-schedule"
             
-            # Prepare data for ESP32
+            # Prepare complete schedule data for ESP32
             esp32_schedule_data = {
                 "id": schedule_id,
-                "mode": found_subcollection.replace("_", "-") if found_subcollection == "one_time" else found_subcollection,
+                "mode": mode,
                 "duration": schedule.get("duration", 0),
-                "scheduledTime": schedule.get("scheduledTime"),
-                "waterFlowRate": schedule.get("waterFlowRate", "medium")
+                "days": schedule.get("days", []),
+                "skipIfRain": schedule.get("skipIfRain", False),
+                "notifyWatering": schedule.get("notifyWatering", True),
+                "waterFlowRate": schedule.get("waterFlowRate", "medium"),
+                "scheduledTime": scheduled_time,
+                "dateTime": dateTime,
+                "completed": False
             }
             
-            # Add days for weekly schedules
-            if found_subcollection == "weekly":
-                esp32_schedule_data["days"] = schedule.get("days", [])
+            # DEBUG: Print the data being sent to ESP32
+            print("=" * 80)
+            print("📤 DATA BEING SENT TO ESP32 (UPDATE SCHEDULE)")
+            print("=" * 80)
+            print(f"Endpoint: {esp32_endpoint}")
+            print(f"Method: PUT")
+            print(f"Schedule ID: {esp32_schedule_data['id']}")
+            print(f"Mode: {esp32_schedule_data['mode']}")
+            print(f"Duration: {esp32_schedule_data['duration']} minutes")
+            print(f"Days: {esp32_schedule_data['days']}")
+            print(f"Skip if rain: {esp32_schedule_data['skipIfRain']}")
+            print(f"Notify watering: {esp32_schedule_data['notifyWatering']}")
+            print(f"Water flow rate: {esp32_schedule_data['waterFlowRate']}")
+            print(f"Scheduled time: {esp32_schedule_data['scheduledTime']}")
+            print(f"Date time: {esp32_schedule_data['dateTime']}")
+            print(f"Completed: {esp32_schedule_data['completed']}")
+            print("Full JSON data:")
+            print(json.dumps(esp32_schedule_data, indent=2))
+            print("=" * 80)
             
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.put(esp32_endpoint, json=esp32_schedule_data)
@@ -749,12 +831,18 @@ async def update_schedule(schedule_id: str, schedule: dict, esp_ip: str = Depend
             print(f"   ESP32 response: {esp32_response}")
                 
         except httpx.RequestError as e:
-            print(f"❌ Network error when sending updated schedule to ESP32: {e}")
+            print(f"❌ NETWORK ERROR - Data attempted to be sent:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Data: {json.dumps(esp32_schedule_data, indent=2) if esp32_schedule_data else 'No data prepared'}")
+            print(f"   Error: {e}")
             esp32_response = {"error": f"Network error: {e}"}
             
         except httpx.HTTPStatusError as e:
-            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
-            print("📩 ESP32 response body:", e.response.text)
+            print(f"❌ ESP32 HTTP ERROR - Data attempted to be sent:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Data: {json.dumps(esp32_schedule_data, indent=2) if esp32_schedule_data else 'No data prepared'}")
+            print(f"   Status code: {e.response.status_code}")
+            print(f"   Response body: {e.response.text}")
             esp32_response = {"error": f"ESP32 error: {e.response.text}"}
         
         return {
@@ -794,6 +882,13 @@ async def delete_schedule(schedule_id: str, esp_ip: str = Depends(get_esp32_ip))
         if not found_subcollection:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
+        # Get schedule details before deleting for logging
+        schedule_details = None
+        for s in root_doc.get(found_subcollection, []):
+            if s.get("_id") == schedule_id:
+                schedule_details = s
+                break
+        
         # Remove the schedule from the subcollection
         await collection.update_one(
             {"_id": "schedules_root"},
@@ -805,6 +900,23 @@ async def delete_schedule(schedule_id: str, esp_ip: str = Depends(get_esp32_ip))
         try:
             print("📡 Attempting to notify ESP32 about deleted schedule...")
             esp32_endpoint = f"http://{esp_ip}/watering-schedule/{schedule_id}"
+            
+            # DEBUG: Print the data being sent to ESP32
+            print("=" * 80)
+            print("📤 DATA BEING SENT TO ESP32 (DELETE SCHEDULE)")
+            print("=" * 80)
+            print(f"Endpoint: {esp32_endpoint}")
+            print(f"Method: DELETE")
+            print(f"Schedule ID: {schedule_id}")
+            if schedule_details:
+                print(f"Schedule details being deleted:")
+                print(f"  Mode: {found_subcollection}")
+                print(f"  Duration: {schedule_details.get('duration', 'N/A')}")
+                print(f"  Scheduled time: {schedule_details.get('scheduledTime', 'N/A')}")
+                print(f"  Date time: {schedule_details.get('dateTime', 'N/A')}")
+            else:
+                print(f"Schedule details not found for ID: {schedule_id}")
+            print("=" * 80)
             
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.delete(esp32_endpoint)
@@ -819,12 +931,22 @@ async def delete_schedule(schedule_id: str, esp_ip: str = Depends(get_esp32_ip))
             print(f"   ESP32 response: {esp32_response}")
                 
         except httpx.RequestError as e:
-            print(f"❌ Network error when notifying ESP32 about deleted schedule: {e}")
+            print(f"❌ NETWORK ERROR - Delete request attempted:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Schedule ID: {schedule_id}")
+            if schedule_details:
+                print(f"   Schedule details: {json.dumps(schedule_details, indent=2)}")
+            print(f"   Error: {e}")
             esp32_response = {"error": f"Network error: {e}"}
             
         except httpx.HTTPStatusError as e:
-            print(f"❌ ESP32 responded with HTTP {e.response.status_code}")
-            print("📩 ESP32 response body:", e.response.text)
+            print(f"❌ ESP32 HTTP ERROR - Delete request attempted:")
+            print(f"   Endpoint: {esp32_endpoint}")
+            print(f"   Schedule ID: {schedule_id}")
+            if schedule_details:
+                print(f"   Schedule details: {json.dumps(schedule_details, indent=2)}")
+            print(f"   Status code: {e.response.status_code}")
+            print(f"   Response body: {e.response.text}")
             esp32_response = {"error": f"ESP32 error: {e.response.text}"}
         
         return {
@@ -1061,6 +1183,45 @@ async def cancel_ongoing_watering_schedules(db, cancellation_reason):
             
     except Exception as e:
         print(f"Error in cancel_ongoing_watering_schedules: {str(e)}")
+
+
+@router.put("/schedules/{schedule_id}/complete")
+async def mark_schedule_complete(schedule_id: str, db=Depends(get_database)):
+    """Mark a schedule as completed (sets completed=True and updates timestamp)
+    This searches across daily, weekly and one_time subcollections and updates the matched schedule.
+    """
+    try:
+        collection = db["watering_schedules"]
+        root_doc = await collection.find_one({"_id": "schedules_root"})
+
+        if not root_doc:
+            raise HTTPException(status_code=404, detail="Schedules root document not found")
+
+        subcollections = ["daily", "weekly", "one_time"]
+
+        for subcollection in subcollections:
+            schedules = root_doc.get(subcollection, [])
+            for idx, s in enumerate(schedules):
+                if s.get("_id") == schedule_id:
+                    now = datetime.utcnow()
+                    update_fields = {
+                        f"{subcollection}.{idx}.completed": True,
+                        f"{subcollection}.{idx}.updatedAt": {
+                            "_seconds": int(now.timestamp()),
+                            "_nanoseconds": 0
+                        }
+                    }
+
+                    await collection.update_one({"_id": "schedules_root"}, {"$set": update_fields})
+
+                    return {"status": "success", "message": "Schedule marked as completed", "schedule_type": subcollection}
+
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in mark_schedule_complete: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error marking schedule complete: {str(e)}")
 
 # @router.post("/watering-schedules")
 # async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
