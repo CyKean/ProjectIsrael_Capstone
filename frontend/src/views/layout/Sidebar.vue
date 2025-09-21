@@ -2016,8 +2016,6 @@ const checkSchedules = async () => {
   }
 };
 
-// sendWateringNotification now accepts an optional uniqueKey to force unique notifications per run
-// Improved dedupe: detect similar recent notifications for the same scheduleId/eventType
 // even if uniqueKey/endTime differs slightly (prevents multiple near-duplicate end events).
 const sendWateringNotification = async (message, title, scheduleId, eventType, contextData = {}, uniqueKey = null) => {
   const now = new Date();

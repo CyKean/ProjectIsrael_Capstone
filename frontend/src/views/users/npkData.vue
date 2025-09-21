@@ -667,7 +667,6 @@ const stopPolling = () => {
   }
 }
 
-// Chart functions
 const initializeChartData = (data) => {
   const validChartData = data
     .filter(item => {
@@ -682,15 +681,15 @@ const initializeChartData = (data) => {
       phosphorus: Number(item.phosphorus),
       potassium: Number(item.potassium)
     }))
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 20)
+    .sort((a, b) => a.timestamp - b.timestamp) // Changed to ascending order
+    .slice(-20) // Take the last 20 items instead of first 20
 
   console.log(`📈 Chart data: ${validChartData.length} valid entries`)
 
   chartData.value = validChartData
 
   if (validChartData.length > 0) {
-    const latestReading = validChartData[0]
+    const latestReading = validChartData[validChartData.length - 1] // Get the last item (most recent)
     currentNitrogenValue.value = latestReading.nitrogen.toFixed(2)
     currentPhosphorusValue.value = latestReading.phosphorus.toFixed(2)
     currentPotassiumValue.value = latestReading.potassium.toFixed(2)

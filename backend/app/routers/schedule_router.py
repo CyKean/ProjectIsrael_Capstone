@@ -158,23 +158,40 @@ async def set_motor_status_philippine_time(status: dict, esp_ip: str = Depends(g
         print("✅ Current status updated in database")
         
         # Add to history document - create it if it doesn't exist
-        await collection.update_one(
-            {"_id": "motor_history"},
-            {
-                "$setOnInsert": {  # Only set these fields on insert (creation)
-                    "created_at": datetime.utcnow(),
-                    "type": "motor_history"
-                },
-                "$push": {
-                    "history": {
-                        "$each": [history_item],
-                        "$slice": -1000  # Keep last 1000 items
-                    }
-                }
-            },
-            upsert=True  # This creates the document if it doesn't exist
-        )
-        print("✅ History record added to database")
+        try:
+            history_doc = await collection.find_one({"_id": "motor_history"})
+            should_append = True
+            if history_doc and isinstance(history_doc.get("history"), list) and len(history_doc.get("history")) > 0:
+                last = history_doc["history"][-1]
+                # Compare status and timestamp (to the second) to avoid duplicates
+                last_status = last.get("status")
+                last_ts = to_millis(last.get("timestamp"))
+                new_ts = to_millis(history_item.get("timestamp"))
+                if last_status == history_item.get("status") and abs(new_ts - last_ts) < 2000:
+                    should_append = False
+
+            if should_append:
+                await collection.update_one(
+                    {"_id": "motor_history"},
+                    {
+                        "$setOnInsert": {  # Only set these fields on insert (creation)
+                            "created_at": datetime.utcnow(),
+                            "type": "motor_history"
+                        },
+                        "$push": {
+                            "history": {
+                                "$each": [history_item],
+                                "$slice": -1000  # Keep last 1000 items
+                            }
+                        }
+                    },
+                    upsert=True  # This creates the document if it doesn't exist
+                )
+                print("✅ History record added to database")
+            else:
+                print("ℹ️ Skipping duplicate motor history entry")
+        except Exception as e:
+            print(f"Error appending motor history: {e}")
         
         # Send command to ESP32
         esp32_response = None
@@ -478,33 +495,38 @@ async def get_schedule_history(db=Depends(get_database)):
         print(f"Error in get_schedule_history: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching schedule history: {str(e)}")
 
-@router.get("/soil-moisture", response_model=SoilMoistureResponse)
-async def get_soil_moisture():
-    """Get latest soil moisture reading from sensor_readings collection"""
+@router.get("/latest-soil-moisture", response_model=SoilMoistureResponse)
+async def get_latest_soil_moisture():
+    """Get latest soil moisture reading from sensor_readings collection using MongoDB aggregation"""
     try:
         db = await get_database()
         collection = db["sensor_readings"]
         
-        # Find the document with device_id "esp32-2"
-        device_doc = await collection.find_one({"_id": "esp32-2"})
+        # Use MongoDB aggregation to find the latest soil moisture reading
+        pipeline = [
+            {"$match": {"_id": "esp32-2"}},
+            {"$unwind": "$readings"},
+            {"$match": {"readings.soilMoisture": {"$exists": True}}},
+            {"$sort": {"readings.timestamp._seconds": -1}},  # Sort descending by timestamp
+            {"$limit": 1},
+            {"$project": {
+                "moisture": "$readings.soilMoisture",
+                "timestamp": "$readings.timestamp",
+                "device_id": "$readings.device_id"
+            }}
+        ]
         
-        if not device_doc:
-            raise HTTPException(status_code=404, detail="Device not found")
+        result = await collection.aggregate(pipeline).to_list(length=1)
         
-        # Get the readings array
-        readings = device_doc.get("readings", [])
-        if not readings:
-            raise HTTPException(status_code=404, detail="No readings available")
+        if not result:
+            print("No soil moisture readings found")
+            return {
+                "moisture": 0.0,
+                "timestamp": datetime.utcnow().isoformat(),
+                "device_id": "default"
+            }
         
-        # Find the most recent reading with soilMoisture data
-        latest_reading = None
-        for reading in reversed(readings):
-            if "soilMoisture" in reading:
-                latest_reading = reading
-                break
-        
-        if not latest_reading:
-            raise HTTPException(status_code=404, detail="No soil moisture readings available")
+        latest_reading = result[0]
         
         # Convert Firebase timestamp to ISO format
         timestamp_data = latest_reading.get("timestamp", {})
@@ -516,17 +538,21 @@ async def get_soil_moisture():
         else:
             timestamp_iso = datetime.utcnow().isoformat()
         
+        print(f"Latest soil moisture: {latest_reading.get('moisture')}%")
+        
         return {
-            "moisture": float(latest_reading.get("soilMoisture", 0.0)),
+            "moisture": float(latest_reading.get("moisture", 0.0)),
             "timestamp": timestamp_iso,
             "device_id": latest_reading.get("device_id", "esp32-2")
         }
         
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"Error in get_soil_moisture: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error fetching soil moisture: {str(e)}")
+        print(f"Error in get_latest_soil_moisture: {str(e)}")
+        return {
+            "moisture": 0.0,
+            "timestamp": datetime.utcnow().isoformat(),
+            "device_id": "error"
+        }
 
 @router.post("/watering-schedules")
 async def create_schedule(schedule: dict, esp_ip: str = Depends(get_esp32_ip)):
@@ -1096,14 +1122,34 @@ async def set_motor_status(status: dict):
         }
         
         # Update the motor status document
-        await motor_collection.update_one(
-            {"_id": "current"},
-            {
-                "$set": update_data,
-                "$push": {"history": {"$each": [history_item], "$slice": -100}}
-            },
-            upsert=True
-        )
+        try:
+            # Update current status
+            await motor_collection.update_one({"_id": "current"}, {"$set": update_data}, upsert=True)
+
+            # Ensure motor_history doc exists and append idempotently
+            history_doc = await motor_collection.find_one({"_id": "motor_history"})
+            should_append = True
+            if history_doc and isinstance(history_doc.get("history"), list) and len(history_doc.get("history")) > 0:
+                last = history_doc["history"][-1]
+                last_status = last.get("status")
+                last_ts = to_millis(last.get("timestamp"))
+                new_ts = to_millis(history_item.get("timestamp"))
+                if last_status == history_item.get("status") and abs(new_ts - last_ts) < 2000:
+                    should_append = False
+
+            if should_append:
+                await motor_collection.update_one(
+                    {"_id": "motor_history"},
+                    {
+                        "$setOnInsert": {"created_at": datetime.utcnow(), "type": "motor_history"},
+                        "$push": {"history": {"$each": [history_item], "$slice": -100}}
+                    },
+                    upsert=True
+                )
+            else:
+                print("ℹ️ Skipping duplicate motor history entry (set_motor_status)")
+        except Exception as e:
+            print(f"Error updating motor history: {e}")
         
         # If turning OFF the motor, check if we need to cancel any ongoing watering schedules
         if not new_status:
@@ -1559,3 +1605,32 @@ def convert_timestamp_safe(timestamp_data):
     except Exception as e:
         print(f"Error converting timestamp {timestamp_data}: {str(e)}")
         return datetime.utcnow()
+
+
+def to_millis(timestamp_data):
+    """Normalize various timestamp formats to milliseconds since epoch."""
+    try:
+        if timestamp_data is None:
+            return 0
+        if isinstance(timestamp_data, dict):
+            # Firebase timestamp format
+            seconds = timestamp_data.get("_seconds", 0)
+            nanoseconds = timestamp_data.get("_nanoseconds", 0)
+            return int((seconds + nanoseconds / 1e9) * 1000)
+        if isinstance(timestamp_data, (int, float)):
+            # If value looks like seconds (small) convert to ms
+            if timestamp_data < 1_000_000_000_000:
+                return int(timestamp_data * 1000)
+            return int(timestamp_data)
+        if isinstance(timestamp_data, str):
+            try:
+                # ISO string
+                dt = datetime.fromisoformat(timestamp_data.replace('Z', '+00:00'))
+                return int(dt.timestamp() * 1000)
+            except Exception:
+                return 0
+        # Fallback
+        return 0
+    except Exception as e:
+        print(f"Error in to_millis: {e}")
+        return 0

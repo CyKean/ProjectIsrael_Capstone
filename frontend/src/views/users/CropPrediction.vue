@@ -1444,7 +1444,6 @@
     </div>
   </div>
 
-<CropPredictionGuide v-if="showTour" />
 </template>
 
 <script setup>
@@ -1489,7 +1488,6 @@ import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import 'jspdf-autotable';
-import CropPredictionGuide from '../guide/CropPredictionGuide.vue'
 
 const showTour = ref(true)
 

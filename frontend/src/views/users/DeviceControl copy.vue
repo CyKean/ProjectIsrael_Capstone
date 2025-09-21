@@ -778,7 +778,7 @@
     <div v-if="showToggleConfirmationDialog" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-0">
       <div 
         class="fixed inset-0 bg-black/50 backdrop-blur-sm" 
-        @click="showToggleConfirmationDialog = false"
+        @click="closeToggleConfirmationDialog"
       ></div>
 
       <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 z-[10001]">
@@ -793,7 +793,12 @@
 
         <p class="text-gray-600 mb-6">
           <template v-if="!waterPumpActive && soilMoisture !== null && soilMoisture >= 50">
-            The soil moisture is still moist with <span class="font-bold">{{ soilMoisture }}%</span>. . Are you sure you want to turn ON?
+            <template v-if="soilMoisture >= 75">
+              The soil moisture is high ({{ soilMoisture }}%). Watering is likely unnecessary. Are you sure you want to turn ON?
+            </template>
+            <template v-else>
+              The soil moisture is good ({{ soilMoisture }}%). Watering may not be needed. Are you sure you want to turn ON?
+            </template>
           </template>
           <template v-else>
             {{ waterPumpActive 
@@ -804,7 +809,7 @@
 
         <div class="flex justify-end gap-3">
           <button 
-            @click="showToggleConfirmationDialog = false" 
+            @click="closeToggleConfirmationDialog" 
             class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg px-4 py-2 transition-colors"
           >
             Cancel
@@ -1292,7 +1297,7 @@
         </div>
 
         <p class="text-gray-600 mb-6">
-          The soil moisture is still high with <span class="font-bold">{{ soilMoistureForSchedule }}%</span>. 
+          The soil moisture is still high with {{ soilMoistureForSchedule }}%. 
           Are you sure you want to add this watering schedule?
         </p>
 
@@ -1373,7 +1378,7 @@ const API_ENDPOINTS = {
   MOTOR_HISTORY: '/motor-history-ph', 
   SCHEDULES: '/watering-schedules',
   SCHEDULE_HISTORY: '/schedule-history',
-  SOIL_MOISTURE: '/latest-soil-moisture'
+  SOIL_MOISTURE: '/soil-moisture'
 }
 
 // View state
@@ -2530,33 +2535,9 @@ const goToPage = (page) => {
   }
 }
 
-// const showToggleConfirmation = () => {
-//   if (!waterPumpActive.value) {
-//     checkSoilMoistureBeforeTurningOn()
-//   } else {
-//     showToggleConfirmationDialog.value = true
-//   }
-// }
-
-// const checkSoilMoistureBeforeTurningOn = async () => {
-//   try {
-//     const response = await api.get(API_ENDPOINTS.SOIL_MOISTURE)
-//     const moisture = response.data.moisture
-    
-//     if (moisture >= 50) {
-//       showToggleConfirmationDialog.value = true
-//     } else {
-//       confirmToggleWaterPump()
-//     }
-//   } catch (error) {
-//     console.error('Error checking soil moisture:', error)
-//     showToggleConfirmationDialog.value = true
-//   }
-// }
-
-const showToggleConfirmation = async () => {
+const showToggleConfirmation = () => {
   if (!waterPumpActive.value) {
-    await checkSoilMoistureBeforeTurningOn()
+    checkSoilMoistureBeforeTurningOn()
   } else {
     showToggleConfirmationDialog.value = true
   }
@@ -2564,31 +2545,31 @@ const showToggleConfirmation = async () => {
 
 const checkSoilMoistureBeforeTurningOn = async () => {
   try {
-    console.log("Fetching soil moisture from:", API_ENDPOINTS.SOIL_MOISTURE)
     const response = await api.get(API_ENDPOINTS.SOIL_MOISTURE)
-    
-    console.log("Soil moisture API response:", response.data)
-    
-    // The response should now be a single object, not an array
-    if (response.data && typeof response.data.moisture === 'number') {
-      soilMoisture.value = response.data.moisture
-      console.log('Soil moisture value:', soilMoisture.value)
+    const moisture = response.data?.moisture ?? null
+    // store the value so the modal can display it
+    soilMoisture.value = moisture
+
+    if (moisture !== null && moisture >= 50) {
+      // show modal with warning that soil is moist
+      showToggleConfirmationDialog.value = true
     } else {
-      console.error('Invalid soil moisture response format:', response.data)
-      soilMoisture.value = null
+      // no need to warn, directly toggle
+      await confirmToggleWaterPump()
     }
-    
-    // Always show the confirmation dialog
-    showToggleConfirmationDialog.value = true
   } catch (error) {
     console.error('Error checking soil moisture:', error)
-    console.error('Error details:', error.response)
+    // if sensor check fails, allow user to confirm (safe fallback)
     soilMoisture.value = null
-    // Still show the confirmation dialog
     showToggleConfirmationDialog.value = true
   }
 }
 
+const closeToggleConfirmationDialog = () => {
+  showToggleConfirmationDialog.value = false
+  // clear cached soil moisture to avoid stale messages
+  soilMoisture.value = null
+}
 
 let motorStatusInterval = null
 const MOTOR_STATUS_POLLING_INTERVAL = 1000
@@ -2849,6 +2830,7 @@ const confirmToggleWaterPump = async () => {
   } finally {
     isTogglingMotor.value = false
     showToggleConfirmationDialog.value = false
+    soilMoisture.value = null
   }
 }
 

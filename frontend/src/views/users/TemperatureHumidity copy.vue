@@ -1013,6 +1013,95 @@ const paginationNumbers = computed(() => {
 const dataCache = ref(null)
 
 
+// const fetchTempHumidityData = async () => {
+//   try {
+//     // isLoading.value = true
+    
+//     // Use the correct endpoint
+//     const response = await api.get('/temperature-humidity/readings')
+//     const allReadings = response.data
+    
+//     console.log(`📊 Total temperature & humidity readings fetched: ${allReadings.length}`)
+    
+//     const processedData = allReadings
+//       .map((reading, index) => {
+//         // Handle timestamp
+//         let formattedDate = '--'
+//         let formattedTime = '--'
+//         let timestampSeconds = 0
+        
+//         try {
+//           // Handle timestamp format
+//           let timestamp;
+//           if (reading.timestamp && typeof reading.timestamp === 'object' && '_seconds' in reading.timestamp) {
+//             timestamp = new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000)
+//           } else if (reading.timestamp && typeof reading.timestamp === 'string') {
+//             timestamp = new Date(reading.timestamp)
+//           } else {
+//             timestamp = new Date()
+//             console.warn('Unknown timestamp format:', reading.timestamp)
+//           }
+          
+//           formattedDate = timestamp.toLocaleDateString('en-US', {
+//             year: 'numeric',
+//             month: 'short',
+//             day: '2-digit'
+//           });
+
+//           formattedTime = timestamp.toLocaleTimeString('en-US', {
+//             hour: '2-digit',
+//             minute: '2-digit',
+//             second: '2-digit',
+//             hour12: true
+//           });
+          
+//           timestampSeconds = timestamp.getTime() / 1000
+//         } catch (e) {
+//           console.error("Error formatting date:", e, reading.timestamp)
+//         }
+
+//         const temperature = reading.temperature !== undefined && reading.temperature !== null 
+//           ? Number(reading.temperature).toFixed(2) 
+//           : '--'
+        
+//         const humidity = reading.humidity !== undefined && reading.humidity !== null 
+//           ? Number(reading.humidity).toFixed(2) 
+//           : '--'
+
+//         return {
+//           id: index + 1,
+//           timestamp: timestampSeconds,
+//           temperature: temperature,
+//           humidity: humidity,
+//           date: formattedDate,
+//           time: formattedTime,
+//           rawTimestamp: new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000),
+//           deviceId: reading.device_id,
+//           soilMoisture: reading.soilMoisture || null
+//         }
+//       })
+
+//     dataCache.value = processedData
+    
+//     // Update the main data array
+//     tempHumidityData.value = processedData
+//     isLoading.value = false
+    
+//     // Update chart with all data
+//     initializeChartData(processedData)
+//     PRINT_CHART_DATA_LIMIT = processedData.length
+    
+//   } catch (error) {
+//     console.error("❌ Error fetching temperature and humidity data:", error)
+//     isLoading.value = false
+    
+//     if (dataCache.value) {
+//       tempHumidityData.value = dataCache.value
+//       initializeChartData(dataCache.value)
+//     }
+//   }
+// }
+
 const fetchTempHumidityData = async () => {
   try {
     // isLoading.value = true
@@ -1029,35 +1118,48 @@ const fetchTempHumidityData = async () => {
         let formattedDate = '--'
         let formattedTime = '--'
         let timestampSeconds = 0
+        let rawTimestamp = null
         
         try {
-          // Handle timestamp format
-          let timestamp;
-          if (reading.timestamp && typeof reading.timestamp === 'object' && '_seconds' in reading.timestamp) {
-            timestamp = new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000)
+          // Handle timestamp format - fix for Firestore timestamp
+          if (reading.timestamp && typeof reading.timestamp === 'object') {
+            // Firestore timestamp format
+            if ('_seconds' in reading.timestamp) {
+              rawTimestamp = new Date(reading.timestamp._seconds * 1000)
+              if (reading.timestamp._nanoseconds) {
+                rawTimestamp = new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000)
+              }
+            } 
+            // Other object format (could be a Date object)
+            else if (reading.timestamp instanceof Date) {
+              rawTimestamp = new Date(reading.timestamp)
+            }
           } else if (reading.timestamp && typeof reading.timestamp === 'string') {
-            timestamp = new Date(reading.timestamp)
+            rawTimestamp = new Date(reading.timestamp)
+          } else if (reading.timestamp && typeof reading.timestamp === 'number') {
+            rawTimestamp = new Date(reading.timestamp)
           } else {
-            timestamp = new Date()
+            rawTimestamp = new Date()
             console.warn('Unknown timestamp format:', reading.timestamp)
           }
           
-          formattedDate = timestamp.toLocaleDateString('en-US', {
+          formattedDate = rawTimestamp.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: '2-digit'
           });
 
-          formattedTime = timestamp.toLocaleTimeString('en-US', {
+          formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
             hour12: true
           });
           
-          timestampSeconds = timestamp.getTime() / 1000
+          timestampSeconds = rawTimestamp.getTime() / 1000
         } catch (e) {
           console.error("Error formatting date:", e, reading.timestamp)
+          rawTimestamp = new Date() // Fallback to current date
         }
 
         const temperature = reading.temperature !== undefined && reading.temperature !== null 
@@ -1075,11 +1177,13 @@ const fetchTempHumidityData = async () => {
           humidity: humidity,
           date: formattedDate,
           time: formattedTime,
-          rawTimestamp: new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000),
+          rawTimestamp: rawTimestamp,
           deviceId: reading.device_id,
           soilMoisture: reading.soilMoisture || null
         }
       })
+      // Sort by timestamp in ascending order (oldest first)
+      .sort((a, b) => a.timestamp - b.timestamp)
 
     dataCache.value = processedData
     
@@ -1196,33 +1300,250 @@ const fetchTimeRange = async (deviceId = null) => {
   }
 }
 
+// const initializeChartData = (data) => {
+//   // Take the most recent 20 readings for the chart
+//   const recentData = data.slice(-20)
+  
+//   const chartDataPoints = recentData
+//     .filter(item => item.temperature !== '--' && item.humidity !== '--')
+//     .map(item => ({
+//       timestamp: item.rawTimestamp || new Date(),
+//       temperature: Number(item.temperature),
+//       humidity: Number(item.humidity)
+//     }))
+//     .sort((a, b) => a.timestamp - b.timestamp)
+
+//   chartData.value = chartDataPoints
+
+//   if (chartDataPoints.length > 0) {
+//     const latestReading = chartDataPoints[chartDataPoints.length - 1]
+//     currentTempValue.value = latestReading.temperature.toFixed(2)
+//     currentHumidityValue.value = latestReading.humidity.toFixed(2)
+    
+//     const formattedTime = latestReading.timestamp.toLocaleTimeString('en-US', {
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//       hour12: true
+//     })
+//     lastUpdated.value = formattedTime
+    
+//     const tempValues = chartDataPoints.map(item => item.temperature)
+//     const humidityValues = chartDataPoints.map(item => item.humidity)
+    
+//     tempStats.value = {
+//       min: Math.min(...tempValues).toFixed(2),
+//       max: Math.max(...tempValues).toFixed(2),
+//       avg: (tempValues.reduce((sum, val) => sum + val, 0) / tempValues.length).toFixed(2)
+//     }
+    
+//     humidityStats.value = {
+//       min: Math.min(...humidityValues).toFixed(2),
+//       max: Math.max(...humidityValues).toFixed(2),
+//       avg: (humidityValues.reduce((sum, val) => sum + val, 0) / humidityValues.length).toFixed(2)
+//     }
+//   }
+  
+//   initializeChart()
+// }
+
+// const initializeChart = () => {
+//   nextTick(() => {
+//     if (chartCanvas.value) {
+//       if (chart.value) {
+//         chart.value.destroy()
+//       }
+      
+//       const ctx = chartCanvas.value.getContext('2d')
+      
+//       chart.value = new Chart(ctx, {
+//         type: 'line',
+//         data: {
+//           labels: chartData.value.map(item => {
+//             return item.timestamp.toLocaleTimeString('en-US', {
+//               hour: '2-digit',
+//               minute: '2-digit',
+//               hour12: true
+//             })
+//           }),
+//           datasets: [
+//             {
+//               label: 'Temperature (°C)',
+//               data: chartData.value.map(item => item.temperature),
+//               borderColor: '#ef4444', 
+//               backgroundColor: 'rgba(239, 68, 68, 0.15)', 
+//               borderWidth: 2.5,
+//               tension: 0.4,
+//               fill: true,
+//               pointRadius: 3,
+//               pointHoverRadius: 5,
+//               pointBackgroundColor: '#ffffff',
+//               pointBorderColor: '#ef4444',
+//               pointBorderWidth: 1.5,
+//               yAxisID: 'y-temperature'
+//             },
+//             {
+//               label: 'Humidity (%)',
+//               data: chartData.value.map(item => item.humidity),
+//               borderColor: '#3b82f6', 
+//               backgroundColor: 'rgba(59, 130, 246, 0.15)', 
+//               borderWidth: 2.5,
+//               tension: 0.4,
+//               fill: true,
+//               pointRadius: 3,
+//               pointHoverRadius: 5,
+//               pointBackgroundColor: '#ffffff',
+//               pointBorderColor: '#3b82f6',
+//               pointBorderWidth: 1.5,
+//               yAxisID: 'y-humidity'
+//             }
+//           ]
+//         },
+//         options: {
+//           responsive: true,
+//           maintainAspectRatio: false,
+//           interaction: {
+//             mode: 'index',
+//             intersect: false,
+//           },
+//           animation: false,
+//           layout: {
+//             padding: {
+//               top: 10,
+//               left: 10,
+//               right: 10,
+//               bottom: 10
+//             }
+//           },
+//           scales: {
+//             'y-temperature': {
+//               type: 'linear',
+//               display: true,
+//               position: 'left',
+//               title: {
+//                 display: true,
+//                 text: 'Temperature (°C)',
+//                 color: '#ef4444',
+//                 font: {
+//                   size: 11,
+//                   weight: '600'
+//                 },
+//                 padding: {
+//                   bottom: 10
+//                 }
+//               },
+//               beginAtZero: false,
+//               min: Math.max(0, Math.floor(tempStats.value.min * 0.95)),
+//               max: Math.ceil(tempStats.value.max * 1.05),
+//               ticks: {
+//                 font: {
+//                   size: 10
+//                 },
+//                 color: '#ef4444',
+//                 padding: 8
+//               },
+//               grid: {
+//                 color: 'rgba(0, 0, 0, 0.04)',
+//                 drawBorder: false
+//               }
+//             },
+//             'y-humidity': {
+//               type: 'linear',
+//               display: true,
+//               position: 'right',
+//               title: {
+//                 display: true,
+//                 text: 'Humidity (%)',
+//                 color: '#3b82f6',
+//                 font: {
+//                   size: 11,
+//                   weight: '600'
+//                 },
+//                 padding: {
+//                   bottom: 10
+//                 }
+//               },
+//               beginAtZero: false,
+//               min: Math.max(0, Math.floor(humidityStats.value.min * 0.95)),
+//               max: Math.min(100, Math.ceil(humidityStats.value.max * 1.05)),
+//               ticks: {
+//                 font: {
+//                   size: 10
+//                 },
+//                 color: '#3b82f6',
+//                 padding: 8
+//               },
+//               grid: {
+//                 drawOnChartArea: false,
+//                 drawBorder: false
+//               }
+//             },
+//             x: {
+//               ticks: {
+//                 font: {
+//                   size: 10
+//                 },
+//                 maxRotation: 0,
+//                 padding: 8,
+//                 color: '#64748b' 
+//               },
+//               grid: {
+//                 display: false,
+//                 drawBorder: false
+//               }
+//             }
+//           },
+//           plugins: {
+//             legend: {
+//               display: false, 
+//             },
+//             tooltip: {
+//               backgroundColor: 'rgba(255, 255, 255, 0.95)',
+//               titleColor: '#334155', 
+//               bodyColor: '#334155', 
+//               borderColor: '#e2e8f0', 
+//               borderWidth: 1,
+//               padding: 12,
+//               cornerRadius: 6,
+//               displayColors: true,
+//               boxWidth: 8,
+//               boxHeight: 8,
+//               usePointStyle: true,
+//               titleFont: {
+//                 size: 12,
+//                 weight: '600'
+//               },
+//               bodyFont: {
+//                 size: 12
+//               },
+//               callbacks: {
+//                 label: function(context) {
+//                   const label = context.dataset.label || '';
+//                   const value = context.raw !== null ? context.raw.toFixed(2) : '--';
+//                   return `${label}: ${value}`;
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       })
+//     }
+//   })
+// }
+
 const initializeChartData = (data) => {
-  // Take the most recent 20 readings for the chart
+  // Take the most recent 20 readings for the chart but keep them in chronological order
   const recentData = data.slice(-20)
   
   const chartDataPoints = recentData
     .filter(item => item.temperature !== '--' && item.humidity !== '--')
-    .map(item => {
-      // Handle Firebase timestamp format
-      let timestamp;
-      if (item.rawTimestamp) {
-        timestamp = item.rawTimestamp;
-      } else if (item.timestamp && typeof item.timestamp === 'object' && '_seconds' in item.timestamp) {
-        timestamp = new Date(item.timestamp._seconds * 1000);
-      } else if (item.timestamp && typeof item.timestamp === 'number') {
-        timestamp = new Date(item.timestamp * 1000);
-      } else {
-        // Fallback to current time if no valid timestamp
-        timestamp = new Date();
-      }
-      
-      return {
-        timestamp: timestamp,
-        temperature: Number(item.temperature),
-        humidity: Number(item.humidity)
-      }
-    })
-    .sort((a, b) => a.timestamp - b.timestamp) // Sort from oldest to newest
+    .map(item => ({
+      timestamp: item.rawTimestamp || new Date(),
+      temperature: Number(item.temperature),
+      humidity: Number(item.humidity)
+    }))
+    // Keep chronological order (oldest to newest)
+    .sort((a, b) => a.timestamp - b.timestamp)
 
   chartData.value = chartDataPoints
 
@@ -1267,31 +1588,16 @@ const initializeChart = () => {
       
       const ctx = chartCanvas.value.getContext('2d')
       
-      // Format labels with proper error handling
+      // Format labels for x-axis - show date and time for better context
       const labels = chartData.value.map(item => {
-        try {
-          if (item.timestamp instanceof Date && !isNaN(item.timestamp)) {
-            return item.timestamp.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            })
-          } else {
-            // If timestamp is invalid, create a sequential time label
-            const index = chartData.value.indexOf(item);
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - (chartData.value.length - index - 1));
-            return now.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            });
-          }
-        } catch (e) {
-          console.error("Error formatting time:", e);
-          return "--:--";
-        }
-      });
+        return item.timestamp.toLocaleTimeString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      })
       
       chart.value = new Chart(ctx, {
         type: 'line',
@@ -1412,11 +1718,15 @@ const initializeChart = () => {
             x: {
               ticks: {
                 font: {
-                  size: 10
+                  size: 9
                 },
-                maxRotation: 0,
+                maxRotation: 45,
                 padding: 8,
-                color: '#64748b' 
+                color: '#64748b',
+                callback: function(value, index) {
+                  // Show fewer labels to avoid clutter
+                  return index % Math.ceil(chartData.value.length / 6) === 0 ? this.getLabelForValue(value) : '';
+                }
               },
               grid: {
                 display: false,
@@ -1449,21 +1759,18 @@ const initializeChart = () => {
               },
               callbacks: {
                 title: function(context) {
-                  // Show full date and time in tooltip
-                  const dataIndex = context[0].dataIndex;
-                  const timestamp = chartData.value[dataIndex].timestamp;
-                  
-                  if (timestamp instanceof Date && !isNaN(timestamp)) {
-                    return timestamp.toLocaleString('en-US', {
-                      year: 'numeric',
+                  if (context.length > 0) {
+                    const index = context[0].dataIndex;
+                    return chartData.value[index].timestamp.toLocaleString('en-US', {
                       month: 'short',
                       day: 'numeric',
+                      year: 'numeric',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
+                      hour12: true
                     });
-                  } else {
-                    return "Time: N/A";
                   }
+                  return '';
                 },
                 label: function(context) {
                   const label = context.dataset.label || '';
@@ -1478,7 +1785,6 @@ const initializeChart = () => {
     }
   })
 }
-
 
 const updateChart = () => {
   // Check if chart exists and has data
