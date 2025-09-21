@@ -1,244 +1,3 @@
-//   export async function getWeatherData() {
-//     const latitude = 13.405165290699628;
-//     const longitude = 121.2151274080352;     
-
-//     const response = await fetch(
-//         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m,precipitation,precipitation_probability,uv_index,surface_pressure,&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto&forecast_days=10`
-//     );      
-
-//     const data = await response.json();
-  
-//     const now = new Date();
-//     const currentHour = now.toISOString().slice(0, 13) + ':00';
-//     const currentHourIndex = data.hourly?.time?.findIndex(t => t === currentHour) ?? -1;
-  
-//     const current = {
-//       temperature_c: data.current_weather?.temperature ?? 0,
-//       weather_condition: mapWeatherCode(data.current_weather?.weathercode),
-//       humidity: data.hourly?.relative_humidity_2m?.[currentHourIndex] ?? 0,
-//       wind_speed: data.hourly?.wind_speed_10m?.[currentHourIndex] ?? 0,
-//       precipitation: data.hourly?.precipitation?.[currentHourIndex] ?? 0,
-//       uv_index: data.hourly?.uv_index?.[currentHourIndex] ?? 0,
-//       pressure: data.hourly?.surface_pressure?.[currentHourIndex] ?? 0,
-//       wind_direction: data.hourly?.wind_direction_10m?.[currentHourIndex] ?? 0,
-//       sunrise: data.daily.sunrise?.[currentHourIndex] ?? '',
-//       sunset: data.daily.sunset?.[currentHourIndex] ?? '',
-//     };
-  
-//     const forecast = data.daily?.time?.map((date, index) => ({
-//       date,
-//       temp: data.daily.temperature_2m_max?.[index] ?? 0,
-//       temperature_max: data.daily.temperature_2m_max?.[index] ?? 0,
-//       temperature_min: data.daily.temperature_2m_min?.[index] ?? 0,
-//       condition_code: data.daily.weathercode?.[index] ?? 0,
-//     })) ?? [];
-  
-//     const hourlyForecast = data.hourly?.time?.slice(0, 10).map((time, index) => ({
-//       time: new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-//       temp: data.hourly.temperature_2m?.[index] ?? 0,
-//       condition: mapWeatherCode(data.hourly.weathercode?.[index]),
-//       rainChance: data.hourly.precipitation_probability?.[index] ?? 0,
-//     })) ?? [];
-
-//     const todayIndex = 0;
-
-//     const sunData = {
-//       sunrise: data.daily.sunrise?.[todayIndex] ?? '',
-//       sunset: data.daily.sunset?.[todayIndex] ?? '',
-//     };
-
-//     const airQuality = {
-//         pm2_5: data.hourly?.pm2_5?.[0] ?? 0,
-//         pm10: data.hourly?.pm10?.[0] ?? 0,  
-//         carbon_monoxide: data.hourly?.carbon_monoxide?.[0] ?? 0, 
-//         nitrogen_dioxide: data.hourly?.nitrogen_dioxide?.[0] ?? 0, 
-//         ozone: data.hourly?.ozone?.[0] ?? 0,
-//         sulphur_dioxide: data.hourly?.sulphur_dioxide?.[0] ?? 0, 
-//     };
-  
-//     return {
-//       current,
-//       forecast,
-//       hourlyForecast,
-//       sunData,
-//       airQuality,
-//     };
-//   }
-
-// export async function getWeatherData() {
-//     const latitude = 13.405165290699628;
-//     const longitude = 121.2151274080352;
-  
-//     // 1) Fetch weather forecast
-//     const weatherRes = await fetch(
-//       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-//       `&current_weather=true` +
-//       `&hourly=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,uv_index,surface_pressure` +
-//       `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset` +
-//       `&timezone=auto&forecast_days=10`
-//     );
-//     const weatherData = await weatherRes.json();
-  
-//    // 2) Fetch air quality from the correct endpoint
-//     const aqRes = await fetch(
-//       `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide&timezone=auto`
-//     );
-//     const aqData = await aqRes.json();
-  
-//     // Compute current hour index
-//     const now = new Date();
-//     const currentHour = now.toISOString().slice(0, 13) + ':00';
-//     let idx = weatherData.hourly?.time?.findIndex(t => t === currentHour) ?? 0;
-    
-//     // Function to find the most recent non-zero value in an array starting from index
-//     const getRecentNonZero = (array, startIndex) => {
-//       if (!array) return 0;
-      
-//       // Check current index first
-//       if (array[startIndex] !== undefined && array[startIndex] !== 0) {
-//         return array[startIndex];
-//       }
-      
-//       // Search backwards for the most recent non-zero value
-//       for (let i = startIndex - 1; i >= 0; i--) {
-//         if (array[i] !== undefined && array[i] !== 0) {
-//           return array[i];
-//         }
-//       }
-      
-//       // If no non-zero found, search forwards
-//       for (let i = startIndex + 1; i < array.length; i++) {
-//         if (array[i] !== undefined && array[i] !== 0) {
-//           return array[i];
-//         }
-//       }
-      
-//       // If still nothing found, return 0
-//       return 0;
-//     };
-  
-//     // Build current summary with fallback to recent non-zero data
-//     const current = {
-//       temperature_c: weatherData.current_weather?.temperature ?? 
-//                    getRecentNonZero(weatherData.hourly?.temperature_2m, idx),
-//       weather_condition: mapWeatherCode(weatherData.current_weather?.weathercode),
-//       humidity: getRecentNonZero(weatherData.hourly?.relative_humidity_2m, idx),
-//       wind_speed: getRecentNonZero(weatherData.hourly?.wind_speed_10m, idx),
-//       wind_direction: getRecentNonZero(weatherData.hourly?.wind_direction_10m, idx),
-//       precipitation: getRecentNonZero(weatherData.hourly?.precipitation, idx),
-//       rainChance: getRecentNonZero(weatherData.hourly?.precipitation_probability, idx),
-//       uv_index: getRecentNonZero(weatherData.hourly?.uv_index, idx),
-//       pressure: getRecentNonZero(weatherData.hourly?.surface_pressure, idx),
-//       sunrise: weatherData.daily?.sunrise?.[0] ?? '',
-//       sunset: weatherData.daily?.sunset?.[0] ?? '',
-//     };
-  
-//     // 7- or 10-day daily forecast
-//     const forecast = weatherData.daily?.time?.map((date, i) => ({
-//       date,
-//       temperature_max: weatherData.daily.temperature_2m_max?.[i] ?? 0,
-//       temperature_min: weatherData.daily.temperature_2m_min?.[i] ?? 0,
-//       condition_code: weatherData.daily.weathercode?.[i] ?? 0,
-//     })) ?? [];
-  
-//     // Next 10 hours for chart
-//     const hourlyForecast = weatherData.hourly?.time?.slice(0, 10).map((t, i) => ({
-//       time: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-//       temp: weatherData.hourly.temperature_2m?.[i] ?? 0,
-//       condition: mapWeatherCode(weatherData.hourly.weathercode?.[i]),
-//       rainChance: weatherData.hourly.precipitation_probability?.[i] ?? 0,
-//     })) ?? [];
-  
-//     // Air quality hour 0
-//     const airQuality = {
-//       pm2_5: aqData.hourly?.pm2_5?.[0] ?? 0,
-//       pm10: aqData.hourly?.pm10?.[0] ?? 0,
-//       carbon_monoxide: aqData.hourly?.carbon_monoxide?.[0] ?? 0,
-//       nitrogen_dioxide: aqData.hourly?.nitrogen_dioxide?.[0] ?? 0,
-//       ozone: aqData.hourly?.ozone?.[0] ?? 0,
-//       sulphur_dioxide: aqData.hourly?.sulphur_dioxide?.[0] ?? 0,
-//     };
-
-//     const todayIndex = 0;
-
-//     const sunData = {
-//         sunrise: weatherData.daily.sunrise?.[todayIndex] ?? '',
-//         sunset: weatherData.daily.sunset?.[todayIndex] ?? '',
-//     };
-  
-//     return {
-//       current,
-//       forecast,
-//       hourlyForecast,
-//       airQuality,
-//       sunData
-//     };
-// }
-
-// // ... rest of your code (getWeatherDataForPopularCities and mapWeatherCode) remains the same ...
-
-// export async function getWeatherDataForPopularCities() {
-//     const barangays = [
-//         { name: 'Bulusan', latitude: 13.4037, longitude: 121.2012 },
-//         { name: 'Suqui', latitude: 13.4177, longitude: 121.2040 },
-//         { name: 'Santo Niño', latitude: 13.4066, longitude: 121.1848 },
-//         { name: 'Ilaya (Poblacion)', latitude: 13.4129, longitude: 121.1840 },
-//         { name: 'Silonay', latitude: 13.3992, longitude: 121.2248 }
-//     ];
-  
-//     const results = await Promise.all(
-//     barangays.map(async (barangay) => {
-//       const url = `https://api.open-meteo.com/v1/forecast?latitude=${barangay.latitude}&longitude=${barangay.longitude}&current_weather=true&timezone=auto`;
-
-//       const response = await fetch(url);
-//       const data = await response.json();
-
-//       const condition = mapWeatherCode(data.current_weather?.weathercode);
-//       const temperature = data.current_weather?.temperature ?? 0;
-//       const now = new Date();
-//       const localTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-//       return {
-//         name: barangay.name,
-//         condition,
-//         temperature,
-//         time: localTime
-//       };
-//     })
-//   );
-  
-//     return results;
-// }
-  
-// export function mapWeatherCode(code) {
-//     const mapping = {
-//         0: 'Clear',
-//         1: 'Mainly Clear',
-//         2: 'Partly Cloudy',
-//         3: 'Overcast',
-//         45: 'Fog',
-//         48: 'Depositing Rime Fog',
-//         51: 'Light Drizzle',
-//         53: 'Moderate Drizzle',
-//         55: 'Dense Drizzle',
-//         61: 'Light Rain',
-//         63: 'Moderate Rain',
-//         65: 'Heavy Rain',
-//         66: 'Freezing Rain',
-//         67: 'Heavy Freezing Rain',
-//         71: 'Light Snowfall',
-//         73: 'Moderate Snowfall',
-//         75: 'Heavy Snowfall',
-//         80: 'Rain Showers',
-//         81: 'Heavy Rain Showers',
-//         82: 'Violent Rain Showers',
-//         95: 'Thunderstorm',
-//         96: 'Thunderstorm with Hail',
-//         99: 'Severe Thunderstorm',
-//     };
-//     return mapping[code] || 'Unknown';
-// }
-
 // weather.js - Multi-Provider Weather API with Fallback
 
 // Configuration
@@ -259,7 +18,7 @@ const API_CONFIG = {
       forecast: '/forecast.json',
       current: '/current.json'
     },
-    apiKey: 'be2785e8e2f44f11b2605501251508' // You'll need to sign up for a free key
+    apiKey: 'be2785e8e2f44f11b2605501251508'
   }
 };
 
@@ -309,9 +68,14 @@ const DEFAULT_RESPONSE = {
   }
 };
 
-// Helper functions
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const DEFAULT_CITY_RESPONSE = {
+  name: 'Unknown',
+  condition: 'Unknown',
+  temperature: 0,
+  time: '00:00'
+};
 
+// Helper functions
 const getRecentNonZero = (array, startIndex) => {
   if (!array) return 0;
   for (let i = startIndex; i >= 0; i--) {
@@ -323,31 +87,32 @@ const getRecentNonZero = (array, startIndex) => {
   return 0;
 };
 
-// API Fetch Functions
-async function fetchWithFallback(url, options = {}, fallbackUrl, fallbackOptions = {}) {
-  try {
-    const response = await fetch(url, options);
-    if (response.ok) return await response.json();
-    throw new Error(`Primary API failed with status ${response.status}`);
-  } catch (primaryError) {
-    console.warn('Primary API failed, trying fallback:', primaryError.message);
-    try {
-      const fallbackResponse = await fetch(fallbackUrl, fallbackOptions);
-      if (!fallbackResponse.ok) throw new Error(`Fallback API failed with status ${fallbackResponse.status}`);
-      return await fallbackResponse.json();
-    } catch (fallbackError) {
-      console.error('Both APIs failed:', fallbackError.message);
-      throw fallbackError;
-    }
-  }
+// Return an ISO-like hour string for Asia/Manila matching Open-Meteo's hourly.time format
+function getManilaIsoHourFromDate(date = new Date()) {
+  // sv-SE produces 'YYYY-MM-DD HH:mm:ss' which is stable and sortable
+  const manila = date.toLocaleString('sv-SE', { timeZone: 'Asia/Manila', hour12: false });
+  // Convert to 'YYYY-MM-DDTHH:00'
+  return manila.replace(' ', 'T').slice(0, 13) + ':00';
+}
+
+// Return year-month-day and hour number for Asia/Manila for comparisons
+function getManilaYMDHourFromDate(date = new Date()) {
+  const manila = date.toLocaleString('sv-SE', { timeZone: 'Asia/Manila', hour12: false });
+  const ymd = manila.slice(0, 10); // 'YYYY-MM-DD'
+  const hour = parseInt(manila.slice(11, 13), 10);
+  return { ymd, hour };
 }
 
 // Data Processing Functions
 function processOpenMeteoData(weatherData, aqData) {
-  const now = new Date();
-  const currentHour = now.toISOString().slice(0, 13) + ':00';
-  const idx = weatherData.hourly?.time?.findIndex(t => t === currentHour) ?? 0;
+  // Compute Manila-local current hour so we align with the API timezone=Asia/Manila
+  const currentHour = getManilaIsoHourFromDate();
+  let idx = weatherData.hourly?.time?.findIndex(t => t === currentHour) ?? -1;
+  if (idx === -1) idx = 0; // fallback if exact match not found
   const todayIndex = 0;
+
+  // Get the next 10 hours of data (current hour + next 9 hours)
+  const hoursToShow = 10;
 
   return {
     current: {
@@ -370,11 +135,11 @@ function processOpenMeteoData(weatherData, aqData) {
       temperature_min: weatherData.daily.temperature_2m_min?.[i] ?? 0,
       condition_code: weatherData.daily.weathercode?.[i] ?? 0,
     })) || DEFAULT_RESPONSE.forecast,
-    hourlyForecast: weatherData.hourly?.time?.slice(0, 10).map((t, i) => ({
-      time: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      temp: weatherData.hourly.temperature_2m?.[i] ?? 0,
-      condition: mapWeatherCode(weatherData.hourly.weathercode?.[i]),
-      rainChance: weatherData.hourly.precipitation_probability?.[i] ?? 0,
+    hourlyForecast: weatherData.hourly?.time?.slice(idx, idx + hoursToShow).map((t, i) => ({
+      time: new Date(t).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      temp: weatherData.hourly.temperature_2m?.[idx + i] ?? 0,
+      condition: mapWeatherCode(weatherData.hourly.weathercode?.[idx + i]),
+      rainChance: weatherData.hourly.precipitation_probability?.[idx + i] ?? 0,
     })) || DEFAULT_RESPONSE.hourlyForecast,
     airQuality: {
       pm2_5: aqData.hourly?.pm2_5?.[0] ?? 0,
@@ -385,16 +150,34 @@ function processOpenMeteoData(weatherData, aqData) {
       sulphur_dioxide: aqData.hourly?.sulphur_dioxide?.[0] ?? 0,
     },
     sunData: {
-      sunrise: weatherData.daily?.sunrise?.[todayIndex] ?? '06:00',
-      sunset: weatherData.daily?.sunset?.[todayIndex] ?? '18:00',
+      sunrise: formatTimeToPH(weatherData.daily?.sunrise?.[todayIndex]) ?? '06:00 AM',
+      sunset: formatTimeToPH(weatherData.daily?.sunset?.[todayIndex]) ?? '06:00 PM',
     }
   };
 }
 
 function processWeatherApiData(data) {
   const current = data.current;
-  const forecast = data.forecast?.forecastday?.[0]?.hour || [];
-  
+  const hourlyData = data.forecast?.forecastday?.[0]?.hour || [];
+  // Determine current Manila date/hour and find the matching hourly entry
+  const manilaNow = getManilaYMDHourFromDate(new Date());
+  let currentHourIndex = hourlyData.findIndex(hour => {
+    try {
+      const d = new Date(hour.time);
+      const parts = getManilaYMDHourFromDate(d);
+      return parts.ymd === manilaNow.ymd && parts.hour === manilaNow.hour;
+    } catch (e) {
+      return false;
+    }
+  });
+  if (currentHourIndex === -1) {
+    // fallback: try matching by hour number only
+    currentHourIndex = hourlyData.findIndex(hour => new Date(hour.time).getHours() === manilaNow.hour);
+  }
+  if (currentHourIndex === -1) currentHourIndex = 0;
+
+  const hoursToShow = 10;
+
   return {
     current: {
       temperature_c: current?.temp_c ?? 0,
@@ -403,11 +186,11 @@ function processWeatherApiData(data) {
       wind_speed: current?.wind_kph ?? 0,
       wind_direction: current?.wind_degree ?? 0,
       precipitation: current?.precip_mm ?? 0,
-      rainChance: forecast[0]?.chance_of_rain ?? 0,
+      rainChance: hourlyData[currentHourIndex]?.chance_of_rain ?? 0,
       uv_index: current?.uv ?? 0,
       pressure: current?.pressure_mb ?? 0,
-      sunrise: data.forecast?.forecastday?.[0]?.astro?.sunrise || '06:00',
-      sunset: data.forecast?.forecastday?.[0]?.astro?.sunset || '18:00',
+      sunrise: data.forecast?.forecastday?.[0]?.astro?.sunrise || '06:00 AM',
+      sunset: data.forecast?.forecastday?.[0]?.astro?.sunset || '06:00 PM',
     },
     forecast: data.forecast?.forecastday?.map(day => ({
       date: day.date,
@@ -415,18 +198,25 @@ function processWeatherApiData(data) {
       temperature_min: day.day?.mintemp_c ?? 0,
       condition_code: mapWeatherCodeFromText(day.day?.condition?.text),
     })) || DEFAULT_RESPONSE.forecast,
-    hourlyForecast: forecast.slice(0, 10).map(hour => ({
-      time: hour.time.split(' ')[1],
+    hourlyForecast: hourlyData.slice(currentHourIndex, currentHourIndex + hoursToShow).map(hour => ({
+      time: new Date(hour.time).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }),
       temp: hour.temp_c ?? 0,
       condition: hour.condition?.text || 'Unknown',
       rainChance: hour.chance_of_rain ?? 0,
     })) || DEFAULT_RESPONSE.hourlyForecast,
-    airQuality: DEFAULT_RESPONSE.airQuality, // WeatherAPI.com doesn't provide air quality in free tier
+    airQuality: DEFAULT_RESPONSE.airQuality,
     sunData: {
-      sunrise: data.forecast?.forecastday?.[0]?.astro?.sunrise || '06:00',
-      sunset: data.forecast?.forecastday?.[0]?.astro?.sunset || '18:00',
+      sunrise: data.forecast?.forecastday?.[0]?.astro?.sunrise || '06:00 AM',
+      sunset: data.forecast?.forecastday?.[0]?.astro?.sunset || '06:00 PM',
     }
   };
+}
+
+// Helper function to format time to Philippine format
+function formatTimeToPH(isoTime) {
+  if (!isoTime) return '';
+  const date = new Date(isoTime);
+  return date.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 // Main Weather Data Function
@@ -435,10 +225,10 @@ export async function getWeatherData() {
     // Try primary API (Open-Meteo) first
     try {
       const [weatherData, aqData] = await Promise.all([
-        fetch(`${API_CONFIG.primary.baseUrl}${API_CONFIG.primary.endpoints.forecast}?latitude=${DEFAULT_LOCATION.latitude}&longitude=${DEFAULT_LOCATION.longitude}&current_weather=true&hourly=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,uv_index,surface_pressure&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto&forecast_days=10`)
+        fetch(`${API_CONFIG.primary.baseUrl}${API_CONFIG.primary.endpoints.forecast}?latitude=${DEFAULT_LOCATION.latitude}&longitude=${DEFAULT_LOCATION.longitude}&current_weather=true&hourly=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,uv_index,surface_pressure&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=Asia/Manila&forecast_days=10`)
           .then(r => r.ok ? r.json() : Promise.reject(new Error(`Status ${r.status}`))),
         
-        fetch(`${API_CONFIG.primary.aqBaseUrl}${API_CONFIG.primary.endpoints.airQuality}?latitude=${DEFAULT_LOCATION.latitude}&longitude=${DEFAULT_LOCATION.longitude}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide&timezone=auto`)
+        fetch(`${API_CONFIG.primary.aqBaseUrl}${API_CONFIG.primary.endpoints.airQuality}?latitude=${DEFAULT_LOCATION.latitude}&longitude=${DEFAULT_LOCATION.longitude}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide&timezone=Asia/Manila`)
           .then(r => r.ok ? r.json() : Promise.reject(new Error(`Status ${r.status}`)))
       ]);
       
@@ -459,7 +249,7 @@ export async function getWeatherData() {
   }
 }
 
-// Weather Code Mapping (Extended for both APIs)
+// Weather Code Mapping
 export function mapWeatherCode(code) {
   const mapping = {
     0: 'Clear',
@@ -524,7 +314,7 @@ export async function getWeatherDataForPopularCities() {
       barangays.map(async (barangay) => {
         try {
           // Try primary API first
-          const primaryUrl = `${API_CONFIG.primary.baseUrl}${API_CONFIG.primary.endpoints.forecast}?latitude=${barangay.latitude}&longitude=${barangay.longitude}&current_weather=true&timezone=auto`;
+          const primaryUrl = `${API_CONFIG.primary.baseUrl}${API_CONFIG.primary.endpoints.forecast}?latitude=${barangay.latitude}&longitude=${barangay.longitude}&current_weather=true&timezone=Asia/Manila`;
           const primaryResponse = await fetch(primaryUrl);
           
           if (primaryResponse.ok) {
@@ -542,7 +332,7 @@ export async function getWeatherDataForPopularCities() {
               name: barangay.name,
               condition: data.current?.condition?.text || 'Unknown',
               temperature: data.current?.temp_c ?? 0,
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              time: new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true })
             };
           }
           
@@ -566,6 +356,6 @@ function formatCityData(name, data) {
     name,
     condition: mapWeatherCode(data.current_weather?.weathercode),
     temperature: data.current_weather?.temperature ?? 0,
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    time: new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true })
   };
 }

@@ -375,45 +375,57 @@
               </div>
 
               <div v-else-if="activeTab === 'hourly'" class="min-h-[30rem]">
-                <div class="hourly-scroll space-y-1.5 xs:space-y-2 sm:space-y-3">
-                  <div
-                    v-for="(hour, index) in hourlyForecast"
-                    :key="`hourly-${index}`"
-                    class="grid grid-cols-12 items-center gap-1 p-2 xs:p-2.5 sm:p-3 rounded-md xs:rounded-lg sm:rounded-xl hover:bg-emerald-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-emerald-100"
-                  >
-                    <div class="col-span-2 md:col-span-2 text-[8px] md:text-[10px] xs:text-[10px] sm:text-sm font-medium text-gray-700">
-                      {{ hour.time }}
-                    </div>
-                    <div class="col-span-1 sm:col-span-1">
-                      <div class="bg-white rounded-full p-1 xs:p-1.5 sm:p-2 shadow-sm inline-flex items-center justify-center">
-                        <component
-                          :is="getWeatherIcon(hour.condition)"
-                          class="h-2 w-2 xs:h-4 xs:w-4 sm:h-5 sm:w-5 md:h-6 md:w-6"
-                          :class="getWeatherIconColor(hour.condition)"
-                        />
-                      </div>
-                    </div>
-                    <div class="col-span-2 sm:col-span-2 text-[10px] md:text-xs xs:text-sm sm:text-base font-medium text-gray-800">
-                      {{ hour.temp }}°C
-                    </div>
-                    <div class="col-span-2 sm:col-span-2 flex items-center">
-                      <Droplet class="h-3 w-3 xs:h-4 xs:w-4 text-emerald-500 mr-1" />
-                      <span class="text-[12px] xs:text-xs sm:text-sm text-gray-700">{{ hour.rainChance }}%</span>
-                    </div>
-                    <div class="col-span-3 sm:col-span-2 flex items-center">
-                      <Wind class="h-3 w-3 xs:h-4 xs:w-4 text-teal-500 mr-1" />
-                      <span class="text-[10px] md:text-sm xs:text-xs sm:text-sm text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
-                    </div>
-                    <div
-                      class="col-span-2 sm:col-span-3 min-w-0 text-right md:text-sm xs:text-[12px] text-[9px] font-medium leading-snug sm:whitespace-nowrap"
-                      :class="getConditionColor(hour.condition)"
-                      :title="hour.condition"
-                    >
-                      {{ hour.condition }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+  <div class="hourly-scroll space-y-1.5 xs:space-y-2 sm:space-y-3">
+    <div
+      v-for="(hour, index) in hourlyForecast"
+      :key="`hourly-${index}`"
+      class="hourly-row grid grid-cols-12 items-center gap-1 p-2 xs:p-2.5 sm:p-3 rounded-md xs:rounded-lg sm:rounded-xl hover:bg-emerald-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-emerald-100"
+    >
+      <!-- Time -->
+      <div class="hour-time col-span-2 xs:text-[10px] sm:text-sm font-medium text-gray-700">
+        {{ hour.time }}
+      </div>
+
+      <!-- Icon -->
+      <div class="col-span-1">
+        <div class="bg-white rounded-full p-1 xs:p-1.5 sm:p-2 shadow-sm inline-flex items-center justify-center">
+          <component
+            :is="getWeatherIcon(hour.condition)"
+            class="hour-icon h-2 w-2"
+            :class="getWeatherIconColor(hour.condition)"
+          />
+        </div>
+      </div>
+
+      <!-- Temp -->
+      <div class="hour-temp col-span-2 sm:col-span-2 text-[10px] font-medium text-gray-800">
+        {{ hour.temp }}°C
+      </div>
+
+      <!-- Rain -->
+      <div class="hour-rain col-span-2 sm:col-span-2 flex items-center">
+        <Droplet class="h-3 w-3 text-emerald-500 mr-1" />
+        <span class="hour-rain-text text-[12px] text-gray-700">{{ hour.rainChance }}%</span>
+      </div>
+
+      <!-- Wind -->
+      <div class="hour-wind col-span-3 sm:col-span-2 flex items-center">
+        <Wind class="h-3 w-3 xs:h-4 xs:w-4 text-teal-500 mr-1" />
+        <span class="hour-wind-text text-[10px] xs:text-xs sm:text-sm text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
+      </div>
+
+      <!-- Condition -->
+      <div
+        class="hour-condition col-span-2 sm:col-span-3 min-w-0 text-right text-[9px] font-medium leading-snug sm:whitespace-nowrap"
+        :class="getConditionColor(hour.condition)"
+        :title="hour.condition"
+      >
+        {{ hour.condition }}
+      </div>
+    </div>
+  </div>
+</div>
+
 
               <div v-else-if="activeTab === 'details'" class="h-full">
                 <div class="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4">
@@ -837,6 +849,35 @@ onBeforeUnmount(() => {
 @media (min-width: 1024px){
   .hourly-scroll{ max-height: 36rem; }
 }
+
+/* Laptop breakpoint ~ 1024px */
+@media (min-width: 1024px) {
+  .hour-time {
+    font-size: 9px;
+  }
+
+  .hour-icon {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .hour-temp {
+    font-size: 8px;
+  }
+
+  .hour-rain-text {
+    font-size: 8px;
+  }
+
+  .hour-wind-text {
+    font-size: 14px; /* equivalent to Tailwind sm:text-sm */
+  }
+
+  .hour-condition {
+    font-size: 8px;
+  }
+}
+
 
 /* keep the rest of your styles as-is */
 </style>

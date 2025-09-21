@@ -1104,8 +1104,31 @@ const processToastQueue = () => {
 };
 
 const showToastMessage = (message, severity = 'info', persistKey = null) => {
-  
-  window.showToast(message, severity)
+  // If a persistKey is provided, use notificationStorage to avoid showing
+  // the same toast repeatedly within the TTL (default 60s).
+  // Important: use the same storage key that sendNotification uses so both
+  // code paths dedupe on the same key.
+  try {
+    if (persistKey) {
+      // Store under the bare notification key (notificationStorage prefixes 'notif_')
+      if (notificationStorage.has(persistKey)) {
+        console.log(`⏩ Toast skipped (dedupe): ${persistKey}`);
+        return;
+      }
+      notificationStorage.set(persistKey, 'toast_shown', 60000);
+    }
+  } catch (e) {
+    console.warn('Toast dedupe failed:', e);
+  }
+
+  if (window && typeof window.showToast === 'function') {
+    window.showToast(message, severity);
+    return;
+  }
+
+  // Basic in-component queue as fallback
+  toastQueue.value.push({ message, severity });
+  processToastQueue();
 }
 
 const notificationStorage = {
@@ -1186,7 +1209,9 @@ const sendNotification = async (message, title, severity = 'info', uniqueKey = n
 
     // Show toast only if not shown recently
     if (existingState !== 'toast_shown') {
-      showToastMessage(message, severity);
+      // Pass notificationId as persistKey so showToastMessage and notificationStorage
+      // use the same key for deduplication (prevents duplicate toast from other code paths)
+      showToastMessage(message, severity, notificationId);
       notificationStorage.set(notificationId, 'toast_shown', 60000);
     }
 
@@ -1872,6 +1897,39 @@ const processScheduleUpdates = (updatedSchedules, mode, changes) => {
       });
     }
 
+    // Normalize schedule times to expected formats
+    try {
+      const num = Number(schedule.scheduledTime);
+      if (!isNaN(num)) {
+        if (schedule.mode === 'one-time') {
+          // One-time schedules should be epoch ms
+          schedule.scheduledTime = num < 1e12 ? num * 1000 : num;
+        } else if (schedule.mode === 'daily' || schedule.mode === 'weekly') {
+          // Daily/weekly schedules are compared against ms-since-midnight (0..86400000)
+          // Backend may provide seconds-of-day (0..86400), epoch seconds (~1e9),
+          // epoch ms (~1e12+), or ms-of-day (0..86400000). Convert all to ms-of-day.
+          if (num <= 86400) {
+            // seconds-of-day -> ms
+            schedule.scheduledTime = num * 1000;
+          } else if (num > 86400 && num < 1e11) {
+            // Likely epoch seconds (10-digit). Convert to ms then mod by day.
+            const ms = num * 1000;
+            schedule.scheduledTime = ms % 86400000;
+          } else if (num >= 1e11) {
+            // Likely epoch ms or large ms value. Reduce to ms-of-day
+            schedule.scheduledTime = num % 86400000;
+          } else {
+            // Fallback: treat as ms-of-day
+            schedule.scheduledTime = num;
+          }
+        } else {
+          schedule.scheduledTime = num;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not normalize schedule time for', schedule.id, e);
+    }
+
     schedulesCache.value.push(schedule);
   });
   
@@ -1949,7 +2007,15 @@ const checkSchedules = async () => {
     const currentTime = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
     
     for (const schedule of schedulesCache.value) {
-      if (!schedule.notifyWatering || schedule.completed) continue;
+      // Diagnostic logging: show key schedule properties
+      try {
+        console.log('[SCHEDULE CHECK] id=%s mode=%s scheduledTime=%s notify=%s completed=%s', schedule.id, schedule.mode, schedule.scheduledTime, schedule.notifyWatering, schedule.completed);
+      } catch (e) {}
+
+      if (!schedule.notifyWatering || schedule.completed) {
+        console.log(`[SCHEDULE SKIP] id=${schedule.id} reason=notifyDisabledOrCompleted notify=${schedule.notifyWatering} completed=${schedule.completed}`);
+        continue;
+      }
 
       // Skip schedules that were just ended to avoid immediate restart due to timing jitter
       const recentlyEnded = recentlyEndedSchedules.value.get(schedule.id);
@@ -1967,8 +2033,12 @@ const checkSchedules = async () => {
         const expectedMs = Math.max(0, dur * 60000);
         if (elapsed >= expectedMs + 5000) { // 5s grace
           console.log(`⚠️ Overdue detected for schedule ${schedule.id} (elapsed ${elapsed}ms >= ${expectedMs}ms). Forcing end.`);
-          // call end and continue; this prevents re-start
-          processScheduleEnd(schedule, active.currentDay, active.startTime);
+          // call end and continue; await so the end runs immediately and any errors are caught
+          try {
+            await processScheduleEnd(schedule, active.currentDay, active.startTime);
+          } catch (e) {
+            console.error('Error forcing schedule end:', e);
+          }
           continue;
         }
       }
@@ -1976,6 +2046,7 @@ const checkSchedules = async () => {
       const scheduleKey = `${schedule.id}-${currentDay}`;
       
       if (processingSchedules.value.has(scheduleKey)) {
+        console.log(`[SCHEDULE SKIP] id=${schedule.id} reason=alreadyProcessing scheduleKey=${scheduleKey}`);
         continue;
       }
       
@@ -1985,6 +2056,7 @@ const checkSchedules = async () => {
         todayStart.setHours(0, 0, 0, 0);
         
         if (lastProcessed >= todayStart) {
+          console.log(`[SCHEDULE SKIP] id=${schedule.id} reason=alreadyProcessedToday lastProcessed=${lastProcessed.toISOString()}`);
           continue;
         }
       }
@@ -1992,23 +2064,43 @@ const checkSchedules = async () => {
       let shouldRun = false;
       let timeMatch = false;
       
+      const TOLERANCE_MS = 5000; // 5 seconds tolerance to avoid missed starts
       if (schedule.mode === 'daily') {
         shouldRun = true;
-        timeMatch = Math.abs(currentTime - schedule.scheduledTime) < 2000;
+        timeMatch = Math.abs(currentTime - schedule.scheduledTime) < TOLERANCE_MS;
       } else if (schedule.mode === 'weekly') {
         shouldRun = schedule.daysArray?.includes(currentDay) ?? false;
-        timeMatch = shouldRun && Math.abs(currentTime - schedule.scheduledTime) < 2000;
+        timeMatch = shouldRun && Math.abs(currentTime - schedule.scheduledTime) < TOLERANCE_MS;
       } else if (schedule.mode === 'one-time') {
         const scheduleDate = new Date(schedule.scheduledTime);
         shouldRun = scheduleDate.toDateString() === now.toDateString();
-        timeMatch = shouldRun && Math.abs(now.getTime() - schedule.scheduledTime) < 2000;
+        timeMatch = shouldRun && Math.abs(now.getTime() - schedule.scheduledTime) < TOLERANCE_MS;
       }
       
-      if (shouldRun && timeMatch && !activeSchedules.value[schedule.id]) {
+      // Diagnostic: log decision
+      try {
+        console.log(`[SCHEDULE DECIDE] id=${schedule.id} mode=${schedule.mode} shouldRun=${shouldRun} timeMatch=${timeMatch} active=${!!activeSchedules.value[schedule.id]}`);
+      } catch (e) {}
+
+  if (shouldRun && timeMatch && !activeSchedules.value[schedule.id]) {
+        // Prevent duplicate starts within the tolerance window
+        const lastProc = lastProcessedScheduleTimes.value[scheduleKey];
+        if (lastProc && (Date.now() - lastProc) < TOLERANCE_MS) {
+          console.log(`⏩ Skipping start; recently processed within tolerance for ${scheduleKey}`);
+          continue;
+        }
+
         console.log(`✅ Starting ${schedule.mode} schedule ${schedule.id}`);
         processingSchedules.value.add(scheduleKey);
-        lastProcessedScheduleTimes.value[scheduleKey] = now.getTime();
-        processScheduleStart(schedule, currentDay);
+        lastProcessedScheduleTimes.value[scheduleKey] = Date.now();
+        try {
+          // Await the start so it runs immediately and we can catch errors
+          await processScheduleStart(schedule, currentDay);
+        } catch (e) {
+          console.error('Error processing schedule start:', e);
+          // ensure we don't leave a stuck processing flag
+          try { processingSchedules.value.delete(scheduleKey); } catch (ee) {}
+        }
       }
     }
   } catch (error) {
@@ -2024,9 +2116,19 @@ const sendWateringNotification = async (message, title, scheduleId, eventType, c
   const baseKey = uniqueKey || `${scheduleId}-${eventType}-${now.toISOString().split('T')[0]}`;
   const notificationKey = `watering-${baseKey}`;
 
-  // 1) Fast path: exact key already sent very recently
+  // 1) Persistent storage check: avoid duplicates across tabs/processes
+  try {
+    if (notificationStorage.has(notificationKey)) {
+      console.log(`⏩ Watering notification already recorded in storage: ${notificationKey}`);
+      return { success: true, skipped: true };
+    }
+  } catch (e) {
+    // storage may fail in some environments; continue to in-memory checks
+  }
+
+  // 2) Fast path: exact key already sent very recently (in-memory)
   const lastSentExact = lastWateringNotifications.value.get(notificationKey);
-  if (lastSentExact && (now - lastSentExact) < 60000) {
+  if (lastSentExact && (Date.now() - lastSentExact) < 60000) {
     console.log(`⏩ Watering notification already sent recently (exact): ${notificationKey}`);
     return { success: true, skipped: true };
   }
@@ -2060,7 +2162,8 @@ const sendWateringNotification = async (message, title, scheduleId, eventType, c
     );
 
     if (result.success) {
-      lastWateringNotifications.value.set(notificationKey, now.getTime());
+      lastWateringNotifications.value.set(notificationKey, Date.now());
+      try { notificationStorage.set(notificationKey, 'completed', 24 * 60 * 60 * 1000); } catch (e) {}
     }
 
     return result;
@@ -2124,15 +2227,19 @@ const updateMotorStatus = async (status, scheduleId, actionType = 'schedule') =>
 
     // Optimistically mark this motor command as recently posted to avoid concurrent duplicate API calls.
     // We add to recentMotorHistory BEFORE the API call so parallel callers will skip.
-    if (recentMotorHistory.value.has(commandKey)) {
-      console.log(`⏩ Skipping motor history duplicate for ${commandKey}`);
+    // Use a normalized history key that ignores minor actionType differences so
+    // duplicate ON/OFF requests for the same schedule don't create multiple history entries.
+    const historyKey = `${scheduleId}-${status ? 'on' : 'off'}`;
+
+    if (recentMotorHistory.value.has(historyKey)) {
+      console.log(`⏩ Skipping motor history duplicate for ${historyKey}`);
       return { success: true, skipped: true, status: status };
     }
 
     try {
-      recentMotorHistory.value.add(commandKey);
+      recentMotorHistory.value.add(historyKey);
       // ensure the marker is removed after a window in case of failures
-      setTimeout(() => { try { recentMotorHistory.value.delete(commandKey); } catch (e) {} }, 2 * 60 * 1000);
+      setTimeout(() => { try { recentMotorHistory.value.delete(historyKey); } catch (e) {} }, 2 * 60 * 1000);
     } catch (e) {}
 
     // Use the new motor control endpoint with proper data format
@@ -2149,15 +2256,15 @@ const updateMotorStatus = async (status, scheduleId, actionType = 'schedule') =>
       return { success: true, status: status };
     }
 
-    console.warn('Motor control returned non-success status:', response.data);
-    // If API did not report success, remove optimistic marker to allow retry
-    try { recentMotorHistory.value.delete(commandKey); } catch (e) {}
+  console.warn('Motor control returned non-success status:', response.data);
+  // If API did not report success, remove optimistic marker to allow retry
+  try { recentMotorHistory.value.delete(historyKey); } catch (e) {}
     return { success: false, status: status };
 
   } catch (error) {
-    console.error('Motor control failed:', error);
-    // Remove optimistic marker so subsequent tries can proceed
-    try { recentMotorHistory.value.delete(commandKey); } catch (e) {}
+  console.error('Motor control failed:', error);
+  // Remove optimistic marker so subsequent tries can proceed
+  try { recentMotorHistory.value.delete(historyKey); } catch (e) {}
 
     // Show error toast using your custom function
     showToastMessage(
@@ -2204,56 +2311,43 @@ const markScheduleCompleted = async (scheduleId, attempts = 0) => {
   }
 };
 
-const processScheduleStart = async (schedule, currentDay) => {
+// Core implementation used by per-mode start wrappers
+const processScheduleStartCore = async (schedule, currentDay, typeLabel, message) => {
   const scheduleId = schedule.id;
   const scheduleKey = `${schedule.id}-${currentDay}`;
-  
+
   if (scheduleProcessingStatus.value[scheduleId] === 'processing') {
     console.log(`⏩ Schedule ${scheduleId} is already being processed`);
     processingSchedules.value.delete(scheduleKey);
     return;
   }
-  
+
   scheduleProcessingStatus.value[scheduleId] = 'processing';
   const startTime = Date.now();
-  
+
   try {
     const sensorData = await getCachedSensorData();
-    
+
     const now = new Date();
     const formattedTime = now.toLocaleString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    
-    let typeLabel, message;
-    switch (schedule.mode) {
-      case 'one-time':
-        typeLabel = 'One-time';
-        message = `One-time watering started at ${formattedTime}`;
-        break;
-      case 'daily':
-        typeLabel = 'Daily';
-        message = `Daily watering started at ${formattedTime}`;
-        break;
-      case 'weekly':
-        typeLabel = 'Weekly';
-        const dayName = getDayName(currentDay);
-        message = `Weekly watering (${dayName}) started at ${formattedTime}`;
-        break;
-      default:
-        typeLabel = 'Scheduled';
-        message = `Watering started at ${formattedTime}`;
+
+    // Show toast notification immediately using the same key format as watering notifications
+    try {
+      const dateKey = new Date().toISOString().split('T')[0];
+      const notifKey = `watering-${scheduleId}-start-${dateKey}`;
+      showToastMessage(message, 'info', notifKey);
+    } catch (e) {
+      showToastMessage(message, 'info');
     }
-    
-    // Show toast notification immediately
-    showToastMessage(message, 'info');
-    
+
     console.log(`⚡ Turning motor ON for schedule ${scheduleId}`);
     const motorResult = await updateMotorStatus(true, scheduleId, 'schedule-start');
-    
+
     const motorSuccess = motorResult.success;
-    
+
     if (motorResult.skipped) {
       console.log(`⏩ Motor command skipped (duplicate) for schedule ${scheduleId}`);
     } else if (motorSuccess) {
@@ -2261,7 +2355,7 @@ const processScheduleStart = async (schedule, currentDay) => {
     } else {
       console.error(`❌ Failed to start motor for schedule ${scheduleId}`);
     }
-    
+
     const context = await formatNotificationContextWithLatestData('watering-schedule', {
       scheduleType: schedule.mode,
       duration: schedule.duration,
@@ -2276,15 +2370,18 @@ const processScheduleStart = async (schedule, currentDay) => {
       mode: 'auto',
       waterLevelAtStart: sensorData.waterData?.waterLevel
     });
-    
+
+    const dateKey = new Date().toISOString().split('T')[0];
+    const startUniqueKey = `${scheduleId}-start-${dateKey}`;
     const notificationResult = await sendWateringNotification(
       message,
       `${typeLabel} Watering Started`,
       scheduleId,
       'start',
-      context
+      context,
+      startUniqueKey
     );
-    
+
     if (notificationResult.success) {
       console.log('✅ Start notification saved successfully');
     } else if (notificationResult.skipped) {
@@ -2292,7 +2389,7 @@ const processScheduleStart = async (schedule, currentDay) => {
     } else {
       console.error('❌ Failed to save start notification');
     }
-    
+
     activeSchedules.value[scheduleId] = {
       startTime: startTime,
       duration: schedule.duration,
@@ -2314,7 +2411,7 @@ const processScheduleStart = async (schedule, currentDay) => {
     } catch (e) {
       console.warn('Could not emit schedule-started event:', e);
     }
-    
+
     if (scheduleTimers.value[scheduleId]) {
       clearTimeout(scheduleTimers.value[scheduleId]);
     }
@@ -2337,32 +2434,34 @@ const processScheduleStart = async (schedule, currentDay) => {
     console.log(`⏰ Setting timer for ${duration} minutes (${durationMs}ms) for schedule ${scheduleId}`);
 
     // Primary timer
-    scheduleTimers.value[scheduleId] = setTimeout(() => {
+    scheduleTimers.value[scheduleId] = setTimeout(async () => {
       console.log(`⏰ Primary timer triggered for schedule ${scheduleId}`);
-      processScheduleEnd(schedule, currentDay, startTime);
+      try {
+        await processScheduleEnd(schedule, currentDay, startTime);
+      } catch (err) {
+        console.error('Error in primary timer processScheduleEnd:', err);
+      }
     }, durationMs);
 
-    // Failsafe: if for any reason primary timer didn't fire (browser timers throttled, tab sleeping),
-    // schedule a secondary check after duration + 5 seconds to ensure processScheduleEnd is invoked.
+    // Failsafe: fallback timer
     const fallbackMs = durationMs + 5000;
     const fallbackKey = `${scheduleId}-fallback`;
     if (scheduleTimers.value[fallbackKey]) {
       clearTimeout(scheduleTimers.value[fallbackKey]);
     }
 
-    scheduleTimers.value[fallbackKey] = setTimeout(() => {
+    scheduleTimers.value[fallbackKey] = setTimeout(async () => {
       if (!activeSchedules.value[scheduleId]) {
-        // Already cleaned up
         return;
       }
       console.log(`⏰ Fallback timer triggered for schedule ${scheduleId}`);
       try {
-        processScheduleEnd(schedule, currentDay, startTime);
+        await processScheduleEnd(schedule, currentDay, startTime);
       } catch (err) {
         console.error('Fallback processScheduleEnd error:', err);
       }
     }, fallbackMs);
-    
+
   } catch (error) {
     console.error(`❌ Error starting schedule ${scheduleId}:`, error);
     showToastMessage(`Error starting schedule: ${error.message}`, 'error');
@@ -2371,8 +2470,63 @@ const processScheduleStart = async (schedule, currentDay) => {
   }
 };
 
+// Mode-specific start wrappers
+const startOneTimeSchedule = async (schedule, currentDay) => {
+  try {
+    console.log(`[START WRAPPER] one-time id=${schedule.id} day=${currentDay}`);
+    const typeLabel = 'One-time';
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `One-time watering started at ${formattedTime}`;
+    return await processScheduleStartCore(schedule, currentDay, typeLabel, message);
+  } catch (err) {
+    console.error('Error in startOneTimeSchedule:', err);
+  }
+};
+
+const startDailySchedule = async (schedule, currentDay) => {
+  try {
+    console.log(`[START WRAPPER] daily id=${schedule.id} day=${currentDay}`);
+    const typeLabel = 'Daily';
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `Daily watering started at ${formattedTime}`;
+    return await processScheduleStartCore(schedule, currentDay, typeLabel, message);
+  } catch (err) {
+    console.error('Error in startDailySchedule:', err);
+  }
+};
+
+const startWeeklySchedule = async (schedule, currentDay) => {
+  try {
+    console.log(`[START WRAPPER] weekly id=${schedule.id} day=${currentDay}`);
+    const typeLabel = 'Weekly';
+    const dayName = getDayName(currentDay);
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `Weekly watering (${dayName}) started at ${formattedTime}`;
+    return await processScheduleStartCore(schedule, currentDay, typeLabel, message);
+  } catch (err) {
+    console.error('Error in startWeeklySchedule:', err);
+  }
+};
+
+// Dispatcher used by schedule checker and other callers
+const processScheduleStart = async (schedule, currentDay) => {
+  if (!schedule || !schedule.mode) return;
+  switch (schedule.mode) {
+    case 'one-time':
+      return startOneTimeSchedule(schedule, currentDay);
+    case 'daily':
+      return startDailySchedule(schedule, currentDay);
+    case 'weekly':
+      return startWeeklySchedule(schedule, currentDay);
+    default:
+      // fallback to generic behavior
+      return processScheduleStartCore(schedule, currentDay, 'Scheduled', `Watering started at ${new Date().toLocaleString()}`);
+  }
+};
+
 // Update the processScheduleEnd function
-const processScheduleEnd = async (schedule, currentDay, startTime) => {
+// Core end implementation used by per-mode end wrappers
+const processScheduleEndCore = async (schedule, currentDay, startTime, typeLabel, message) => {
   const scheduleId = schedule.id;
   const scheduleKey = `${schedule.id}-${currentDay}`;
   // Mark as recently ended to prevent immediate restarts from the schedule checker
@@ -2381,48 +2535,23 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
   } catch (err) {
     console.warn('Could not mark schedule as recently ended:', err);
   }
-  
+
   try {
     console.log(`🏁 Processing end for schedule ${scheduleId} (${schedule.mode})`);
     const sensorData = await getCachedSensorData();
     const endTime = Date.now();
-    
-    // (one-time completion handled later with idempotency guard)
 
-  // History saving is handled in a deduped block later to avoid duplicates
-    
     const now = new Date();
     const formattedTime = now.toLocaleString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    
-    let typeLabel, message;
-    switch (schedule.mode) {
-      case 'one-time':
-        typeLabel = 'One-time';
-        message = `One-time watering completed at ${formattedTime}`;
-        break;
-      case 'daily':
-        typeLabel = 'Daily';
-        message = `Daily watering cycle completed at ${formattedTime}`;
-        break;
-      case 'weekly':
-        typeLabel = 'Weekly';
-        const dayName = getDayName(currentDay);
-        message = `Weekly watering cycle (${dayName}) completed at ${formattedTime}`;
-        break;
-      default:
-        typeLabel = 'Scheduled';
-        message = `Watering completed at ${formattedTime}`;
-    }
-    
+
     console.log(`🛑 Stopping motor for schedule ${scheduleId}`);
     const motorResult = await updateMotorStatus(false, scheduleId, 'schedule-end');
-    
-    // Show notification regardless of whether the command was sent or skipped
+
     const motorSuccess = motorResult.success;
-    
+
     if (motorResult.skipped) {
       console.log(`⏩ Motor command skipped (duplicate) for schedule ${scheduleId}`);
     } else if (motorSuccess) {
@@ -2430,7 +2559,7 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
     } else {
       console.error(`❌ Failed to stop motor for schedule ${scheduleId}`);
     }
-    
+
     const context = await formatNotificationContextWithLatestData('watering-schedule', {
       scheduleType: schedule.mode,
       duration: schedule.duration,
@@ -2448,16 +2577,26 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
       waterLevelAtStart: sensorData.waterData?.waterLevel,
       remarks: motorSuccess ? 'Motor deactivated successfully' : 'Motor deactivation failed'
     });
-    
+
+    // Show toast for schedule end using same key format as watering notifications
+    try {
+      const dateKey = new Date().toISOString().split('T')[0];
+      const notifKeyEnd = `watering-${scheduleId}-end-${dateKey}`;
+      showToastMessage(message, 'success', notifKeyEnd);
+    } catch (e) {
+      showToastMessage(message, 'success');
+    }
+
     // Dedupe and send end notification
     try {
-      const endNotificationKey = `watering-${scheduleId}-end-${new Date().toISOString().split('T')[0]}`;
+      const dateKey = new Date().toISOString().split('T')[0];
+      const endNotificationKey = `watering-${scheduleId}-end-${dateKey}`;
       if (pendingNotifications.value && pendingNotifications.value.has(endNotificationKey)) {
         console.log(`⏩ Pending end notification exists, skipping: ${endNotificationKey}`);
       } else if (pendingNotifications.value) {
         pendingNotifications.value.add(endNotificationKey);
         try {
-          const uniqueNotifKey = `${scheduleId}-end-${endTime}`;
+          const uniqueNotifKey = `${scheduleId}-end-${dateKey}`;
           const notificationResult = await sendWateringNotification(
             message,
             `${typeLabel} Watering Completed`,
@@ -2471,7 +2610,8 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
           else if (notificationResult.skipped) console.log('⏩ End notification skipped (duplicate)');
           else console.error('❌ Failed to save end notification');
         } finally {
-          setTimeout(() => pendingNotifications.value.delete(endNotificationKey), 1000);
+          // remove pending flag after send attempt
+          try { pendingNotifications.value.delete(endNotificationKey); } catch (e) {}
         }
       }
     } catch (notifErr) {
@@ -2480,11 +2620,11 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
 
     // Save execution to history for all modes (single call) with dedupe using startTime-based key
     try {
-      // Use a stable key derived from scheduleId + startTime (startTime is the authoritative run identifier)
-      const stableStart = startTime || (activeSchedules.value[scheduleId] && activeSchedules.value[scheduleId].startTime) || endTime;
-      const historyKey = `${scheduleId}-${stableStart}`;
+  const stableStart = Number(startTime || (activeSchedules.value[scheduleId] && activeSchedules.value[scheduleId].startTime) || endTime);
+  // Normalize to seconds to avoid millisecond jitter creating multiple keys
+  const stableStartSec = Math.floor(stableStart / 1000);
+  const historyKey = `${scheduleId}-${stableStartSec}`;
 
-      // If already pending, skip; otherwise add to pending set to ensure a single inflight save
       if (pendingHistorySaves.value.has(historyKey)) {
         console.log(`⏩ History save already pending for ${historyKey}, skipping.`);
       } else if (recentHistorySaves.value.has(historyKey)) {
@@ -2502,8 +2642,8 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
             console.warn(`⚠️ Schedule ${scheduleId} could not be saved to history (key=${historyKey})`);
           }
         } finally {
-          // Ensure we always release the pending flag
-          setTimeout(() => pendingHistorySaves.value.delete(historyKey), 500);
+          // Remove pending flag immediately after save attempt to avoid blocking future saves
+          try { pendingHistorySaves.value.delete(historyKey); } catch (e) {}
         }
       }
     } catch (historyErr) {
@@ -2511,7 +2651,6 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
     }
 
     // For one-time schedules mark them completed in the backend so they won't run again.
-    // Ensure we only attempt to mark once by checking recentlyEndedSchedules map.
     if (schedule.mode === 'one-time') {
       try {
         if (!recentlyEndedSchedules.value.get(scheduleId + ':completed')) {
@@ -2543,9 +2682,9 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
     } catch (e) {
       console.warn('Could not emit schedule-ended event:', e);
     }
-    
+
     console.log(`✅ Schedule ${scheduleId} completed successfully`);
-    
+
   } catch (error) {
     console.error(`❌ Error completing schedule ${scheduleId}:`, error);
   } finally {
@@ -2565,6 +2704,82 @@ const processScheduleEnd = async (schedule, currentDay, startTime) => {
       processingSchedules.value.delete(scheduleKey);
     } catch (cleanupErr) {
       console.warn('Error during schedule cleanup:', cleanupErr);
+    }
+  }
+};
+
+// Mode-specific end wrappers
+const endOneTimeSchedule = async (schedule, currentDay, startTime) => {
+  try {
+    console.log(`[END WRAPPER] one-time id=${schedule.id} day=${currentDay}`);
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `One-time watering completed at ${formattedTime}`;
+    return await processScheduleEndCore(schedule, currentDay, startTime, 'One-time', message);
+  } catch (err) {
+    console.error('Error in endOneTimeSchedule:', err);
+  }
+};
+
+const endDailySchedule = async (schedule, currentDay, startTime) => {
+  try {
+    console.log(`[END WRAPPER] daily id=${schedule.id} day=${currentDay}`);
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `Daily watering cycle completed at ${formattedTime}`;
+    return await processScheduleEndCore(schedule, currentDay, startTime, 'Daily', message);
+  } catch (err) {
+    console.error('Error in endDailySchedule:', err);
+  }
+};
+
+const endWeeklySchedule = async (schedule, currentDay, startTime) => {
+  try {
+    console.log(`[END WRAPPER] weekly id=${schedule.id} day=${currentDay}`);
+    const dayName = getDayName(currentDay);
+    const formattedTime = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const message = `Weekly watering cycle (${dayName}) completed at ${formattedTime}`;
+    return await processScheduleEndCore(schedule, currentDay, startTime, 'Weekly', message);
+  } catch (err) {
+    console.error('Error in endWeeklySchedule:', err);
+  }
+};
+
+// Dispatcher used by timers and other callers
+const processScheduleEnd = async (schedule, currentDay, startTime) => {
+  if (!schedule || !schedule.mode) return;
+
+  const scheduleId = schedule.id;
+  const scheduleKey = `${scheduleId}-${currentDay}`;
+
+  // Prevent duplicate end processing
+  if (scheduleProcessingStatus.value[scheduleId] === 'ending') {
+    console.log(`⏩ processScheduleEnd: already ending for ${scheduleId}, skipping`);
+    return;
+  }
+
+  // Mark as ending so concurrent callers skip
+  try {
+    scheduleProcessingStatus.value[scheduleId] = 'ending';
+    processingSchedules.value.add(scheduleKey);
+
+    switch (schedule.mode) {
+      case 'one-time':
+        return await endOneTimeSchedule(schedule, currentDay, startTime);
+      case 'daily':
+        return await endDailySchedule(schedule, currentDay, startTime);
+      case 'weekly':
+        return await endWeeklySchedule(schedule, currentDay, startTime);
+      default:
+        return await processScheduleEndCore(schedule, currentDay, startTime, 'Scheduled', `Watering completed at ${new Date().toLocaleString()}`);
+    }
+  } catch (e) {
+    console.error('Error in processScheduleEnd dispatcher:', e);
+  } finally {
+    // If the core end didn't clear status (in case of early errors), clear our marker
+    try {
+      if (scheduleProcessingStatus.value[scheduleId] === 'ending') delete scheduleProcessingStatus.value[scheduleId];
+      processingSchedules.value.delete(scheduleKey);
+    } catch (cleanupErr) {
+      // ignore
     }
   }
 };

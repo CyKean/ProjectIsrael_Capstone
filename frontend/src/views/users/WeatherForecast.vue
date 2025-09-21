@@ -345,21 +345,22 @@
                       </linearGradient>
                     </defs>
                   </svg>
-                  <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                        <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
                     <div v-for="(temp, index) in hourlyTemps" :key="index" class="absolute flex flex-col items-center" :style="{ left: `calc(${(index / (hourlyTemps.length - 1)) * 100}% - 6px)`, bottom: `${((temp - minTemp) / (maxTemp - minTemp)) * 80 + 10}%` }">
                       <div class="chart-temp-label whitespace-nowrap leading-none text-[5px] md:text-[13px] sm:text-xs mb-0.5 xs:mb-1 text-emerald-600 font-semibold">{{ temp }}°C</div>
                       <div class="w-2 h-2 xs:w-2.5 xs:h-2.5 rounded-full bg-white border-2 border-emerald-500 shadow-sm xs:shadow-md"></div>
                     </div>
                   </div>
-                </div>
 
+                </div>
                 <div class="flex items-center mb-2 xs:mb-3 mt-1 xs:mt-2 px-1 bg-emerald-50/30 py-1 xs:py-1.5 rounded-md xs:rounded-lg">
                   <Droplet class="h-4 w-4 xs:h-4 sm:h-5 sm:w-5 text-emerald-600 mr-1 xs:mr-1.5 sm:mr-2" />
                   <h3 class="text-sm xs:text-sm font-medium text-emerald-700">Precipitation Chance</h3>
                 </div>
 
+                <!-- Update the grid to show 10 hours -->
                 <div class="grid grid-cols-5 grid-rows-2 sm:grid-cols-10 sm:grid-rows-1 gap-1 summary-grid-height">
-                  <div v-for="(hour, index) in hourlyForecast.slice(0, 10)" :key="`forecast-${index}`" class="flex flex-col h-full">
+                  <div v-for="(hour, index) in hourlyForecast" :key="`forecast-${index}`" class="flex flex-col h-full">
                     <div class="bg-emerald-50 p-1 rounded-full mb-0.5 xs:mb-1 mx-auto">
                       <component :is="getWeatherIcon(hour.condition)" class="h-3 w-3 xs:h-3 xs:w-3 sm:h-4 sm:w-4 text-emerald-600" />
                     </div>
@@ -388,24 +389,24 @@
                       <div class="bg-white rounded-full p-1 xs:p-1.5 sm:p-2 shadow-sm inline-flex items-center justify-center">
                         <component
                           :is="getWeatherIcon(hour.condition)"
-                          class="h-2 w-2 xs:h-4 xs:w-4 sm:h-5 sm:w-5 md:h-8 md:w-8"
+                          class="h-2 w-2  md:h-5 md:w-5"
                           :class="getWeatherIconColor(hour.condition)"
                         />
                       </div>
                     </div>
-                    <div class="col-span-2 sm:col-span-2 text-[10px] md:text-md xs:text-sm sm:text-base font-medium text-gray-800">
+                    <div class="col-span-2 sm:col-span-2 text-[10px] md:text-[15px] xs:text-sm sm:text-base font-medium text-gray-800">
                       {{ hour.temp }}°C
                     </div>
                     <div class="col-span-2 sm:col-span-2 flex items-center">
-                      <Droplet class="h-3 w-3 md:h-8 md:h-8 text-emerald-500 mr-1" />
-                      <span class="text-[12px] md:text-lg text-gray-700">{{ hour.rainChance }}%</span>
+                      <Droplet class="h-3 w-3 md:h-5 md:w-5 text-emerald-500 mr-1" />
+                      <span class="text-[12px] md:text-[15px] text-gray-700">{{ hour.rainChance }}%</span>
                     </div>
                     <div class="col-span-3 sm:col-span-2 flex items-center">
-                      <Wind class="h-3 w-3 md:h-8 md:h-8 text-teal-500 mr-1" />
-                      <span class="text-[10px] md:text-lg text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
+                      <Wind class="h-3 w-3 md:w-5 md:h-5 text-teal-500 mr-1" />
+                      <span class="text-[10px] md:text-[15px] text-gray-700">{{ getRandomWindSpeed() }} km/h</span>
                     </div>
                     <div
-                      class="col-span-2 sm:col-span-3 min-w-0 text-right md:text-lg xs:text-[12px] text-[9px] font-medium leading-snug sm:whitespace-nowrap"
+                      class="col-span-2 sm:col-span-3 min-w-0 text-right md:text-[15px] xs:text-[12px] text-[9px] font-medium leading-snug sm:whitespace-nowrap"
                       :class="getConditionColor(hour.condition)"
                       :title="hour.condition"
                     >
@@ -510,6 +511,7 @@ const selectedDays = ref(7);
 const sunData = ref([])
 const airQual = ref([])
 const hourlyTemps = computed(() => hourlyForecast.value.map(h => h.temp))
+
 const isLoading = ref(true);
 const sunriseDisplay = computed(() => formatTimeHM(sunData.value?.sunrise))
 const sunsetDisplay  = computed(() => formatTimeHM(sunData.value?.sunset))
