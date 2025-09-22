@@ -2,7 +2,7 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-20px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-20px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-y-auto">
       <!-- Content Wrapper --> 
       <div class="p-2 md:p-4 sm:p-6">
         <!-- Clean Minimalist Metrics Section - With Loading State -->
@@ -513,7 +513,7 @@
 
           <!-- Table Section with Enhanced UI and Truly Fixed Height -->
           <div data-intro-history-table>
-            <div class="bg-white rounded-xl shadow-md p-2 md:p-5 sm:p-6 border border-gray-100 relative overflow-hidden [data-intro-history-table]">
+            <div class="bg-white overflow-y-auto rounded-xl shadow-md p-2 md:p-5 sm:p-6 border border-gray-100 relative overflow-hidden [data-intro-history-table]">
               <!-- Background Pattern -->
               <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 to-transparent opacity-50 -z-10"></div>
                 
@@ -922,9 +922,9 @@
               </div>
 
               <!-- Enhanced Pagination -->
-              <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div class="mt-6 flex flex-col sm:flex-row items-center justify-between  gap-4">
                 <!-- Items per page selector - full width on mobile -->
-                <div class="w-full sm:w-auto flex items-center gap-2">
+                <div class=" sm:w-auto flex items-center gap-2">
                   <label class="text-xs md:text-sm text-gray-600 whitespace-nowrap">Items per page</label>
                   <select 
                     v-model="itemsPerPage"

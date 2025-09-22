@@ -1,11 +1,11 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] flex flex-col overflow-y-hidden overflow-x-hidden">
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] flex flex-col overflow-y-hidden overflow-x-hidden">
       <!-- Gradient header for visual appeal -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex flex-row justify-between md:flex-row md:items-center md:justify-between gap-4">
           <!-- Title and breadcrumb with enhanced styling -->
           <div>
             <h1 class="text-lg md:text-xl font-semibold text-gray-800 mb-1">Device Control</h1>
@@ -24,7 +24,7 @@
               class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full px-4 py-2 transition-all duration-300 shadow-sm hover:shadow-md text-sm"
             >
               <ArrowLeft class="w-3 h-4 md:w-4 md:h-4" />
-              <span class="text-[10px] md:text-xs">Back to Overview</span>
+              <span class="text-[10px] md:text-xs hidden md:block">Back to Overview</span>
             </button>
           </div>
         </div>
@@ -356,7 +356,7 @@
         <div class="flex flex-col md:flex-row grid grid-cols-1 md:flex overflow-y-auto">
           
           <!-- LEFT SIDE (1/4) - Filters, Search, Export -->
-          <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[31.111%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0" 
+          <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[31.111%] border-r border-gray-200 bg-white p-2 md:p-4 md:overflow-y-auto flex-shrink-0" 
               :class="showFilters ? 'h-auto' : 'h-[50px] md:h-auto overflow-hidden'">
             
             <!-- Mobile toggle button for filters - IMPROVED VISIBILITY -->
@@ -518,7 +518,7 @@
                   <!-- Dropdown Menu - FIXED POSITIONING -->
                   <div 
                     v-show="activeDropdown === 'export'"
-                    class="fixed md:absolute left-4 right-4 md:left-0 md:right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-300 z-[1000] overflow-hidden"
+                    class="md:absolute left-4 right-4 md:left-0 md:right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-300 z-[1000] overflow-hidden"
                     :style="dropdownPosition.top ? {
                       top: dropdownPosition.top + 'px',
                       left: dropdownPosition.left + 'px',
@@ -555,7 +555,7 @@
                 <!-- Standalone Print Button (visible on mobile) -->
                 <button 
                   @click="printTable"
-                  class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm md:hidden"
+                  class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                 >
                   <Printer class="h-4 w-4" />
                   <span>Print Table</span>
@@ -899,13 +899,13 @@
         <!-- Scrollable Content Area -->
         <div class="overflow-y-auto flex-1">
           <!-- Modal Body -->
-          <div class="p-4 md:p-6">
+          <div class="p-2 md:p-6">
             <!-- Calendar for One-time and Custom scheduling -->
             <div v-if="wateringMode === 'one-time' || wateringMode === 'custom'" class="mb-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
               <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <!-- Calendar Header -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                <div class="flex items-center justify-between p-3 md;p-4 bg-gray-50 border-b border-gray-200">
                   <button @click="prevMonth" class="p-1 rounded-full hover:bg-gray-200 transition-colors">
                     <ChevronLeft class="w-5 h-5 text-gray-600" />
                   </button>
@@ -917,47 +917,98 @@
                 
                 <!-- Calendar Grid -->
                 <div class="p-4">
-                  <!-- Day headers -->
-                  <div class="grid grid-cols-7 mb-2">
-                    <div v-for="day in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']" :key="day" class="text-xs font-medium text-gray-500 text-center py-2">
-                      {{ day }}
+                  <!-- 📱 Mobile Calendar -->
+                  <div class="block md:hidden">
+                    <!-- Day headers -->
+                    <div class="flex flex-wrap mb-2">
+                      <div
+                        v-for="day in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']"
+                        :key="day"
+                        class="text-xs font-medium text-gray-500 text-center py-2"
+                        style="flex: 0 0 14.2857%; max-width: 14.2857%;"
+                      >
+                        {{ day }}
+                      </div>
+                    </div>
+
+                    <!-- Calendar days -->
+                    <div class="flex flex-wrap">
+                      <div 
+                        v-for="(day, index) in calendarDays" 
+                        :key="index"
+                        @click="!day.isDisabled && selectCalendarDate(day)"
+                        :class="[
+                          'h-9 flex items-center justify-center rounded-full text-sm transition-all',
+                          day.isCurrentMonth ? (day.isDisabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-green-50 cursor-pointer') : 'text-gray-400',
+                          isSelectedDate(day) ? 'bg-green-500 text-white font-medium hover:bg-green-600' : '',
+                          isToday(day) && !isSelectedDate(day) ? 'border border-green-500 text-green-600' : '',
+                          day.hasOneTimeSchedule && day.isCurrentMonth && !isSelectedDate(day) ? 'border-2 border-orange-400 text-orange-600 font-medium' : ''
+                        ]"
+                        style="flex: 0 0 14.2857%; max-width: 14.2857%;"
+                      >
+                        <span class="relative">
+                          {{ day.day }}
+                          <span
+                            v-if="day.hasOneTimeSchedule && day.isCurrentMonth"
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm"
+                          ></span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <!-- Calendar days -->
-                  <div class="grid grid-cols-7 gap-1">
-                    <div 
-                      v-for="(day, index) in calendarDays" 
-                      :key="index"
-                      @click="!day.isDisabled && selectCalendarDate(day)"
-                      :class="[
-                        'h-9 flex items-center justify-center rounded-full text-sm transition-all',
-                        day.isCurrentMonth ? (day.isDisabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-green-50 cursor-pointer') : 'text-gray-400',
-                        isSelectedDate(day) ? 'bg-green-500 text-white font-medium hover:bg-green-600' : '',
-                        isToday(day) && !isSelectedDate(day) ? 'border border-green-500 text-green-600' : '',
-                        day.hasOneTimeSchedule && day.isCurrentMonth && !isSelectedDate(day) ? 'border-2 border-orange-400 text-orange-600 font-medium' : ''
-                      ]"
-                    >
-                      <span class="relative">
-                        {{ day.day }}
-                        <span v-if="day.hasOneTimeSchedule && day.isCurrentMonth" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm"></span>
-                      </span>
+
+                  <!-- 💻 Laptop Calendar -->
+                  <div class="hidden md:block">
+                    <!-- Day headers -->
+                    <div class="grid grid-cols-7 mb-2">
+                      <div
+                        v-for="day in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']"
+                        :key="day"
+                        class="text-xs font-medium text-gray-500 text-center py-2"
+                      >
+                        {{ day }}
+                      </div>
+                    </div>
+
+                    <!-- Calendar days -->
+                    <div class="grid grid-cols-7 gap-1">
+                      <div 
+                        v-for="(day, index) in calendarDays" 
+                        :key="index"
+                        @click="!day.isDisabled && selectCalendarDate(day)"
+                        :class="[
+                          'h-9 flex items-center justify-center rounded-full text-sm transition-all',
+                          day.isCurrentMonth ? (day.isDisabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-green-50 cursor-pointer') : 'text-gray-400',
+                          isSelectedDate(day) ? 'bg-green-500 text-white font-medium hover:bg-green-600' : '',
+                          isToday(day) && !isSelectedDate(day) ? 'border border-green-500 text-green-600' : '',
+                          day.hasOneTimeSchedule && day.isCurrentMonth && !isSelectedDate(day) ? 'border-2 border-orange-400 text-orange-600 font-medium' : ''
+                        ]"
+                      >
+                        <span class="relative">
+                          {{ day.day }}
+                          <span
+                            v-if="day.hasOneTimeSchedule && day.isCurrentMonth"
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm"
+                          ></span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
             
             <!-- Weekly Schedule - Enhanced UI -->
             <div v-if="wateringMode === 'weekly'" class="mb-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
-              <div class="grid grid-cols-7 gap-2">
+              <div class="md:grid md:grid-cols-7 flex justify-between md:gap-2">
                 <button 
                   v-for="(day, index) in weekDays" 
                   :key="day"
                   @click="toggleWateringDay(index)"
                   :class="[
-                    'md:py-3 py-2 px-2 w-[40px] md:w-[80px] rounded-xl transition-all text-xs md:text-sm font-medium relative overflow-hidden',
+                    'md:py-3 py-2 px-2 my-2 w-[70px] md:w-[80px] rounded-md md:rounded-xl transition-all text-xs md:text-sm font-medium relative overflow-hidden',
                     wateringDays[index] 
                       ? 'bg-green-500 text-white shadow-sm' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

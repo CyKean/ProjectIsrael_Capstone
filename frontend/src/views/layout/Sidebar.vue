@@ -379,7 +379,7 @@
 
               <!-- Recalibration Button -->
               <button
-                @click="goToRecalibration"
+                @click="goToRecalibrationMobile"
                 class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
               >
                 <div class="flex items-center justify-center size-7 rounded-full mr-1.5">
@@ -409,20 +409,20 @@
 
               <!-- Profile Button -->
               <button
-                @click="goToProfile"
+                @click="goToProfileMobile"
                 class="flex items-center w-full px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 text-white hover:bg-white/10 hover:shadow-sm"
                 :class="{ 'bg-white/10': isOnProfilePage }"
               >
                 <div class="relative size-7 rounded-full overflow-hidden mr-1.5">
                   <span v-if="user?.avatar?.icon" class="flex items-center justify-center size-full text-lg">{{ user.avatar.icon }}</span>
                   <img v-else-if="user?.profilePicture"
-                       :src="user.profilePicture"
-                       class="w-full h-full object-cover"
-                       alt="Profile"/>
+                      :src="user.profilePicture"
+                      class="w-full h-full object-cover"
+                      alt="Profile"/>
                   <img v-else
-                       src="/public/images/profile.jpg"
-                       class="w-full h-full object-cover"
-                       alt="Profile"/>
+                      src="/public/images/profile.jpg"
+                      class="w-full h-full object-cover"
+                      alt="Profile"/>
                 </div>
                 <span class="whitespace-nowrap">Profile</span>
               </button>
@@ -473,7 +473,6 @@ import {
 import { getWeatherData, mapWeatherCode } from '../../utils/weather.js'
 import api from '../../api/index.js'
 import { useUserStore } from '../../utils/user.js'
-import SidebarGuide from '../guide/SidebarGuide.vue'
 
 const showTour = ref(true) 
 
@@ -646,6 +645,17 @@ const sensorTypes = [
   { name: 'Water Level', href: '/app/water-level', icon: Gauge },
   { name: 'Motor Control', href: '/app/motor-control', icon: Power }
 ];
+
+// Add these methods with your other navigation functions
+const goToRecalibrationMobile = () => {
+  isMobileMenuOpen.value = false;
+  router.push('/app/recalibration');
+}
+
+const goToProfileMobile = () => {
+  isMobileMenuOpen.value = false;
+  router.push({ name: 'UserProfile' });
+}
 
 const notificationTracker = {
   // Check if notification was saved today (using localStorage)

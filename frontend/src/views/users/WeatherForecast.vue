@@ -1,6 +1,6 @@
 <template>
   <div class="flex-1 w-full px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 overflow-hidden">
-    <div class="bg-white rounded-[12px] xs:rounded-[14px] sm:rounded-[16px] md:rounded-[18px] lg:rounded-[20px] shadow-sm xs:shadow-md sm:shadow-lg border border-green-100 h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[12px] xs:rounded-[14px] sm:rounded-[16px] overflow-x-hidden md:rounded-[18px] lg:rounded-[20px] shadow-sm xs:shadow-md sm:shadow-lg border border-green-100 h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-y-auto">
       <div class="p-3 xs:p-4 sm:p-5 md:p-6 pb-0">
         <h1 class="text-xl xs:text-2xl sm:text-3xl font-bold text-gray-800 mb-1 xs:mb-1.5 sm:mb-2">Weather Forecasting</h1>
         <div class="flex items-center text-sm xs:text-base text-gray-500">

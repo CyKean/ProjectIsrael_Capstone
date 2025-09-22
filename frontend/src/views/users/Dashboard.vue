@@ -2,15 +2,16 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class=" bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-75px)] md:h-[calc(100vh-130px)] overflow-x-hidden">
+    <div class=" bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-x-hidden">
       <!-- Content Wrapper -->
       <div class="p-2 md:p-6">
         <!-- Find the Top Metrics Cards section and replace it with this updated version -->
 
         <!-- Top Metrics Cards - Conditional Rendering -->
-        <div v-if="!isLoading" class="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-7 gap-2 md:gap-4 mb-4 md:mb-8">
+        <div v-if="!isLoading" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-7 gap-2 md:gap-4 mb-4 md:mb-8">
+          <!-- Laptop screen size -->
           <!-- Nitrogen Level Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-green-100 shadow-lg transition-all duration-300 hover:border-green-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-green-100 shadow-lg transition-all duration-300 hover:border-green-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <Leaf class="h-5 w-5 text-green-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">N</span>
@@ -20,7 +21,7 @@
           </div>
 
           <!-- Phosphorus Level Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-blue-100 shadow-lg transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-blue-100 shadow-lg transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <TestTube class="h-5 w-5 text-blue-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">P</span>
@@ -30,7 +31,7 @@
           </div>
 
           <!-- Potassium Level Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-purple-100 shadow-lg transition-all duration-300 hover:border-purple-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-purple-100 shadow-lg transition-all duration-300 hover:border-purple-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <TestTubes class="h-5 w-5 text-purple-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">K</span>
@@ -39,8 +40,7 @@
             <div class="text-[7.5px] md:text-xs text-purple-600">Potassium (mg/kg)</div>
           </div>
 
-          <!-- Soil pH Level Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-orange-100 shadow-lg transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-orange-100 shadow-lg transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <Beaker class="h-5 w-5 text-orange-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">pH</span>
@@ -50,7 +50,7 @@
           </div>
 
           <!-- Soil Moisture Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-emerald-100 shadow-lg transition-all duration-300 hover:border-emerald-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-emerald-100 shadow-lg transition-all duration-300 hover:border-emerald-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <Sprout class="h-5 w-5 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">SM</span>
@@ -60,7 +60,7 @@
           </div>
 
           <!-- Temperature Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-red-100 shadow-lg transition-all duration-300 hover:border-red-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-red-100 shadow-lg transition-all duration-300 hover:border-red-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <Thermometer class="h-5 w-5 text-red-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">Temp</span>
@@ -70,7 +70,7 @@
           </div>
 
           <!-- Humidity Card -->
-          <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-sky-100 shadow-lg transition-all duration-300 hover:border-sky-400 hover:shadow-xl hover:-translate-y-1">
+          <div class="hidden md:block group bg-white rounded-xl p-3 md:p-4 border-2 border-sky-100 shadow-lg transition-all duration-300 hover:border-sky-400 hover:shadow-xl hover:-translate-y-1">
             <div class="flex items-center justify-between mb-2">
               <Droplets class="h-5 w-5 text-sky-500 transition-transform duration-300 group-hover:scale-110" />
               <span class="text-[9px] md:text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full">RH</span>
@@ -78,90 +78,133 @@
             <div class="text-xl font-bold text-sky-700">{{ humidity }}</div>
             <div class="text-[7.5px] md:text-xs text-sky-600">Humidity (%)</div>
           </div>
-        </div>
-        <!-- Loading Skeleton for Top Metrics Cards -->
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
-          <div v-for="i in 7" :key="i" class="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <div class="h-5 w-5 bg-gray-300 rounded animate-pulse"></div>
-              <div class="h-5 w-6 bg-gray-300 rounded-full animate-pulse"></div>
+          <!-- Mobile screen size -->
+          <div class="block md:hidden grid grid-cols-3 gap-2"> 
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-green-100 shadow-lg transition-all duration-300 hover:border-green-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <Leaf class="h-5 w-5 text-green-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[9px] md:text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">N</span>
+              </div>
+              <div class="text-xl font-bold text-green-700">{{ nitrogen }}</div>
+              <div class="text-[7.5px] md:text-xs text-green-600">Nitrogen (mg/kg)</div>
             </div>
-            <div class="h-7 bg-gray-300 rounded animate-pulse w-3/4 mb-1"></div>
-            <div class="h-4 bg-gray-300 rounded animate-pulse w-full"></div>
+
+            <!-- Phosphorus Level Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-blue-100 shadow-lg transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <TestTube class="h-5 w-5 text-blue-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[9px] md:text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">P</span>
+              </div>
+              <div class="text-xl font-bold text-blue-700">{{ phosphorus }}</div>
+              <div class="text-[7.5px] md:text-xs text-blue-600">Phosphorus (mg/kg)</div>
+            </div>
+
+            <!-- Potassium Level Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-purple-100 shadow-lg transition-all duration-300 hover:border-purple-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <TestTubes class="h-5 w-5 text-purple-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[9px] md:text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">K</span>
+              </div>
+              <div class="text-xl font-bold text-purple-700">{{ potassium }}</div>
+              <div class="text-[7.5px] md:text-xs text-purple-600">Potassium (mg/kg)</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 md:hidden block gap-2">
+            <!-- Soil pH Level Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-orange-100 shadow-lg transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <Beaker class="h-3 w-3 text-orange-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[5px] md:text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">pH</span>
+              </div>
+              <div class="text-xl font-bold text-orange-700">{{ soilpH }}</div>
+              <div class="text-[7.5px] md:text-xs text-orange-600">Soil pH Level</div>
+            </div>
+
+            <!-- Soil Moisture Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-emerald-100 shadow-lg transition-all duration-300 hover:border-emerald-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <Sprout class="h-3 w-3 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[5px] md:text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">SM</span>
+              </div>
+              <div class="text-xl font-bold text-emerald-700">{{ soilMoisture }}</div>
+              <div class="text-[7.5px] md:text-xs text-emerald-600">Soil Moisture</div>
+            </div>
+
+            <!-- Temperature Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-red-100 shadow-lg transition-all duration-300 hover:border-red-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <Thermometer class="h-3 w-3 text-red-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[5px] md:text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">Temp</span>
+              </div>
+              <div class="text-xl font-bold text-red-700">{{ temperature }}</div>
+              <div class="text-[7.5px] md:text-xs text-red-600">Temperature (°C)</div>
+            </div>
+
+            <!-- Humidity Card -->
+            <div class="group bg-white rounded-xl p-3 md:p-4 border-2 border-sky-100 shadow-lg transition-all duration-300 hover:border-sky-400 hover:shadow-xl hover:-translate-y-1">
+              <div class="flex items-center justify-between mb-2">
+                <Droplets class="h-3 w-3 text-sky-500 transition-transform duration-300 group-hover:scale-110" />
+                <span class="text-[5px] md:text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full">RH</span>
+              </div>
+              <div class="text-xl font-bold text-sky-700">{{ humidity }}</div>
+              <div class="text-[7.5px] md:text-xs text-sky-600">Humidity (%)</div>
+            </div>
           </div>
         </div>
+        <!-- Loading Skeleton for Top Metrics Cards -->
+        <div v-else>
+          <!-- Laptop / Desktop view -->
+          <div class="hidden md:grid grid-cols-3 lg:grid-cols-7 gap-2 md:gap-4 mb-4 md:mb-8">
+            <div v-for="i in 7" :key="`desktop-${i}`" 
+                class="bg-white rounded-xl p-3 md:p-4 border-2 border-gray-200 shadow-lg">
+              <div class="flex items-center justify-between mb-2">
+                <div class="h-5 w-5 bg-gray-300 rounded animate-pulse"></div>
+                <div class="h-5 w-6 bg-gray-300 rounded-full animate-pulse"></div>
+              </div>
+              <div class="h-7 bg-gray-300 rounded animate-pulse w-3/4 mb-1"></div>
+              <div class="h-4 bg-gray-300 rounded animate-pulse w-full"></div>
+            </div>
+          </div>
+
+          <!-- Mobile view -->
+          <div class="md:hidden space-y-2">
+            <!-- First row: N, P, K -->
+            <div class="grid grid-cols-3 gap-2">
+              <div v-for="i in 3" :key="`mobile-top-${i}`" 
+                  class="bg-white rounded-xl p-3 border-2 border-gray-200 shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="h-4 w-4 bg-gray-300 rounded animate-pulse"></div>
+                  <div class="h-4 w-5 bg-gray-300 rounded-full animate-pulse"></div>
+                </div>
+                <div class="h-6 bg-gray-300 rounded animate-pulse w-2/3 mb-1"></div>
+                <div class="h-3 bg-gray-300 rounded animate-pulse w-full"></div>
+              </div>
+            </div>
+
+            <!-- Second row: pH, Soil Moisture, Temp, Humidity -->
+            <div class="grid grid-cols-4 gap-2">
+              <div v-for="i in 4" :key="`mobile-bottom-${i}`" 
+                  class="bg-white rounded-xl p-2 border-2 border-gray-200 shadow-lg">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="h-3 w-3 bg-gray-300 rounded animate-pulse"></div>
+                  <div class="h-3 w-4 bg-gray-300 rounded-full animate-pulse"></div>
+                </div>
+                <div class="h-5 bg-gray-300 rounded animate-pulse w-2/3 mb-1"></div>
+                <div class="h-2.5 bg-gray-300 rounded animate-pulse w-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
 
         <!-- Charts Section -->
         <div class="grid grid-cols-1 gap-8">
           <!-- First Row - Water Level, Motor Status, and Weather -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Enhanced Water Level Card -->
-            <!-- <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center bg-blue-50 rounded-full px-2.5 py-1 shadow-inner space-x-1.5">
-                  <Waves class="w-4 h-4 text-blue-500" />
-                  <h3 class="text-xs md:text-sm font-semibold text-blue-700 tracking-wide">Water Level</h3>
-                </div>
-                <div class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">LIVE</div>
-              </div>
-
-              <div class="relative w-64 h-80 mx-auto mt-4">
-                <div class="relative w-[80%] h-full md:w-full md:h-full rounded-[2rem] border-[6px] border-blue-300 bg-white shadow-2xl overflow-hidden tank-style">
-                  <div class="absolute bottom-0 left-0 w-full h-full z-10 overflow-hidden">
-                    <div
-                      class="absolute top-0 left-0 w-full h-full transition-transform duration-700 ease-in-out"
-                      :style="{ transform: `translateY(${100 - waterLevel}%)` }"
-                    >
-                      <div class="relative w-[900%] h-full">
-                        <div class="absolute w-full h-full left-0 top-0 animate-long-wave-1">
-                          <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
-                            <path
-                              d="M0,0 C200,60 400,-60 600,0 C800,60 1000,-60 1200,0 L1200,300 L0,300 Z"
-                              fill="#3B82F6" fill-opacity="0.6"
-                            />
-                          </svg>
-                        </div>
-                        <div class="absolute w-full h-full left-0 top-0 animate-long-wave-2">
-                          <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
-                            <path
-                              d="M0,0 C200,50 400,-50 600,0 C800,50 1000,-50 1200,0 L1200,300 L0,300 Z"
-                              fill="#60A5FA" fill-opacity="0.4"
-                            />
-                          </svg>
-                        </div>
-                        <div class="absolute w-full h-full left-0 top-0 animate-long-wave-3">
-                          <svg viewBox="0 0 1200 300" preserveAspectRatio="none" class="w-full h-full">
-                            <path
-                              d="M0,0 C200,40 400,-40 600,0 C800,40 1000,-40 1200,0 L1200,300 L0,300 Z"
-                              fill="#3B82F6" fill-opacity="0.2"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="absolute inset-0 flex items-center justify-center z-20">
-                    <div class="bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow-lg border border-blue-100">
-                      <span v-if="!isChartsLoading" class="text-4xl font-bold text-blue-600">{{ waterLevel }}%</span>
-                      <span v-else class="text-4xl font-bold text-blue-600">
-                        <div class="h-8 w-16 bg-gray-300 rounded animate-pulse"></div>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="absolute top-2 bottom-2 left-1/2 -translate-x-[-5rem] md:-translate-x-[-8rem] md:-right-14 w-10 flex flex-col justify-between z-30">
-                  <div v-for="n in 5" :key="n" class="flex items-center gap-2">
-                    <div class="h-[2px] w-4 bg-blue-400 shadow-sm"></div>
-                    <span class="text-sm font-medium text-blue-600 bg-white/90 px-1 rounded">
-                      {{ 100 - (n - 1) * 25 }}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div> -->
-
+           
             <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <!-- Header -->
               <div class="flex justify-between items-center mb-4">
@@ -803,7 +846,7 @@
 
                     <!-- Text inside circle -->
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
-                      <span :class="`text-3xl font-bold text-${npk.color}-700`">
+                      <span :class="`text-lg md:text-3xl font-bold text-${npk.color}-700`">
                         {{ npk.percentage.toFixed(1) }}%
                       </span>
                       <span :class="`text-sm font-medium text-${npk.color}-600 mt-1`">
@@ -820,7 +863,7 @@
 
             <!-- Enhanced Chart Container -->
             <div class="bg-white rounded-xl p-2 md:p-4 border border-green-100 transition-all duration-300 hover:shadow-md">
-              <div class="h:[400px] md:h-[300px]">
+              <div class="h-[300px] md:h-[300px]">
                 <canvas v-if="!isChartsLoading" ref="performanceChartRef"></canvas>
                 <div v-else class="h-full flex items-center justify-center bg-gray-50 rounded-lg">
                   <div class="text-center">
