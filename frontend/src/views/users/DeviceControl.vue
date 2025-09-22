@@ -251,7 +251,7 @@
                 v-else 
                 class="text-xs md:text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full"
               >
-                {{ nextWateringTime }}
+                {{ nextWateringDisplay }}
               </span>
             </div>
             
@@ -1454,7 +1454,8 @@ const isAm = ref(true)
 const skipIfRain = ref(false)
 const notifyWatering = ref(true)
 const waterFlowRate = ref('medium')
-let forceUpdateCount = 0;
+const forceUpdateCount = ref(0);
+
 
 
 // Calendar state
@@ -1484,9 +1485,22 @@ const isDeletingSchedule = ref(false)
 const currentRealTime = ref(new Date())
 let realTimeInterval
 const nextUpdateTimeout = ref(null)
-const activeScheduleEndTime = ref(null)
+// const activeScheduleEndTime = ref(null)
 
 const showFilters = ref(false)
+const forceUpdateTrigger = ref(0)
+const refreshInterval = ref(null)
+
+const refreshSchedules = () => {
+  // Force update of all schedule-related computed properties
+  forceUpdateCount.value++
+  
+  // Update the current real time (triggers reactive updates)
+  currentRealTime.value = new Date()
+  
+  // Recalculate next watering time
+  scheduleNextUpdate()
+}
 
 // Add this method for printing
 const printTable = () => {
@@ -1731,20 +1745,33 @@ watch(() => window.innerWidth, (width) => {
   }
 }, { immediate: true })
 
+const handleScheduleCompletion = async (scheduleId) => {
+  try {
+    // Force UI update
+    forceUpdateTrigger.value++
+    
+    // Refresh schedules from the server
+    await fetchWateringSchedules()
+    
+    // Recalculate next update
+    scheduleNextextUpdate()
+    
+    console.log(`Schedule ${scheduleId} completed, UI updated`)
+  } catch (error) {
+    console.error('Error handling schedule completion:', error)
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  // Listen for schedule lifecycle events from Sidebar so we can refresh immediately
-  // Keep references to handlers so we can unregister them on unmount
-  let _onScheduleStarted = null
-  let _onScheduleEnded = null
+  
+  // Listen for schedule lifecycle events from Sidebar
   try {
-    _onScheduleStarted = async (payload) => {
-      // Refresh schedules and attempt to set activeScheduleEndTime based on the started schedule
+    const _onScheduleStarted = async (payload) => {
       try {
         await fetchWateringSchedules()
       } catch (e) {}
-
-      // If payload contains scheduleId, try to compute endTime and set activeScheduleEndTime
+      
       try {
         const scheduleId = payload?.scheduleId
         if (scheduleId) {
@@ -1752,7 +1779,6 @@ onMounted(() => {
           if (sched) {
             let start = payload.startTime ? new Date(payload.startTime) : null
             if (!start) {
-              // For recurring schedules, compute next occurrence as start
               if (sched.mode === 'daily') start = getNextDailyOccurrence(sched.scheduledTime)
               else if (sched.mode === 'weekly') start = getNextWeeklyOccurrence(sched)
               else start = new Date(sched.scheduledTime)
@@ -1768,43 +1794,12 @@ onMounted(() => {
       }
 
       scheduleNextUpdate()
-  }
-  eventBus.on('schedule-started', _onScheduleStarted)
+    }
+    eventBus.on('schedule-started', _onScheduleStarted)
 
-  _onScheduleEnded = async (payload) => {
-      // When a schedule ends elsewhere, refresh schedules and recompute next occurrence immediately
-      try {
-        await fetchWateringSchedules()
-      } catch (e) {}
-
-      // Clear activeScheduleEndTime if payload matches current active schedule
-      try {
-        const scheduleId = payload?.scheduleId
-        if (scheduleId && activeScheduleEndTime.value) {
-          // If the ended schedule corresponds to the one we had active, clear it
-          // Compare by checking savedSchedules for the schedule and its expected end time
-          const sched = savedSchedules.value.find(s => s.id === scheduleId)
-          if (sched) {
-            // compute expected end time
-            let start = payload.startTime ? new Date(payload.startTime) : null
-            if (!start) {
-              if (sched.mode === 'daily') start = getNextDailyOccurrence(sched.scheduledTime)
-              else if (sched.mode === 'weekly') start = getNextWeeklyOccurrence(sched)
-              else start = new Date(sched.scheduledTime)
-            }
-            const durationMs = Math.max(1000, Math.round(Number(sched.duration || 0) * 60000))
-            const expectedEnd = new Date(start.getTime() + durationMs)
-            // If current activeScheduleEndTime is near expectedEnd, clear it
-            if (Math.abs(activeScheduleEndTime.value.getTime() - expectedEnd.getTime()) < 2 * 60 * 1000) {
-              activeScheduleEndTime.value = null
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Error handling schedule-ended payload in DeviceControl:', e)
-      }
-
-      scheduleNextUpdate()
+    const _onScheduleEnded = async (payload) => {
+      // Use the new completion handler
+      await handleScheduleCompletion(payload?.scheduleId)
     }
     eventBus.on('schedule-ended', _onScheduleEnded)
   } catch (e) {
@@ -1826,15 +1821,23 @@ onUnmounted(() => {
 // =============================================
 
 const startRealTimeUpdates = () => {
-  stopRealTimeUpdates() // Clear any existing timeouts
+  // stopRealTimeUpdates() 
   
-  // Initial update
   currentRealTime.value = new Date()
-  console.log('Initial update:', currentRealTime.value.toLocaleTimeString())
   
-  // Schedule next update based on watering schedules
+  refreshInterval.value = setInterval(refreshSchedules, 1000)
+  
   scheduleNextUpdate()
 }
+
+const activeScheduleEndTime = computed(() => {
+  if (activeSchedule.value) {
+    const startTime = new Date(activeSchedule.value.startTime)
+    const durationInMs = activeSchedule.value.duration * 60000
+    return new Date(startTime.getTime() + durationInMs)
+  }
+  return null
+})
 
 const scheduleNextUpdate = () => {
   const now = new Date()
@@ -1844,48 +1847,40 @@ const scheduleNextUpdate = () => {
     nextUpdateTimeout.value = null
   }
   
-  // 1. Check if we're currently in a watering period
-  if (activeScheduleEndTime.value && now < activeScheduleEndTime.value) {
-    const msRemaining = activeScheduleEndTime.value - now
-    nextUpdateTimeout.value = setTimeout(() => {
-      handleWateringComplete()
-    }, msRemaining)
-    console.log(`Scheduled update for watering end at ${activeScheduleEndTime.value.toLocaleTimeString()}`)
-    return
-  }
-  
-  // 2. Find the next upcoming watering schedule
+  // 1. Find the next upcoming watering schedule
   const upcomingSchedule = findNextUpcomingSchedule()
   
   if (upcomingSchedule) {
     const msUntilStart = upcomingSchedule.startTime - now
     const msUntilEnd = upcomingSchedule.endTime - now
     
+    // Check if the schedule has not started yet
     if (msUntilStart > 0) {
-      // Schedule is in the future
       nextUpdateTimeout.value = setTimeout(() => {
-        activeScheduleEndTime.value = upcomingSchedule.endTime
-        scheduleNextUpdate() // Immediately schedule the end time
+        // When this timeout fires, it means the schedule has just started.
+        // We now need to schedule the next update for the end time.
+        scheduleNextUpdate()
       }, msUntilStart)
-      console.log(`Scheduled update for watering start at ${upcomingSchedule.startTime.toLocaleTimeString()}`)
-    } else if (msUntilEnd > 0) {
-      // Schedule is currently running
-      activeScheduleEndTime.value = upcomingSchedule.endTime
+    } 
+    // Check if the schedule is currently running
+    else if (msUntilEnd > 0) {
       nextUpdateTimeout.value = setTimeout(() => {
+        // When this timeout fires, the watering is complete.
+        // We handle the completion and trigger the next update.
         handleWateringComplete()
       }, msUntilEnd)
-      console.log(`Scheduled update for watering end at ${upcomingSchedule.endTime.toLocaleTimeString()}`)
+    } else {
+      // The schedule has already ended, so find the next one immediately.
+      handleWateringComplete()
     }
   } else {
     // No schedules - fallback to short interval updates (keep UI responsive)
-    // Use 1 second instead of 60s so end/start transitions update promptly
     if (nextUpdateTimeout.value) clearTimeout(nextUpdateTimeout.value)
     nextUpdateTimeout.value = setTimeout(() => {
       currentRealTime.value = new Date()
-      console.log('Fallback update:', currentRealTime.value.toLocaleTimeString())
+      console.log('No schedules found, checking again in 5s')
       scheduleNextUpdate()
-    }, 1000)
-    console.log('No upcoming schedules, using 1s fallback')
+    }, 5000)
   }
 }
 
@@ -1905,6 +1900,15 @@ const findNextUpcomingSchedule = () => {
       } else { // one-time
         startTime = new Date(schedule.scheduledTime)
       }
+
+      // Handle cases where start time is in the past
+      if (startTime < now && schedule.mode !== 'one-time') {
+        if (schedule.mode === 'daily') {
+          startTime = getNextDailyOccurrence(schedule.scheduledTime)
+        } else if (schedule.mode === 'weekly') {
+          startTime = getNextWeeklyOccurrence(schedule)
+        }
+      }
       
       return {
         ...schedule,
@@ -1918,29 +1922,39 @@ const findNextUpcomingSchedule = () => {
   return schedules.length > 0 ? schedules[0] : null
 }
 
-const handleWateringComplete = () => {
-  currentRealTime.value = new Date()
-  activeScheduleEndTime.value = null
-  console.log('Watering complete, updating time:', currentRealTime.value.toLocaleTimeString())
+// Add this new computed property
+const nextWateringDisplay = computed(() => {
+  // This dependency ensures the computed property re-evaluates
+  // whenever a schedule is added, edited, or completed.
+  const _ = forceUpdateTrigger.value
+  const upcomingSchedule = findNextUpcomingSchedule()
 
+  if (upcomingSchedule) {
+    return formatScheduleDateTime(upcomingSchedule)
+  } else {
+    // If no schedules are found, display this message immediately
+    return 'No schedules set'
+  }
+})
+
+const handleWateringComplete = async () => {
+  currentRealTime.value = new Date()
+  console.log('Watering complete, updating time:', currentRealTime.value.toLocaleTimeString())
+  
+  // Force UI to update by incrementing the trigger
+  forceUpdateTrigger.value++
+  
   // Refresh schedules so recurring schedules show their next occurrence immediately
   try {
-    // fetchWateringSchedules is defined in this file and updates savedSchedules
     if (typeof fetchWateringSchedules === 'function') {
-      fetchWateringSchedules()
-        .then(() => {
-          // Immediately recompute the next update after schedules refresh
-          scheduleNextUpdate()
-        })
-        .catch(err => {
-          console.warn('Failed to refresh schedules after watering complete:', err)
-          scheduleNextUpdate()
-        })
-    } else {
-      scheduleNextUpdate()
+      // Wait for schedules to refresh BEFORE scheduling next update
+      await fetchWateringSchedules()
+      console.log('Schedules refreshed after watering completion')
     }
   } catch (err) {
-    console.error('Error during watering completion refresh:', err)
+    console.warn('Failed to refresh schedules after watering complete:', err)
+  } finally {
+    // Always schedule the next update, even if refresh failed
     scheduleNextUpdate()
   }
 }
@@ -1952,23 +1966,27 @@ const stopRealTimeUpdates = () => {
     clearTimeout(nextUpdateTimeout.value)
     nextUpdateTimeout.value = null
   }
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value)
+    refreshInterval.value = null
+  }
 }
 
 const getNextDailyOccurrence = (timeInMs) => {
-  const now = currentRealTime.value
+  const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
+
   // Convert milliseconds since midnight to hours and minutes
   const hours = Math.floor(timeInMs / (60 * 60 * 1000))
   const minutes = Math.floor((timeInMs % (60 * 60 * 1000)) / (60 * 1000))
-  
+
   const scheduledTime = new Date(today)
   scheduledTime.setHours(hours, minutes, 0, 0)
-  
+
   if (scheduledTime > now) {
     return scheduledTime
   }
-  
+
   // If time has passed today, schedule for tomorrow
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -1977,31 +1995,46 @@ const getNextDailyOccurrence = (timeInMs) => {
 }
 
 const getNextWeeklyOccurrence = (schedule) => {
-  const now = currentRealTime.value
+  const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
+
   // Convert scheduled time (milliseconds since midnight) to hours and minutes
   const timeInMs = schedule.scheduledTime
   const hours = Math.floor(timeInMs / (60 * 60 * 1000))
   const minutes = Math.floor((timeInMs % (60 * 60 * 1000)) / (60 * 1000))
-  
+
   // Find the next scheduled day
-  for (let i = 0; i < 14; i++) { // Check next 2 weeks to be safe
+  for (let i = 0; i < 7; i++) {
     const checkDate = new Date(today)
-    checkDate.setDate(checkDate.getDate() + i)
+    checkDate.setDate(today.getDate() + i)
     const dayIndex = (checkDate.getDay() + 6) % 7 // Convert to 0=Monday
-    
+
     if (schedule.days[dayIndex]) {
       const scheduledTime = new Date(checkDate)
       scheduledTime.setHours(hours, minutes, 0, 0)
       
+      // If the time is in the future, this is the one we want
       if (scheduledTime > now) {
         return scheduledTime
       }
     }
   }
-  
-  return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // Fallback: 1 week from now
+
+  // If no future schedules found within the week, return the first valid day of the NEXT week
+  for (let i = 7; i < 14; i++) {
+    const checkDate = new Date(today)
+    checkDate.setDate(today.getDate() + i)
+    const dayIndex = (checkDate.getDay() + 6) % 7
+
+    if (schedule.days[dayIndex]) {
+      const scheduledTime = new Date(checkDate)
+      scheduledTime.setHours(hours, minutes, 0, 0)
+      return scheduledTime
+    }
+  }
+
+  // Fallback case (should not be reached if at least one day is selected)
+  return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 }
 
 const formatScheduleDateTime = (schedule) => {
@@ -2023,7 +2056,8 @@ const formatScheduleDateTime = (schedule) => {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   })
 }
 
@@ -2130,16 +2164,6 @@ const clearAllFilters = () => {
 const toggleFilterPanel = () => {
   showFilterPanel.value = !showFilterPanel.value
 }
-
-// const filteredMotorActivities = computed(() => {
-//   const sevenDaysAgo = new Date()
-//   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-//   return motorActivities.value.filter(activity => {
-//     const activityDate = parseActivityTimestamp(activity.timestamp)
-//     return activityDate >= sevenDaysAgo
-//   })
-// })
 
 const filteredMotorActivities = computed(() => {
   return motorActivities.value
@@ -2267,62 +2291,6 @@ const filteredPastSchedules = computed(() => {
 
   return filtered
 })
-
-// const filteredPastSchedules = computed(() => {
-//   let filtered = [...pastSchedules.value]
-
-//   if (searchQuery.value) {
-//     const query = searchQuery.value.toLowerCase()
-//     filtered = filtered.filter(schedule => {
-//       const searchString = [
-//         schedule.mode,
-//         schedule.duration?.toString(),
-//         schedule.waterFlowRate,
-//         schedule.dateTime,
-//         getDayName(schedule.dayOfWeek),
-//         schedule.skipIfRain?.toString(),
-//         schedule.notifyWatering?.toString()
-//       ].join(' ').toLowerCase()
-      
-//       return searchString.includes(query)
-//     })
-//   }
-
-//   // Filter by start date if specified
-//   if (historyFilters.value.startDate) {
-//     const startDate = new Date(historyFilters.value.startDate)
-//     startDate.setHours(0, 0, 0, 0)
-//     filtered = filtered.filter(schedule => {
-//       const scheduleDate = new Date(schedule.completedAt)
-//       return scheduleDate >= startDate
-//     })
-//   }
-
-//   // Always filter up to today at 23:59:59
-//    const endDate = new Date()
-//   endDate.setHours(23, 59, 59, 999)
-  
-//   filtered = filtered.filter(schedule => {
-//     const scheduleDate = new Date(schedule.completedAt)
-//     return scheduleDate <= endDate
-//   })
-
-//   if (historyFilters.value.scheduleType !== 'all') {
-//     filtered = filtered.filter(schedule => schedule.mode === historyFilters.value.scheduleType)
-//   }
-
-//   if (historyFilters.value.duration !== 'all') {
-//     if (historyFilters.value.duration === 'short') {
-//       filtered = filtered.filter(schedule => schedule.duration < 10)
-//     } else if (historyFilters.value.duration === 'medium') {
-//       filtered = filtered.filter(schedule => schedule.duration >= 10 && schedule.duration <= 30)
-//     } else if (historyFilters.value.duration === 'long') {
-//       filtered = filtered.filter(schedule => schedule.duration > 30)
-//     }
-//   }
-
-//   return filtered
-// })
 
 const formattedSchedules = (schedulesArray) => {
   return schedulesArray.map(schedule => formatHistoryItem(schedule));
@@ -3380,7 +3348,7 @@ const timeDisplay = computed(() => {
 })
 
 const upcomingSchedules = computed(() => {
-  // Add dependency on currentRealTime to force recomputation
+  // Add dependency on currentRealTime to force recomputation every second
   const _ = currentRealTime.value
   
   return savedSchedules.value
@@ -3466,7 +3434,8 @@ const fetchWateringSchedules = async () => {
 }
 
 const nextWateringTime = computed(() => {
-  const _ = currentRealTime.value // Dependency to force recomputation
+  // Add dependency on currentRealTime to force recomputation every second
+  const _ = currentRealTime.value
   
   if (savedSchedules.value.length === 0) {
     return 'No upcoming waterings'
@@ -3552,35 +3521,6 @@ const calculateNextWateringTime = () => {
   isLoadingNextWatering.value = false
 }
 
-// const confirmDeleteSchedule = async () => {
-//   if (scheduleToDeleteIndex.value === null) return
-  
-//   isDeletingSchedule.value = true
-//   try {
-//     // Get the schedule ID from the index
-//     const schedule = savedSchedules.value[scheduleToDeleteIndex.value]
-//     const scheduleId = schedule.id
-    
-//     await api.delete(`${API_ENDPOINTS.SCHEDULES}/${scheduleId}`)
-//     window.showToast('Schedule deleted successfully', 'success')
-    
-//     // Refresh schedules
-//     await fetchWateringSchedules()
-//   } catch (error) {
-//     console.error('Error deleting schedule:', error)
-    
-//     if (error.response?.status === 404) {
-//       window.showToast('Schedule not found or already deleted', 'warning')
-//     } else {
-//       window.showToast('Error deleting schedule', 'failed')
-//     }
-//   } finally {
-//     showDeleteConfirmation.value = false
-//     scheduleToDeleteIndex.value = null
-//     isDeletingSchedule.value = false
-//   }
-// }
-
 const confirmDeleteSchedule = async () => {
   if (scheduleToDeleteIndex.value === null) return
   
@@ -3614,45 +3554,6 @@ const confirmDeleteSchedule = async () => {
     isDeletingSchedule.value = false
   }
 }
-
-// const saveWateringSchedule = async () => {
-//   isLoading.value = true
-  
-//   try {
-//     // Check for duplicate schedule first
-//     const scheduledTime = calculateScheduledTime()
-//     const newScheduleDetails = {
-//       mode: wateringMode.value,
-//       hour: wateringHour.value,
-//       minute: wateringMinute.value,
-//       duration: wateringDuration.value,
-//       date: selectedDate.value,
-//       days: wateringMode.value === 'weekly' ? [...wateringDays.value] : []
-//     }
-
-//     if (isDuplicateSchedule(newScheduleDetails)) {
-//       window.showToast('A schedule already exists at this time. Please choose a different time.', 'warning')
-//       isLoading.value = false
-//       return
-//     }
-
-//     // Then check soil moisture
-//     const moistureResponse = await api.get(API_ENDPOINTS.SOIL_MOISTURE)
-//     soilMoistureForSchedule.value = moistureResponse.data.moisture
-
-//     if (soilMoistureForSchedule.value !== null && soilMoistureForSchedule.value >= 50) {
-//       showScheduleConfirmationDialog.value = true
-//       return
-//     }
-    
-//     await actuallySaveSchedule()
-//   } catch (error) {
-//     console.error("Error in saveWateringSchedule:", error)
-//     const action = editingScheduleId.value ? 'update' : 'add'
-//     window.showToast(`Failed to ${action} schedule. Please try again.`, 'failed')
-//     isLoading.value = false
-//   }
-// }
 
 const saveWateringSchedule = async () => {
   isLoading.value = true
@@ -3998,6 +3899,7 @@ const formatHistoryItem = (schedule) => {
 };
 
 onMounted(async () => {
+  startRealTimeUpdates() 
   // Test backend connection first
   const isConnected = await testBackendConnection()
   
@@ -4010,14 +3912,8 @@ onMounted(async () => {
       fetchHistory()
     ])
 
-    setInterval(() => {
-      fetchWateringSchedules()
-    }, 1000)
-    
-    // Start real-time polling for motor status
     startMotorStatusPolling()
     startMotorActivitiesPolling()
-    startRealTimeUpdates()
     
     // Set up polling for other data (less frequent)
     setInterval(() => {
@@ -4040,10 +3936,11 @@ onMounted(async () => {
   resetScheduleForm()
 })
 
-// Clean up polling on unmount
+// Make sure to clean up the interval on unmount
 onUnmounted(() => {
   stopMotorStatusPolling()
   stopMotorActivitiesPolling()
+  stopRealTimeUpdates() // This now clears the refresh interval too
 })
 
 </script>
