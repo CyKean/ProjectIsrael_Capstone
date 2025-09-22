@@ -48,4 +48,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: '0.0.0.0', // still needed for LAN/Cloudflare
+    allowedHosts: [
+      'briefly-knew-bridal-commissioner.trycloudflare.com'
+    ]
+  }
+
 })

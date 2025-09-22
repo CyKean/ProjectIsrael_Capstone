@@ -1,44 +1,30 @@
 <template>
-  <TransitionGroup name="toast-stack" tag="div" class="toast-container">
+  <TransitionGroup name="toast-stack" tag="div">
     <Toast
       v-for="(toast, idx) in toasts"
       :key="toast.id"
       :message="toast.message"
       :severity="toast.severity"
       :visible="toast.visible"
-      :bottomOffset="getBottomOffset(idx)"
+      :bottomOffset="16 + idx * 72"
       :styles="getStyles(toast.severity)"
       @close="removeToast(toast.id)"
-      :class="['toast-item', { 'mobile-toast': isMobile }]"
+      :style="{ position: 'fixed', right: '1rem', bottom: `${16 + idx * 72}px`, zIndex: 10001 }"
     />
   </TransitionGroup>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Toast from './Toast.vue'
 import { CheckCircle, Info, AlertTriangle, XCircle } from 'lucide-vue-next'
 
+// const toastSound = '../../public/sounds/toast.wav'
+// const toastSound = 'sounds/toast.wav';
 const toastSound = '/sounds/toast.wav';
-const toasts = ref([])
-const toastQueue = ref([])
+const toasts = ref([]) // All currently visible toasts
+const toastQueue = ref([]) // Queue for pending toasts
 const isProcessingQueue = ref(false)
-
-// Check if device is mobile
-const isMobile = computed(() => {
-  return window.innerWidth <= 768
-})
-
-// Responsive bottom offset calculation
-const getBottomOffset = (idx) => {
-  if (isMobile.value) {
-    // Smaller gap on mobile (8px base + 56px per toast)
-    return 8 + idx * 52
-  } else {
-    // Original gap on desktop (16px base + 72px per toast)
-    return 16 + idx * 72
-  }
-}
 
 const getStyles = (severity) => {
   const styles = {
@@ -98,6 +84,7 @@ const processToastQueue = async () => {
   while (toastQueue.value.length > 0) {
     const toastData = toastQueue.value.shift()
     
+    // Add toast to visible toasts
     const toast = {
       ...toastData,
       visible: true
@@ -106,8 +93,10 @@ const processToastQueue = async () => {
     toasts.value.push(toast)
     playToastSound()
     
+    // Set up auto-removal
     setTimeout(() => removeToast(toast.id), 5000)
     
+    // Wait a bit before showing next toast to prevent simultaneous animations
     await new Promise(resolve => setTimeout(resolve, 200))
   }
 
@@ -122,21 +111,26 @@ const showToast = (message, severity = 'info') => {
     severity
   }
   
+  // Add to queue instead of directly showing
   toastQueue.value.push(toastData)
+  
+  // Process the queue
   processToastQueue()
 }
 
 const removeToast = (id) => {
   const idx = toasts.value.findIndex(t => t.id === id)
   if (idx !== -1) {
+    // Start the exit animation
     toasts.value[idx].visible = false
     
+    // Wait for animation to complete before removing from array
     setTimeout(() => {
       const currentIdx = toasts.value.findIndex(t => t.id === id)
       if (currentIdx !== -1) {
         toasts.value.splice(currentIdx, 1)
       }
-    }, 400)
+    }, 400) // Match the transition duration
   }
 }
 
@@ -150,30 +144,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.toast-container {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  z-index: 10001;
-  width: 100%;
-  pointer-events: none;
-}
-
-.toast-item {
-  position: absolute;
-  right: 1rem;
-  pointer-events: auto;
-}
-
-/* Mobile-specific styles */
-@media (max-width: 768px) {
-  .toast-item {
-    right: 0.5rem;
-    left: 0.5rem;
-    width: auto !important;
-  }
-}
-
 .toast-stack-enter-active,
 .toast-stack-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -187,13 +157,5 @@ onUnmounted(() => {
 
 .toast-stack-move {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Mobile animation adjustments */
-@media (max-width: 768px) {
-  .toast-stack-enter-from,
-  .toast-stack-leave-to {
-    transform: translateX(100%) translateY(20px) scale(0.95);
-  }
 }
 </style>
