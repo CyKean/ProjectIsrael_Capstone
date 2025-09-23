@@ -489,14 +489,12 @@ const printTable = async () => {
     time: row.time
   }));
   
+  // chartData is newest-first; take the first N latest entries and reverse for oldest->latest
   const printChartData = chartData.value
-    .slice(-PRINT_CHART_DATA_LIMIT)
-    .map(item => ({
-      timestamp: item.timestamp,
-      status: item.status,
-      value: item.status === 'ON' ? 1 : 0
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp); 
+    .slice(0, PRINT_CHART_DATA_LIMIT)
+    .map(item => ({ timestamp: item.timestamp, status: item.status, value: item.status === 'ON' ? 1 : 0 }))
+    .slice()
+    .reverse();
   
   console.log(`📊 Print chart will show ${printChartData.length} motor status records`);
   
@@ -1013,11 +1011,16 @@ const fetchMotorControlData = async (showLoading = false) => {
       }
     })
 
-    motorData.value = processedData
-    
-    // Initialize chart with limited data to prevent performance issues
-    const limitedChartData = processedData.slice(-15) // Only use last 100 entries for chart
-    initializeChartData(limitedChartData)
+    // Sort full processed data newest -> oldest and store for table and overall stats
+    const processedSortedDesc = processedData
+      .slice()
+      .sort((a, b) => b.timestamp - a.timestamp)
+
+    motorData.value = processedSortedDesc
+
+  // Initialize chart with the latest 20 records (newest first)
+  const limitedChartData = processedSortedDesc.slice(0, 20)
+  initializeChartData(limitedChartData)
     
     // Update current values from the current status endpoint
     if (currentData) {
@@ -1051,7 +1054,27 @@ const fetchMotorControlData = async (showLoading = false) => {
       isLoading.value = false
     }
 
-    PRINT_CHART_DATA_LIMIT = motorData.value // Limit chart data for printing
+    // Chart print limit should be a number (we want to print the latest 20 points)
+    PRINT_CHART_DATA_LIMIT = 20
+
+    // Compute overall status summary from the full dataset returned by the history endpoint
+    try {
+      const sortedFull = [...processedData].sort((a, b) => a.timestamp - b.timestamp)
+      const onCountFull = sortedFull.filter(item => item.status === 'ON').length
+      const offCountFull = sortedFull.filter(item => item.status === 'OFF').length
+      let switchesFull = 0
+      for (let i = 1; i < sortedFull.length; i++) {
+        if (sortedFull[i].status !== sortedFull[i - 1].status) switchesFull++
+      }
+
+      statusStats.value = {
+        onCount: onCountFull,
+        offCount: offCountFull,
+        switches: switchesFull
+      }
+    } catch (e) {
+      console.error('Error computing overall status stats:', e)
+    }
     
   } catch (error) {
     console.error("❌ Error fetching motor control data:", error)
@@ -1088,28 +1111,27 @@ const setupDataPolling = () => {
         const deviceId = latestData.device_id || 'main_motor'
         const user = latestData.user || latestData.triggeredBy || 'system'
         
-        // Check if this is a new status update
-        const lastEntry = chartData.value[chartData.value.length - 1]
-        const isNewEntry = !lastEntry || 
-                          lastEntry.status !== status || 
-                          lastEntry.timestamp.getTime() !== timestamp.getTime()
-        
+        // Check if this is a new status update (chartData is newest-first, compare first item)
+        const firstEntry = chartData.value[0]
+        const isNewEntry = !firstEntry ||
+                          firstEntry.status !== status ||
+                          firstEntry.timestamp.getTime() !== timestamp.getTime()
+
         if (isNewEntry) {
-          const newChartData = [
-            ...chartData.value,
-            {
-              timestamp,
-              status,
-              deviceId,
-              user,
-              source: latestData.triggeredBy || 'polling'
-            }
-          ]
-          
-          if (newChartData.length > 50) {
-            newChartData.splice(0, newChartData.length - 50)
+          const newEntry = {
+            timestamp,
+            status,
+            deviceId,
+            user,
+            source: latestData.triggeredBy || 'polling'
           }
-          
+
+          // Prepend new entry to keep newest-first order
+          let newChartData = [newEntry, ...chartData.value]
+          if (newChartData.length > 20) {
+            newChartData = newChartData.slice(0, 20)
+          }
+
           chartData.value = newChartData
           
           currentStatus.value = status
@@ -1124,20 +1146,37 @@ const setupDataPolling = () => {
           })
           lastUpdated.value = formattedTime
           
-          const onCount = newChartData.filter(item => item.status === 'ON').length
-          const offCount = newChartData.filter(item => item.status === 'OFF').length
-          
-          let switches = 0
-          for (let i = 1; i < newChartData.length; i++) {
-            if (newChartData[i].status !== newChartData[i-1].status) {
-              switches++
+          // Update motorData (full dataset view) by appending new processed entry
+          try {
+            const processedEntry = {
+              id: (motorData.value.length || 0) + 1,
+              timestamp: timestamp.getTime() / 1000,
+              rawTimestamp: latestData.timestamp,
+              deviceId,
+              status,
+              user,
+              date: timestamp.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }),
+              time: timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+              action: latestData.action || '',
+              source: latestData.triggeredBy || 'polling',
+              scheduleId: latestData.scheduleId || ''
             }
-          }
-          
-          statusStats.value = {
-            onCount,
-            offCount,
-            switches
+
+            // Prepend to motorData (newest-first) so the full dataset remains up-to-date
+            motorData.value = [processedEntry, ...motorData.value]
+
+            // Recompute overall status stats from motorData (use chronological order for switches)
+            const fullSortedAsc = [...motorData.value].slice().sort((a, b) => a.timestamp - b.timestamp)
+            const onCount = fullSortedAsc.filter(item => item.status === 'ON').length
+            const offCount = fullSortedAsc.filter(item => item.status === 'OFF').length
+            let switches = 0
+            for (let i = 1; i < fullSortedAsc.length; i++) {
+              if (fullSortedAsc[i].status !== fullSortedAsc[i - 1].status) switches++
+            }
+
+            statusStats.value = { onCount, offCount, switches }
+          } catch (e) {
+            console.error('Error updating motorData/statusStats during polling:', e)
           }
           
           if (chart.value) {
@@ -1151,14 +1190,8 @@ const setupDataPolling = () => {
                 })
               )
               
-              const statusValues = newChartData.map(item => item.status === 'ON' ? 1 : 0)
-              
-              chart.value.data.labels = labels
-              chart.value.data.datasets[0].data = statusValues
-              
-              requestAnimationFrame(() => {
-                chart.value.update('none')
-              })
+              // Let the centralized updateChart() handle reversing and updating the chart
+              updateChart()
             } catch (error) {
               console.error('Chart update error:', error)
             }
@@ -1174,7 +1207,8 @@ const setupDataPolling = () => {
 }
 
 const initializeChartData = (data) => {
-  const initialChartData = data.slice(0, 50)
+  // ensure we take the most recent 20 records from the provided array
+  const initialChartData = data.slice(-20)
     .map(item => {
       // Handle timestamp from various formats
       let timestamp
@@ -1195,12 +1229,13 @@ const initializeChartData = (data) => {
         user: item.user
       }
     })
-    .sort((a, b) => a.timestamp - b.timestamp)
+    .sort((a, b) => b.timestamp - a.timestamp)
 
   chartData.value = initialChartData
 
   if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1]
+    // initialChartData is newest-first; index 0 is the latest reading
+    const latestReading = initialChartData[0]
     currentStatus.value = latestReading.status
     currentDeviceId.value = latestReading.deviceId
     currentUser.value = latestReading.user
@@ -1223,11 +1258,7 @@ const initializeChartData = (data) => {
       }
     }
     
-    statusStats.value = {
-      onCount,
-      offCount,
-      switches
-    }
+    // Note: statusStats for the footer is computed from the full dataset in fetchMotorControlData
   }
   
   // Wait for DOM to be ready, then initialize chart
@@ -1257,22 +1288,24 @@ const initializeChart = () => {
       return;
     }
     
-    // Ensure chartData has valid values
-    const statusValues = chartData.value.map(item => {
-      return item.status === 'ON' ? 1 : 0;
-    });
-    
-    // Ensure we have valid labels
-    const labels = chartData.value.map(item => {
+    // Chart should display oldest -> latest (left -> right).
+    // chartData is newest-first; create a display copy in chronological order.
+    const displayData = chartData.value.slice().reverse()
+
+    // Ensure chartData has valid values (oldest->latest)
+    const statusValues = displayData.map(item => item.status === 'ON' ? 1 : 0)
+
+    // Ensure we have valid labels (oldest->latest)
+    const labels = displayData.map(item => {
       if (!item.timestamp || !(item.timestamp instanceof Date) || isNaN(item.timestamp)) {
-        return '--:--';
+        return '--:--'
       }
       return item.timestamp.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
-      });
-    });
+      })
+    })
     
     chart.value = new Chart(ctx, {
       type: 'line',
@@ -1404,8 +1437,11 @@ const initializeChart = () => {
 const updateChart = () => {
   if (chart.value && chartData.value.length > 0 && chartCanvas.value) {
     try {
+      // Use chronological order for display (oldest->latest)
+      const displayData = chartData.value.slice().reverse()
+
       // Update labels safely
-      const labels = chartData.value.map(item => {
+      const labels = displayData.map(item => {
         if (!item.timestamp || !(item.timestamp instanceof Date) || isNaN(item.timestamp)) {
           return '--:--'
         }
@@ -1415,9 +1451,9 @@ const updateChart = () => {
           hour12: true
         })
       })
-      
+
       // Update data values
-      const statusValues = chartData.value.map(item => item.status === 'ON' ? 1 : 0)
+      const statusValues = displayData.map(item => item.status === 'ON' ? 1 : 0)
       
       // Update chart data
       chart.value.data.labels = labels
@@ -1457,8 +1493,8 @@ const searchQuery = ref('')
 const itemsPerPage = ref(20)
 const currentPage = ref(1)
 const activeDropdown = ref(null)
-const sortKey = ref('id')
-const sortDirection = ref('asc')
+const sortKey = ref('timestamp')
+const sortDirection = ref('desc')
 const activeFilters = ref({})
 const activeTextFilters = ref({})
 

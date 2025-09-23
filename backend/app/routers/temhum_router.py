@@ -30,7 +30,7 @@ class StatsResponse(BaseModel):
     humidity: ReadingStats
     total_readings: int
 
-@router.get("/readings", response_model=List[TemperatureHumidityReading])
+@router.get("/readings")
 async def get_temperature_humidity_readings(
     start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
     end_date: Optional[datetime] = Query(None, description="End date for filtering"),
@@ -96,7 +96,7 @@ async def get_temperature_humidity_readings(
         print(f"Error fetching readings: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error fetching readings: {str(e)}")
 
-@router.get("/readings/recent", response_model=List[TemperatureHumidityReading])
+@router.get("/readings/recent")
 async def get_recent_readings(
     hours: int = Query(24, description="Time window in hours for recent data"),
     db=Depends(get_database)
@@ -306,6 +306,30 @@ async def test_document(db=Depends(get_database)):
         error_details = traceback.format_exc()
         print(f"Error testing document: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Error testing document: {str(e)}")
+
+
+@router.get("/readings/raw")
+async def get_raw_readings_sample(limit: int = 5, db=Depends(get_database)):
+    """
+    Return a raw sample (first `limit`) of readings from esp32-2 without any processing.
+    Useful for debugging timestamp shapes and payload structure.
+    """
+    try:
+        document = await db["sensor_readings"].find_one({"_id": "esp32-2"})
+        if not document:
+            # return available document ids to help debug
+            all_docs = await db["sensor_readings"].find().to_list(length=20)
+            return {"exists": False, "available_documents": [d.get("_id") for d in all_docs]}
+
+        readings = document.get("readings", [])
+        # return raw slice
+        return {"count": len(readings), "sample": readings[:limit]}
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error returning raw readings sample: {str(e)}\n{error_details}")
+        raise HTTPException(status_code=500, detail=f"Error returning raw readings sample: {str(e)}")
 
 # Make sure the router is exported
 __all__ = ["router"]

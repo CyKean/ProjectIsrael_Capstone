@@ -521,15 +521,17 @@ const printTable = async () => {
     humidity: row.humidity
   }));
   
-  const printChartData = tempHumidityData.value
-    .slice(0, PRINT_CHART_DATA_LIMIT) 
+  // For printing, take the most recent PRINT_CHART_DATA_LIMIT records then sort oldest -> newest
+  const allForPrint = tempHumidityData.value
     .filter(item => item.temperature !== '--' && item.humidity !== '--')
+  const printChartData = allForPrint
+    .slice(-PRINT_CHART_DATA_LIMIT || undefined)
     .map(item => ({
       timestamp: item.rawTimestamp,
       temperature: Number(item.temperature),
       humidity: Number(item.humidity)
     }))
-    .sort((a, b) => a.timestamp - b.timestamp); 
+    .sort((a, b) => a.timestamp - b.timestamp);
   
   console.log(`📊 Print chart will show ${printChartData.length} records`);
   
@@ -1021,44 +1023,125 @@ const fetchTempHumidityData = async () => {
     const response = await api.get('/temperature-humidity/readings')
     const allReadings = response.data
     
-    console.log(`📊 Total temperature & humidity readings fetched: ${allReadings.length}`)
+  // DEBUG: show raw readings shapes so we can diagnose timestamp formats
+  console.debug('DEBUG: raw readings sample (from /temperature-humidity/readings):', allReadings.slice(0, 5))
+  console.log(`📊 Total temperature & humidity readings fetched: ${allReadings.length}`)
     
     const processedData = allReadings
       .map((reading, index) => {
-        // Handle timestamp
-        let formattedDate = '--'
-        let formattedTime = '--'
-        let timestampSeconds = 0
-        
-        try {
-          // Handle timestamp format
-          let timestamp;
-          if (reading.timestamp && typeof reading.timestamp === 'object' && '_seconds' in reading.timestamp) {
-            timestamp = new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000)
-          } else if (reading.timestamp && typeof reading.timestamp === 'string') {
-            timestamp = new Date(reading.timestamp)
-          } else {
-            timestamp = new Date()
-            console.warn('Unknown timestamp format:', reading.timestamp)
-          }
-          
-          formattedDate = timestamp.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-          });
+          // Handle timestamp --- use the timestamp from the DB only. Do NOT default to current time.
+          let formattedDate = '--'
+          let formattedTime = '--'
+          let timestampSeconds = null
+          let rawTimestamp = null
 
-          formattedTime = timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          });
-          
-          timestampSeconds = timestamp.getTime() / 1000
-        } catch (e) {
-          console.error("Error formatting date:", e, reading.timestamp)
-        }
+          try {
+            if (reading.timestamp) {
+                // Several possible timestamp shapes we may receive from backend:
+                // - Firestore-like: { _seconds, _nanoseconds } or { seconds, nanoseconds }
+                // - MongoDB $date: { $date: 167... } or { $date: { $numberLong: '...' } }
+                // - Numeric seconds or milliseconds
+                // - ISO string
+                try {
+                  // If timestamp is a JSON string containing an object, parse it first
+                  if (typeof reading.timestamp === 'string' && reading.timestamp.trim().startsWith('{')) {
+                    try {
+                      reading.timestamp = JSON.parse(reading.timestamp)
+                    } catch (e) {
+                      // ignore parse error and continue
+                      console.debug('DEBUG: failed to JSON.parse timestamp string', reading.timestamp)
+                    }
+                  }
+
+                  if (typeof reading.timestamp === 'object') {
+                    // Firestore-like
+                    const sec = reading.timestamp._seconds ?? reading.timestamp.seconds
+                    const nsec = reading.timestamp._nanoseconds ?? reading.timestamp.nanoseconds
+                    if (sec !== undefined && sec !== null) {
+                      const s = Number(sec)
+                      const ns = Number(nsec) || 0
+                      if (!isNaN(s)) rawTimestamp = new Date(s * 1000 + ns / 1000000)
+                    } else if ('$date' in reading.timestamp) {
+                      const d = reading.timestamp.$date
+                      if (typeof d === 'number') {
+                        rawTimestamp = new Date(d)
+                      } else if (typeof d === 'string') {
+                        const parsed = new Date(d)
+                        if (!isNaN(parsed)) rawTimestamp = parsed
+                      } else if (d && typeof d === 'object' && ('$numberLong' in d)) {
+                        const ms = Number(d.$numberLong)
+                        if (!isNaN(ms)) rawTimestamp = new Date(ms)
+                      }
+                    }
+                    // Fallback: scan object (including nested objects) for numeric-looking properties
+                    if (!rawTimestamp) {
+                      const stack = [reading.timestamp]
+                      const seen = new Set()
+                      while (stack.length && !rawTimestamp) {
+                        const obj = stack.pop()
+                        if (!obj || typeof obj !== 'object') continue
+                        if (seen.has(obj)) continue
+                        seen.add(obj)
+                        for (const val of Object.values(obj)) {
+                          if (val == null) continue
+                          if (typeof val === 'object') {
+                            stack.push(val)
+                            continue
+                          }
+                          const maybeNum = Number(val)
+                          if (!isNaN(maybeNum)) {
+                            // Heuristic: >1e12 is ms, >1e9 is seconds
+                            if (maybeNum > 1e12) {
+                              rawTimestamp = new Date(maybeNum)
+                            } else if (maybeNum > 1e9) {
+                              rawTimestamp = new Date(maybeNum * 1000)
+                            }
+                            if (rawTimestamp) break
+                          }
+                        }
+                      }
+                    }
+                  } else if (typeof reading.timestamp === 'number') {
+                    // Could be seconds or milliseconds -- guess based on magnitude
+                    const num = Number(reading.timestamp)
+                    if (num > 1e12) {
+                      // milliseconds
+                      rawTimestamp = new Date(num)
+                    } else {
+                      // seconds
+                      rawTimestamp = new Date(num * 1000)
+                    }
+                  } else if (typeof reading.timestamp === 'string') {
+                    const parsed = new Date(reading.timestamp)
+                    if (!isNaN(parsed)) rawTimestamp = parsed
+                  }
+                } catch (e) {
+                  console.warn('Unhandled timestamp shape', reading.timestamp, e)
+                }
+              }
+
+              if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+              formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit'
+              })
+
+              formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              })
+
+              timestampSeconds = rawTimestamp.getTime() / 1000
+            } else {
+              // Keep placeholders when timestamp missing or invalid
+              console.warn('Invalid or missing timestamp on reading:', reading)
+            }
+          } catch (e) {
+            console.error("Error formatting date:", e, reading.timestamp)
+          }
 
         const temperature = reading.temperature !== undefined && reading.temperature !== null 
           ? Number(reading.temperature).toFixed(2) 
@@ -1075,7 +1158,7 @@ const fetchTempHumidityData = async () => {
           humidity: humidity,
           date: formattedDate,
           time: formattedTime,
-          rawTimestamp: new Date(reading.timestamp._seconds * 1000 + reading.timestamp._nanoseconds / 1000000),
+          rawTimestamp: rawTimestamp, // may be null if timestamp invalid
           deviceId: reading.device_id,
           soilMoisture: reading.soilMoisture || null
         }
@@ -1085,6 +1168,8 @@ const fetchTempHumidityData = async () => {
     
     // Update the main data array
     tempHumidityData.value = processedData
+  // DEBUG: show processedData sample (after parsing)
+  console.debug('DEBUG: processed readings sample:', processedData.slice(0, 5))
     isLoading.value = false
     
     // Update chart with all data
@@ -1197,34 +1282,33 @@ const fetchTimeRange = async (deviceId = null) => {
 }
 
 const initializeChartData = (data) => {
-  // Take the most recent 20 readings for the chart
-  const recentData = data.slice(-20)
-  
+  // Ensure we pick the most recent 20 readings regardless of incoming order.
+  // First, create a copy and sort by timestamp descending (newest first),
+  // then take the first 20 (most recent), then sort those ascending for plotting oldest->newest.
+  const dataSortedDesc = [...data].sort((a, b) => {
+    const aT = a.timestamp == null ? -Infinity : a.timestamp
+    const bT = b.timestamp == null ? -Infinity : b.timestamp
+    return bT - aT
+  })
+  const recentData = dataSortedDesc.slice(0, 20)
+
+  // Only include items that have valid rawTimestamp (timestamp saved in DB).
   const chartDataPoints = recentData
-    .filter(item => item.temperature !== '--' && item.humidity !== '--')
-    .map(item => {
-      // Handle Firebase timestamp format
-      let timestamp;
-      if (item.rawTimestamp) {
-        timestamp = item.rawTimestamp;
-      } else if (item.timestamp && typeof item.timestamp === 'object' && '_seconds' in item.timestamp) {
-        timestamp = new Date(item.timestamp._seconds * 1000);
-      } else if (item.timestamp && typeof item.timestamp === 'number') {
-        timestamp = new Date(item.timestamp * 1000);
-      } else {
-        // Fallback to current time if no valid timestamp
-        timestamp = new Date();
-      }
-      
-      return {
-        timestamp: timestamp,
-        temperature: Number(item.temperature),
-        humidity: Number(item.humidity)
-      }
-    })
-    .sort((a, b) => a.timestamp - b.timestamp) // Sort from oldest to newest
+    .filter(item => item.temperature !== '--' && item.humidity !== '--' && item.rawTimestamp)
+    .map(item => ({
+      timestamp: item.rawTimestamp,
+      temperature: Number(item.temperature),
+      humidity: Number(item.humidity)
+    }))
+    .filter(pt => pt.timestamp instanceof Date && !isNaN(pt.timestamp.getTime()))
+    .sort((a, b) => a.timestamp - b.timestamp) // Ensure oldest -> newest order for the chart
 
   chartData.value = chartDataPoints
+
+  if (!chartDataPoints.length) {
+    console.warn('DEBUG: initializeChartData -> no chart points available. recentData length=', recentData.length, 'filtered ->', recentData.filter(item=> item.temperature !== '--' && item.humidity !== '--').length)
+    console.debug('DEBUG: recentData sample:', recentData.slice(0,5))
+  }
 
   if (chartDataPoints.length > 0) {
     const latestReading = chartDataPoints[chartDataPoints.length - 1]
@@ -1551,8 +1635,9 @@ const searchQuery = ref('')
 const itemsPerPage = ref(20) 
 const currentPage = ref(1)
 const activeDropdown = ref(null)
-const sortKey = ref('id')
-const sortDirection = ref('asc')
+// Default to sort by timestamp descending so the table shows newest -> oldest
+const sortKey = ref('timestamp')
+const sortDirection = ref('desc')
 const activeFilters = ref({})
 
 const filterFields = [
@@ -1603,8 +1688,9 @@ const sortedData = computed(() => {
     let aValue = a[sortKey.value]
     let bValue = b[sortKey.value]
     
-    if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-    if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+  // Treat null/undefined/empty as missing and push them to the end depending on sort direction
+  if (aValue === '' || aValue === undefined || aValue === null) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+  if (bValue === '' || bValue === undefined || bValue === null) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
     
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection.value === 'asc' 

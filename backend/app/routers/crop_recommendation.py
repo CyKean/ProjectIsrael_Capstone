@@ -1049,106 +1049,65 @@ async def get_saved_recommendations():
 async def get_recommendation_stats():
     try:
         db = await get_database()
-        
-        # Get stats from your system_stats collection
-        stats_doc = await db["system_stats"].find_one({"_id": "crop_recommendation_metrics"})
-        
-        if not stats_doc:
-            # If no stats exist, calculate from crop_recommendations
-            total = await db["crop_recommendations"].count_documents({})
-            planted = await db["crop_recommendations"].count_documents({"status": "Planted"})
-            ongoing = await db["crop_recommendations"].count_documents({"status": "Ongoing"})
-            harvested = await db["crop_recommendations"].count_documents({"status": "Harvested"})
-            
-            success_rate = round((harvested / total * 100) if total > 0 else 0, 1)
-            
-            current_stats = {
-                "total": total,
-                "planted": planted,
-                "ongoing": ongoing,
-                "harvested": harvested,
-                "successRate": success_rate
-            }
-            
-            # Create baseline stats document with Firestore timestamp
-            baseline_stats = {
-                "_id": "crop_recommendation_metrics",
-                "total": total,
-                "planted": planted,
-                "ongoing": ongoing,
-                "harvested": harvested,
-                "successRate": success_rate,
-                "timestamp": {
-                    "_seconds": int(datetime.utcnow().timestamp()),
-                    "_nanoseconds": 0
-                }
-            }
-            await db["system_stats"].insert_one(baseline_stats)
-            
-            return {
-                "current": current_stats,
-                "baseline": current_stats
-            }
-        
-        # Get current counts from crop_recommendations
+
+        # Helper to normalize timestamp fields that may be stored as dict or datetime
+        def normalize_ts(ts):
+            if ts is None:
+                return None
+            if isinstance(ts, dict):
+                # Firestore-like structure
+                if "_seconds" in ts:
+                    return datetime.fromtimestamp(ts["_seconds"] + ts.get("_nanoseconds", 0) / 1e9)
+                if "seconds" in ts:
+                    return datetime.fromtimestamp(ts["seconds"] + ts.get("nanoseconds", 0) / 1e9)
+            if isinstance(ts, datetime):
+                return ts
+            # try ISO string
+            try:
+                return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+            except Exception:
+                return None
+
+        # Compute current stats live from crop_recommendations so changes are reflected immediately
         total = await db["crop_recommendations"].count_documents({})
         planted = await db["crop_recommendations"].count_documents({"status": "Planted"})
         ongoing = await db["crop_recommendations"].count_documents({"status": "Ongoing"})
         harvested = await db["crop_recommendations"].count_documents({"status": "Harvested"})
-        
+
         success_rate = round((harvested / total * 100) if total > 0 else 0, 1)
-        
-        current_stats = {
-            "total": total,
-            "planted": planted,
-            "ongoing": ongoing,
-            "harvested": harvested,
-            "successRate": success_rate
-        }
-        
-        # Handle timestamp conversion for baseline
-        stats_timestamp = stats_doc.get("timestamp")
-        baseline_timestamp_dt = None
-        
-        if isinstance(stats_timestamp, dict) and '_seconds' in stats_timestamp:
-            baseline_timestamp_dt = convert_firestore_timestamp(stats_timestamp)
-        elif isinstance(stats_timestamp, datetime):
-            baseline_timestamp_dt = stats_timestamp
-        
-        # Update baseline if it's older than 24 hours
-        if baseline_timestamp_dt and (datetime.utcnow() - baseline_timestamp_dt).total_seconds() > 86400:
-            updated_stats = {
-                "total": total,
-                "planted": planted,
-                "ongoing": ongoing,
-                "harvested": harvested,
-                "successRate": success_rate,
-                "timestamp": {
-                    "_seconds": int(datetime.utcnow().timestamp()),
-                    "_nanoseconds": 0
-                }
+
+        current_stats = {"total": int(total), "planted": int(planted), "ongoing": int(ongoing), "harvested": int(harvested), "successRate": success_rate}
+
+        # Get the most recent metrics entry from metric_history (used only for baseline selection)
+        current_stats_doc = await db["metric_history"].find_one({}, sort=[("timestamp", -1)])
+
+        # Baseline selection: prefer latest entry older than 24 hours, otherwise earliest available
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+
+        baseline_query = {"timestamp": {"$lt": twenty_four_hours_ago}}
+        baseline_stats_doc = await db["metric_history"].find_one(baseline_query, sort=[("timestamp", -1)])
+
+        if not baseline_stats_doc:
+            # earliest record as fallback
+            baseline_stats_doc = await db["metric_history"].find_one({}, sort=[("timestamp", 1)])
+
+        if baseline_stats_doc:
+            ts_raw = baseline_stats_doc.get("timestamp")
+            ts_norm = normalize_ts(ts_raw)
+            baseline_stats = {
+                "total": int(baseline_stats_doc.get("total_recommendations") or baseline_stats_doc.get("total") or 0),
+                "planted": int(baseline_stats_doc.get("planted_count") or baseline_stats_doc.get("planted") or 0),
+                "ongoing": int(baseline_stats_doc.get("active_count") or baseline_stats_doc.get("ongoing") or 0),
+                "harvested": int(baseline_stats_doc.get("harvested_count") or baseline_stats_doc.get("harvested") or 0),
+                "successRate": float(baseline_stats_doc.get("success_rate") or baseline_stats_doc.get("successRate") or 0),
+                "timestamp": ts_norm.isoformat() if ts_norm else (str(baseline_stats_doc.get("timestamp")) or datetime.utcnow().isoformat())
             }
-            await db["system_stats"].update_one(
-                {"_id": "crop_recommendation_metrics"},
-                {"$set": updated_stats}
-            )
-            stats_doc = updated_stats
-            baseline_timestamp_dt = datetime.utcnow()
-        
-        # Prepare baseline stats for response
-        baseline_stats = {
-            "total": stats_doc.get("total", 0),
-            "planted": stats_doc.get("planted", 0),
-            "ongoing": stats_doc.get("ongoing", 0),
-            "harvested": stats_doc.get("harvested", 0),
-            "successRate": stats_doc.get("successRate", 0),
-            "timestamp": baseline_timestamp_dt.isoformat() if baseline_timestamp_dt else datetime.utcnow().isoformat()
-        }
-        
-        return {
-            "current": current_stats,
-            "baseline": baseline_stats
-        }
+        else:
+            baseline_stats = current_stats.copy()
+            baseline_stats["timestamp"] = datetime.utcnow().isoformat()
+
+        return {"current": current_stats, "baseline": baseline_stats}
+
     except Exception as e:
         import traceback
         traceback.print_exc()

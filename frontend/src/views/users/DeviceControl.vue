@@ -838,7 +838,7 @@
       ></div>
       
       <!-- Modal Content - Redesigned with modern UI and fixed header and rounded bottom corners -->
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col m-2 md:m-4 z-[10000] overflow-hidden">
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] md:max-h-[90vh] flex flex-col m-2 md:m-4 z-[10000] overflow-hidden">
         <!-- Modal Header with gradient background - FIXED -->
         <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-2 md:p-6 rounded-t-2xl flex items-center justify-between sticky top-0 z-10">
           <div class="flex items-center gap-3">
@@ -902,7 +902,7 @@
           <div class="p-2 md:p-6">
             <!-- Calendar for One-time and Custom scheduling -->
             <div v-if="wateringMode === 'one-time' || wateringMode === 'custom'" class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+              <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Select Date</label>
               <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <!-- Calendar Header -->
                 <div class="flex items-center justify-between p-3 md;p-4 bg-gray-50 border-b border-gray-200">
@@ -1001,7 +1001,7 @@
             
             <!-- Weekly Schedule - Enhanced UI -->
             <div v-if="wateringMode === 'weekly'" class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
+              <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Select Days</label>
               <div class="md:grid md:grid-cols-7 flex justify-between md:gap-2">
                 <button 
                   v-for="(day, index) in weekDays" 
@@ -1025,7 +1025,7 @@
             
             <!-- Time of Day - Enhanced UI -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Time of Day</label>
+              <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Time of Day</label>
               <div class="flex items-center">
                 <div class="bg-gray-50 rounded-xl px-4 py-3 w-full flex items-center justify-center border border-gray-200">
                   <div class="relative">
@@ -1096,9 +1096,9 @@
             <!-- Duration - Enhanced UI -->
             <div class="mb-6">
               <div class="flex items-center justify-between mb-2">
-                <label class="text-sm font-medium text-gray-700">Duration</label>
+                <label class="text-xs md:text-sm font-medium text-gray-700">Duration</label>
                 <div class="flex items-center gap-2">
-                  <span class="text-sm text-gray-500">{{ wateringDuration }} minutes</span>
+                  <span class="text-xs md:text-sm text-gray-500">{{ wateringDuration }} minutes</span>
                 </div>
               </div>
               
@@ -1111,7 +1111,7 @@
                   step="1"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
                 />
-                <div class="absolute -top-2 left-0 right-0 flex justify-between px-2 text-xs text-gray-500">
+                <div class="absolute -top-2 left-0 right-0 flex justify-between px-2 text-[10px] md:text-sm text-gray-500">
                   <span>1m</span>
                   <span>30m</span>
                   <span>60m</span>
@@ -1120,7 +1120,7 @@
                 </div>
               </div>
               
-              <div class="flex items-center justify-between mt-6">
+              <div class="flex flex-col md:flex-row items-center justify-between mt-6">
                 <div class="flex items-center gap-2">
                   <button 
                     @click="decreaseDuration" 
@@ -1138,53 +1138,15 @@
                     <Plus class="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
-                <div class="text-sm text-gray-500">
+                <div class="text-xs md:text-sm text-gray-500">
                   Watering duration in minutes
                 </div>
               </div>
             </div>
             
-            <!-- Custom Schedule - Interval Settings -->
-            <div v-if="wateringMode === 'custom'" class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Repeat Every</label>
-              <div class="flex items-center gap-3">
-                <div class="flex-1">
-                  <div class="flex items-center">
-                    <button 
-                      @click="decreaseInterval" 
-                      class="bg-gray-100 hover:bg-gray-200 rounded-l-lg p-2.5"
-                    >
-                      <Minus class="w-4 h-4 text-gray-600" />
-                    </button>
-                    <input 
-                      type="number" 
-                      v-model.number="wateringInterval"
-                      min="1"
-                      max="30"
-                      class="w-full bg-gray-50 py-2.5 text-center border-y border-gray-200 text-lg focus:outline-none focus:ring-0"
-                    />
-                    <button
-                      @click="increaseInterval"
-                      class="bg-gray-100 hover:bg-gray-200 rounded-r-lg p-2.5"
-                    >
-                      <Plus class="w-4 h-4 text-gray-600" />
-                    </button>
-                  </div>
-                </div>
-                <select
-                  v-model="wateringIntervalUnit"
-                  class="bg-gray-50 rounded-lg border border-gray-200 text-base text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500 px-4 py-2.5 flex-1"
-                >
-                  <option value="hours">Hours</option>
-                  <option value="days">Days</option>
-                  <option value="weeks">Weeks</option>
-                </select>
-              </div>
-            </div>
-            
             <!-- Additional Settings -->
             <div class="mb-6">
-              <h3 class="text-sm font-medium text-gray-700 mb-3">Additional Settings</h3>
+              <h3 class="text-xs md:text-sm font-medium text-gray-700 mb-3">Additional Settings</h3>
             
               <div class="space-y-3">
                 <!-- Notification -->
@@ -1194,8 +1156,8 @@
                       <Bell class="w-5 h-5 text-amber-600" />
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-gray-700">Receive notifications</p>
-                      <p class="text-xs text-gray-500 mt-0.5">Get notified when watering starts and ends</p>
+                      <p class="text-xs md:text-sm font-medium text-gray-700">Receive notifications</p>
+                      <p class="text-[10px] md:text-xs text-gray-500 mt-0.5">Get notified when watering starts and ends</p>
                     </div>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
@@ -1211,13 +1173,13 @@
                       <Droplets class="w-5 h-5 text-cyan-600" />
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-gray-700">Water flow rate</p>
-                      <p class="text-xs text-gray-500 mt-0.5">Set the water flow intensity</p>
+                      <p class="text-xs md:text-sm font-medium text-gray-700">Water flow rate</p>
+                      <p class="text-[10px] md:text-xs text-gray-500 mt-0.5">Set the water flow intensity</p>
                     </div>
                   </div>
                   <select
                     v-model="waterFlowRate"
-                    class="bg-white rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500 px-3 py-1.5"
+                    class="bg-white rounded-lg border border-gray-200 text-xs md:text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500 px-3 py-1.5"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -1228,7 +1190,7 @@
             
               <button
                 @click="showAdvancedSettings = !showAdvancedSettings"
-                class="mt-3 text-sm text-green-600 hover:text-green-700 flex items-center gap-1"
+                class="mt-3 text-xs md:text-sm text-green-600 hover:text-green-700 flex items-centerse self-center justify-self-center gap-1"
               >
                 <span>{{ showAdvancedSettings ? 'Hide' : 'Show' }} advanced settings</span>
                 <ChevronDown v-if="!showAdvancedSettings" class="w-4 h-4" />
@@ -1238,15 +1200,15 @@
           
             <!-- Schedule Summary -->
             <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
-              <h3 class="text-sm font-medium text-gray-700 mb-2">Schedule Summary</h3>
+              <h3 class="text-xs md:text-sm font-medium text-gray-700 mb-2">Schedule Summary</h3>
               <div class="space-y-2 text-sm text-gray-600">
                 <div class="flex items-center gap-2">
                   <Calendar class="w-4 h-4 text-gray-500" />
-                  <span>{{ scheduleSummary }}</span>
+                  <span class="text-xs md:text-sm">{{ scheduleSummary }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <Clock class="w-4 h-4 text-gray-500" />
-                  <span>{{ timeDisplay }} for {{ wateringDuration }} minutes</span>
+                  <span class="text-xs md:text-sm">{{ timeDisplay }} for {{ wateringDuration }} minutes</span>
                 </div>
                
               </div>
@@ -1259,7 +1221,7 @@
           <button
             @click="closeScheduleModal"
             :disabled="isLoading"
-            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg px-5 py-2.5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs md:text-sm font-medium rounded-lg px-4 py-1 md:px-5 md:py-2.5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -1271,11 +1233,11 @@
           >
             <template v-if="isLoading">
               <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span class="ml-2">Saving...</span>
+              <span class="ml-2 text-xs md:text-sm">Saving...</span>
             </template>
             <template v-else>
               <Save class="w-4 h-4" />
-              <span>{{ editingScheduleId !== null ? 'Update Schedule' : 'Save Schedule' }}</span>
+              <span class="text-xs md:text-sm">{{ editingScheduleId !== null ? 'Update Schedule' : 'Save Schedule' }}</span>
             </template>
           </button>
         </div>

@@ -10,7 +10,7 @@
           <!-- Title and breadcrumb with enhanced styling -->
           <div>
             <h1 class="text-sm md:text-xl font-semibold text-gray-800 mb-1">Soil pH Data Table</h1>
-            <div class="flex items-center text-xs md:text-sm text-gray-500">
+            <div class="hidden md:block flex items-center text-xs md:text-sm text-gray-500">
               <span class="text-emerald-600 font-medium">Soil pH</span>
               <ChevronRight class="h-3.5 w-3.5 mx-1 text-gray-400" />
               <span class="text-gray-600">Data Table</span>
@@ -20,7 +20,7 @@
           <!-- Controls aligned horizontally with improved styling -->
           <div class="flex md:block flex-row gap-2">
             <!-- Button group - wraps on mobile, nowrap on larger screens -->
-            <div class="flex flex-col md:flex-row flex-wrap sm:flex-nowrap gap-2">
+            <div class="flex flex-col w-full items-center justify-center md:flex-row flex-wrap sm:flex-nowrap gap-2">
               <div class="relative flex-1 sm:w-56 md:w-72 min-w-0">
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
                 <input
@@ -295,7 +295,7 @@
             
             <div v-else>
               <div v-for="(row, index) in paginatedData" :key="index" 
-                  class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  class="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-2">
                 <div class="flex justify-between items-start mb-2">
                   <div>
                     <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>

@@ -2525,12 +2525,26 @@ const updateStatsBaseline = async (newStats) => {
   }
 };
 
-// Calculate percentage change (always shows change if baseline exists)
+// Calculate percentage change (pure function, handles baseline === 0)
+// - If baseline === 0 and current === 0 -> 0%
+// - If baseline === 0 and current > 0 -> treat as 100% increase
+// - Rounds to 1 decimal place and returns absolute value + direction flag
 const calculateChange = (current, baseline) => {
-  if (baseline === 0 || !stats.value.baseline.timestamp) {
+  const c = Number(current) || 0
+  const b = Number(baseline) || 0
+
+  // Both zero -> no change
+  if (b === 0 && c === 0) {
     return { value: 0, isIncrease: false }
   }
-  const change = ((current - baseline) / baseline) * 100
+
+  // Baseline zero but current > 0 -> show full increase (100%)
+  if (b === 0 && c > 0) {
+    return { value: Math.round(1000) / 10, isIncrease: true } // 100.0
+  }
+
+  // Normal case
+  const change = ((c - b) / b) * 100
   return {
     value: Math.abs(Math.round(change * 10) / 10), // 1 decimal place
     isIncrease: change > 0
@@ -2602,8 +2616,22 @@ const fetchRecommendationStats = async () => {
     const response = await api.get('/recommendations/stats');
     const statsData = response.data;
     
+    // assign current
     stats.value.current = statsData.current;
-    stats.value.baseline = statsData.baseline;
+
+    // Normalize baseline timestamp: backend returns ISO string — convert to Date for local calculations
+    const baseline = statsData.baseline || {};
+    if (baseline.timestamp) {
+      try {
+        baseline.timestamp = new Date(baseline.timestamp);
+      } catch (e) {
+        baseline.timestamp = null;
+      }
+    } else {
+      baseline.timestamp = null;
+    }
+
+    stats.value.baseline = baseline;
     
     console.log('Stats updated:', statsData);
     isStatsLoading.value = false;

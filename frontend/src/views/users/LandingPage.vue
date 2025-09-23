@@ -203,13 +203,6 @@
               <div class="modal-divider-line"></div>
             </div>
 
-            <!-- Guest Access -->
-            <button 
-              class="modal-guest-btn"
-              @click="closeModal"
-            >
-              Continue as Guest
-            </button>
           </div>
         </div>
       </div>

@@ -36,8 +36,8 @@
     </div>
 
     <transition name="page-transition" mode="out-in" @before-leave="beforeLeave" @enter="enter" @after-enter="afterEnter">
-      <div :key="transitionKey" class="page-content relative z-10" :style="contentStyle">
-        <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20">
+  <div :key="transitionKey" class="page-content relative z-10" :style="contentStyle">
+  <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20 mx-auto items-center justify-center">
           <!-- Left Side - Image and Branding -->
           <div class="hidden md:flex md:w-1/2 bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-end relative">
             <!-- Background Image -->
@@ -75,6 +75,8 @@
           <!-- Right Side - Login Form -->
           <div class="w-full md:w-1/2 bg-white p-4 xs:p-6 flex flex-col">
             <div class="w-full max-w-xs mx-auto flex-1 flex flex-col justify-center">
+              <!-- (mobile button moved to bottom) -->
+
               <h2 class="text-lg xs:text-xl font-bold text-[#2B5329] text-center mb-4 xs:mb-6">Login to your Account</h2>
 
               <form class="space-y-3 xs:space-y-4" @submit.prevent="handleLogin">
@@ -214,6 +216,18 @@
                   </p>
                 </div>
               </form>
+            </div>
+
+            <!-- Mobile: Back to website button placed at bottom and centered -->
+            <div class="w-full md:hidden flex justify-center mt-3">
+              <button
+                type="button"
+                @click="handleBackToWebsite"
+                class="text-[#2B5329] hover:text-[#FFA500] flex items-center gap-1 xs:gap-2 transition-colors duration-300 border border-[#2B5329]/20 rounded-lg px-3 py-1 text-sm"
+              >
+                <ArrowLeft class="h-3 w-3" />
+                <span>Back to website</span>
+              </button>
             </div>
           </div>
         </div>

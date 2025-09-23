@@ -34,7 +34,7 @@
 
   <!-- Enhanced Notification Details Modal - MOBILE RESPONSIVE -->
   <div v-if="showDetailsModal && selectedNotification" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden border border-gray-200">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden border border-gray-200">
       <!-- Modal Header -->
       <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center justify-between">
@@ -63,7 +63,7 @@
       </div>
 
       <!-- Modal Content - MOBILE RESPONSIVE LAYOUT -->
-      <div class="overflow-y-auto max-h-[calc(95vh-140px)] sm:max-h-[calc(90vh-160px)]">
+  <div class="overflow-y-auto max-h-[calc(80vh-140px)]">
         <div class="p-3 sm:p-6">
           <div class="space-y-4 sm:space-y-6">
             <!-- Title and Status -->
@@ -120,12 +120,12 @@
                         <span class="text-sm sm:text-base font-semibold text-cyan-700">Water Level Status</span>
                       </div>
                       <div class="text-center mb-3">
-                        <span class="text-3xl sm:text-5xl font-bold text-cyan-800">
-                          {{ selectedNotification.context.waterLevel || '--' }}%
+                          <span class="text-3xl sm:text-5xl font-bold text-cyan-800">
+                          {{ getFormattedValue(resolveWaterLevel(selectedNotification)) || '--' }}%
                         </span>
                       </div>
                       <p class="text-xs sm:text-sm text-cyan-700 font-medium">
-                        {{ getWaterLevelDescription(selectedNotification.context.waterLevel) }}
+                        {{ getWaterLevelDescription(resolveWaterLevel(selectedNotification)) }}
                       </p>
                     </div>
                   </div>
@@ -165,7 +165,7 @@
                         <span class="text-xs sm:text-sm font-semibold text-emerald-700">Agricultural Recommendation</span>
                       </div>
                       <p class="text-xs sm:text-sm text-emerald-800 font-medium leading-relaxed">
-                        {{ selectedNotification.context.recommendation || getWateringRecommendation(selectedNotification) }}
+                        {{ resolveRecommendation(selectedNotification) }}
                       </p>
                     </div>
                   </div>
@@ -493,7 +493,7 @@
                           <span class="text-xs sm:text-sm font-medium text-cyan-700">Water Level</span>
                         </div>
                         <p class="text-lg sm:text-xl font-bold text-cyan-800 mb-1">
-                          {{ getFormattedValue(selectedNotification.context.waterLevel) || '--' }}%
+                          {{ getFormattedValue(resolveWaterLevel(selectedNotification)) || '--' }}%
                         </p>
                       </div>
                     </div>
@@ -527,110 +527,207 @@
                 </div>
 
                 <!-- 6. Water Scheduling Alert -->
-                <div v-else-if="selectedNotification.context?.type === 'watering-schedule'" class="space-y-3 sm:space-y-5">
+                <!-- 6. Water Scheduling Alert - IMPROVED DESIGN -->
+                <div v-else-if="isWateringScheduleNotification(selectedNotification)" class="space-y-3 sm:space-y-5">
                   <div class="text-xs sm:text-sm text-gray-600 bg-white/70 rounded-lg p-2 sm:p-3 border border-indigo-200">
-                    Watering schedule details for {{ selectedNotification.context.scheduleDate || formatFullDate(selectedNotification.time) }}.
+                    Watering schedule details for {{ getContextValue(selectedNotification, 'scheduleDate', 'schedule_date', 'date', 'nextSchedule.date') || formatFullDate(selectedNotification.time) }}.
                   </div>
-                  
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                    <!-- Schedule Type -->
-                    <div class="bg-blue-50 rounded-lg sm:rounded-xl border-2 border-blue-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <CalendarClock class="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-blue-700">Schedule Type</span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-blue-800 mb-1 capitalize">
-                          {{ selectedNotification.context.scheduleType }}
-                          <span v-if="selectedNotification.context.scheduleType === 'weekly'">
-                            ({{ getDayName(selectedNotification.context.dayOfWeek) }})
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <!-- Duration -->
-                    <div class="bg-green-50 rounded-lg sm:rounded-xl border-2 border-green-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <Clock class="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-green-700">Duration</span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-green-800 mb-1">
-                          {{ selectedNotification.context.duration }} minute{{ selectedNotification.context.duration !== 1 ? 's' : '' }}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <!-- Start/End Time -->
-                    <div class="bg-purple-50 rounded-lg sm:rounded-xl border-2 border-purple-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <component :is="selectedNotification.title.includes('Started') ? Play : StopCircle" 
-                                    class="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-purple-700">
-                            {{ selectedNotification.title.includes('Started') ? 'Start Time' : 'End Time' }}
-                          </span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-purple-800 mb-1">
-                          {{ selectedNotification.context.startTime || selectedNotification.context.endTime || formatTime(selectedNotification.time) }}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <!-- Water Level at Start -->
-                    <div class="bg-cyan-50 rounded-lg sm:rounded-xl border-2 border-cyan-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <Gauge class="h-3 w-3 sm:h-4 sm:w-4 text-cyan-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-cyan-700">Water Level at Start</span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-cyan-800 mb-1">
-                          {{ selectedNotification?.context?.environment?.waterLevel || selectedNotification?.context?.waterLevelAtStart || '--' }}%
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <!-- Zone/Area -->
-                    <div class="bg-indigo-50 rounded-lg sm:rounded-xl border-2 border-indigo-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <MapPin class="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-indigo-700">Watering Zone</span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-indigo-800 mb-1">
-                          {{ selectedNotification.context.zone || 'Greenhouse 1' }}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <!-- Mode -->
-                    <div class="bg-amber-50 rounded-lg sm:rounded-xl border-2 border-amber-200 shadow-sm">
-                      <div class="p-3 sm:p-4">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <Settings2 class="h-3 w-3 sm:h-4 sm:w-4 text-amber-600 flex-shrink-0" />
-                          <span class="text-xs sm:text-sm font-medium text-amber-700">Mode</span>
-                        </div>
-                        <p class="text-base sm:text-lg font-bold text-amber-800 mb-1 capitalize">
-                          {{ selectedNotification.context.mode || 'auto' }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Status Summary -->
-                  <div class="bg-emerald-100 rounded-lg sm:rounded-xl border-2 border-emerald-300 shadow-sm">
-                    <div class="p-3 sm:p-4">
-                      <div class="flex items-center space-x-2 mb-2">
-                        <Info class="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 flex-shrink-0" />
-                        <span class="text-xs sm:text-sm font-semibold text-emerald-700">Status Summary</span>
-                      </div>
-                      <p class="text-xs sm:text-sm text-emerald-800 font-medium leading-relaxed">
-                        {{ selectedNotification.context.remarks || getWateringScheduleRemarks(selectedNotification) }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+  
+  <!-- Main Schedule Information -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+    <!-- Schedule Type -->
+    <div class="bg-blue-50 rounded-lg sm:rounded-xl border-2 border-blue-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <CalendarClock class="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-blue-700">Schedule Type</span>
+        </div>
+        <p class="text-base sm:text-lg font-bold text-blue-800 mb-1 capitalize">
+          {{ getContextValue(selectedNotification, 'scheduleType', 'schedule_type', 'type') || 'Auto' }}
+          <span v-if="(getContextValue(selectedNotification, 'scheduleType', 'schedule_type') || '').toLowerCase() === 'weekly' && getContextValue(selectedNotification, 'dayOfWeek', 'day_of_week') !== undefined">
+            ({{ getDayName(getContextValue(selectedNotification, 'dayOfWeek', 'day_of_week')) }})
+          </span>
+        </p>
+        <p class="text-xs text-blue-600">
+          {{ getContextValue(selectedNotification, 'frequency', 'freq') || 'Automated schedule' }}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Duration -->
+    <div class="bg-green-50 rounded-lg sm:rounded-xl border-2 border-green-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <Clock class="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-green-700">Duration</span>
+        </div>
+        <p class="text-base sm:text-lg font-bold text-green-800 mb-1">
+          {{ getContextValue(selectedNotification, 'duration', 'minutes', 'length') || 15 }} minute{{ (getContextValue(selectedNotification, 'duration', 'minutes', 'length') || 15) !== 1 ? 's' : '' }}
+        </p>
+        <p class="text-xs text-green-600">
+          {{ getWaterVolumeEstimate(getContextValue(selectedNotification, 'duration', 'minutes', 'length')) }}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Current Status -->
+    <div class="bg-purple-50 rounded-lg sm:rounded-xl border-2 border-purple-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <component :is="getScheduleStatusIcon(selectedNotification)" 
+                    class="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-purple-700">Status</span>
+        </div>
+        <p class="text-base sm:text-lg font-bold text-purple-800 mb-1 capitalize">
+          {{ getScheduleStatus(selectedNotification) }}
+        </p>
+        <p class="text-xs text-purple-600">
+          {{ getScheduleStatusDescription(selectedNotification) }}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Start/End Time -->
+    <div class="bg-indigo-50 rounded-lg sm:rounded-xl border-2 border-indigo-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <component :is="selectedNotification.title?.toLowerCase().includes('started') ? Play : StopCircle" 
+                    class="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-indigo-700">
+            {{ getScheduleTimeLabel(selectedNotification) }}
+          </span>
+        </div>
+        <p class="text-base sm:text-lg font-bold text-indigo-800 mb-1">
+          {{ getContextValue(selectedNotification, 'startTime', 'start_time') || getContextValue(selectedNotification, 'scheduledTime', 'scheduled_time') || getContextValue(selectedNotification, 'endTime', 'end_time') || getScheduleTime(selectedNotification) }}
+        </p>
+        <p class="text-xs text-indigo-600">
+          {{ getTimeRemaining(selectedNotification) }}
+        </p>
+      </div>
+    </div>
+    
+    
+    <!-- Zone/Area -->
+    <div class="bg-emerald-50 rounded-lg sm:rounded-xl border-2 border-emerald-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <MapPin class="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-emerald-700">Watering Zone</span>
+        </div>
+        <p class="text-base sm:text-lg font-bold text-emerald-800 mb-1">
+          {{ getContextValue(selectedNotification, 'zone', 'area', 'wateringZone') || 'Greenhouse 1' }}
+        </p>
+        <p class="text-xs text-emerald-600">
+          {{ getZoneDetails(getContextValue(selectedNotification, 'zone', 'area', 'wateringZone')) }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Details -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+    <!-- Mode and Settings -->
+    <div class="bg-amber-50 rounded-lg sm:rounded-xl border-2 border-amber-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <Settings2 class="h-3 w-3 sm:h-4 sm:w-4 text-amber-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-amber-700">Settings</span>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span class="text-xs text-amber-700">Mode:</span>
+            <span class="text-xs font-medium text-amber-800 capitalize">
+              {{ selectedNotification.context.mode || 'auto' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-amber-700">Intensity:</span>
+            <span class="text-xs font-medium text-amber-800 capitalize">
+              {{ selectedNotification.context.intensity || 'medium' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-amber-700">Valves:</span>
+            <span class="text-xs font-medium text-amber-800">
+              {{ selectedNotification.context.activeValves || 1 }}/{{ selectedNotification.context.totalValves || 4 }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Performance Metrics -->
+    <div class="bg-violet-50 rounded-lg sm:rounded-xl border-2 border-violet-200 shadow-sm">
+      <div class="p-3 sm:p-4">
+        <div class="flex items-center space-x-2 mb-2">
+          <Activity class="h-3 w-3 sm:h-4 sm:w-4 text-violet-600 flex-shrink-0" />
+          <span class="text-xs sm:text-sm font-medium text-violet-700">Performance</span>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span class="text-xs text-violet-700">Flow Rate:</span>
+            <span class="text-xs font-medium text-violet-800">
+              {{ selectedNotification.context.flowRate || '12.5' }} L/min
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-violet-700">Pressure:</span>
+            <span class="text-xs font-medium text-violet-800">
+              {{ selectedNotification.context.pressure || '2.1' }} bar
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-violet-700">Efficiency:</span>
+            <span class="text-xs font-medium text-violet-800">
+              {{ selectedNotification.context.efficiency || '92' }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Next Schedule Information -->
+  <div v-if="selectedNotification.context.nextSchedule" class="bg-slate-50 rounded-lg sm:rounded-xl border-2 border-slate-200 shadow-sm">
+    <div class="p-3 sm:p-4">
+      <div class="flex items-center space-x-2 mb-3">
+        <CalendarClock class="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 flex-shrink-0" />
+        <span class="text-xs sm:text-sm font-semibold text-slate-700">Next Scheduled Watering</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div>
+          <p class="text-xs text-slate-500">Date</p>
+          <p class="text-sm font-bold text-slate-800">{{ formatScheduleDate(selectedNotification.context.nextSchedule.date) }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500">Time</p>
+          <p class="text-sm font-bold text-slate-800">{{ selectedNotification.context.nextSchedule.time || '06:00' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500">Duration</p>
+          <p class="text-sm font-bold text-slate-800">{{ selectedNotification.context.nextSchedule.duration || 15 }} min</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500">Zone</p>
+          <p class="text-sm font-bold text-slate-800">{{ selectedNotification.context.nextSchedule.zone || 'Same' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Status Summary -->
+  <div class="bg-emerald-100 rounded-lg sm:rounded-xl border-2 border-emerald-300 shadow-sm">
+    <div class="p-3 sm:p-4">
+      <div class="flex items-center space-x-2 mb-2">
+        <Info class="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 flex-shrink-0" />
+        <span class="text-xs sm:text-sm font-semibold text-emerald-700">Schedule Summary</span>
+      </div>
+      <p class="text-xs sm:text-sm text-emerald-800 font-medium leading-relaxed">
+        {{ selectedNotification.context.remarks || getWateringScheduleRemarks(selectedNotification) }}
+      </p>
+    </div>
+  </div>
+</div>
 
                 <!-- 7. Weather Alert -->
                 <div v-else-if="selectedNotification.context?.type === 'weather-alert'" class="space-y-3 sm:space-y-5">
@@ -794,7 +891,7 @@
         <!-- Enhanced Header Section - MOBILE RESPONSIVE -->
         <div class="p-3 sm:p-4 md:p-5 border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-white">
           <!-- Header with improved mobile layout -->
-          <div class="flex flex-col space-y-3 sm:space-y-4 md:space-y-5">
+          <div class="flex flex-col space-y-1 sm:space-y-4 md:space-y-5">
             <!-- Title and Icon - Mobile First -->
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2 sm:space-x-3">
@@ -823,92 +920,135 @@
             
             <div>
               <!-- Action Buttons - Mobile Responsive Layout -->
-              <div class="flex flex-col md:flex-row items-center justify-between">
-                <div class="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
-                <!-- Select Button -->
-                <button 
-                  @click="toggleSelectMode"
-                  :disabled="isLoading"
-                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                  :class="isSelectMode 
-                    ? 'bg-red-500 text-white' 
-                    : 'bg-gray-100 text-gray-700'"
-                >
-                  <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                  <span class="hidden md:block">{{ isSelectMode ? 'Cancel' : 'Select' }}</span>
-                </button>
-
-                <!-- Delete Selected Button -->
-                <button 
-                  v-if="isSelectMode && selectedNotifications.size > 0"
-                  @click="deleteSelectedNotifications"
-                  :disabled="isLoading"
-                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                  <span class="hidden md:block">Delete ({{ selectedNotifications.size }})</span>
-                  <span class="block md:hidden">({{ selectedNotifications.size }})</span>
-                </button>
-
-                <!-- Archive Toggle Button -->
-                <button 
-                  @click="toggleArchiveView"
-                  :disabled="isLoading"
-                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                  :class="showArchived 
-                    ? 'bg-orange-500 text-white' 
-                    : 'bg-gray-100 text-gray-700'"
-                >
-                  <component :is="showArchived ? Bell : Archive" class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                  <span class="hidden md:block">{{ showArchived ? 'Active' : 'Archived' }}</span>
-                </button>
-                
-                <button 
-                  v-if="!showArchived"
-                  @click="markAllAsRead"
-                  :disabled="isLoading"
-                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                  <span class="hidden md:block">Mark All</span>
-                </button>
-
-                <button 
-                  v-if="!showArchived && !isSelectMode"
-                  @click="confirmDeleteAll"
-                  :disabled="isLoading || currentNotifications.length === 0"
-                  class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                  <span class="hidden md:block">Delete All</span>
-                </button>
-              </div>
-
-              <!-- Enhanced Filters and Search - Mobile Responsive -->
-              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-                <!-- Filter Buttons - Mobile optimized scrollable -->
-                <div class="flex items-center justify-start gap-1 sm:gap-2 overflow-x-auto scrollbar-hide min-w-0 pb-1">
-                  <div class="flex items-center gap-1 sm:gap-2 flex-nowrap">
-                    <button 
-                      v-for="filter in (showArchived ? archivedFilters : filters)" 
-                      :key="filter.value"
-                      @click="activeFilter = filter.value"
+              <div class="flex flex-col md:flex-row -mb-2 items-center justify-between">
+                <div class="flex flex-wrap justify-center items-center gap-2 overflow-visible md:overflow-x-auto">
+                  <div class="md:hidden relative sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                    </div>
+                    <input 
+                      type="text"
+                      v-model="searchQuery"
                       :disabled="isLoading"
-                      :class="[
-                        'px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0',
-                        activeFilter === filter.value 
-                          ? 'bg-emerald-500 text-white shadow-sm' 
-                          : 'bg-white text-gray-700 border border-gray-200'
-                      ]"
+                      :placeholder="showArchived ? 'Search archived...' : 'Search notifications...'"
+                      class="w-full pl-8 sm:pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <!-- Mobile filter dropdown: modern container-style button + menu -->
+                  <div id="mobile-filter-container" class="md:hidden relative ml-1">
+                    <button
+                      ref="mobileFilterButton"
+                      @click="toggleMobileFilter"
+                      type="button"
+                      :aria-expanded="mobileFilterOpen"
+                      class="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors duration-200"
                     >
-                      {{ filter.label }}
+                      <Filter class="h-3 w-3 text-gray-400" />
+                      <span class="truncate max-w-[110px]">{{ (showArchived ? archivedFilters : filters).find(f => f.value === activeFilter)?.label || 'Filter by' }}</span>
+                      <ChevronDown class="h-3 w-3 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': mobileFilterOpen }" />
                     </button>
+
+                    <teleport to="body">
+                      <div id="mobile-filter-teleport" v-if="mobileFilterOpen"
+                        class="fixed bg-white rounded-lg -ml-4 max-w-[110px] shadow-lg border border-gray-200 py-2 z-[9999] transition-opacity duration-150"
+                        :style="{ top: dropdownPosition.top + 'px', left: dropdownPosition.left + 'px', minWidth: dropdownPosition.width + 'px' }">
+                        <template v-for="filter in (showArchived ? archivedFilters : filters)" :key="filter.value">
+                          <button
+                            @click="selectMobileFilter(filter.value)"
+                            class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            {{ filter.label }}
+                          </button>
+                        </template>
+                      </div>
+                    </teleport>
+                  </div>
+                  <!-- Select Button -->
+                  <button 
+                    @click="toggleSelectMode"
+                    :disabled="isLoading"
+                    class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    :class="isSelectMode 
+                      ? 'bg-red-500 text-white' 
+                      : 'bg-gray-100 text-gray-700'"
+                  >
+                    <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                    <span class="hidden md:block">{{ isSelectMode ? 'Cancel' : 'Select' }}</span>
+                  </button>
+
+                  <!-- Delete Selected Button -->
+                  <button 
+                    v-if="isSelectMode && selectedNotifications.size > 0"
+                    @click="deleteSelectedNotifications"
+                    :disabled="isLoading"
+                    class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                    <span class="hidden md:block">Delete ({{ selectedNotifications.size }})</span>
+                    <span class="block md:hidden">({{ selectedNotifications.size }})</span>
+                  </button>
+
+                  <!-- Archive Toggle Button -->
+                  <button 
+                    @click="toggleArchiveView"
+                    :disabled="isLoading"
+                    class="flex items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    :class="showArchived 
+                      ? 'bg-orange-500 text-white' 
+                      : 'bg-gray-100 text-gray-700'"
+                  >
+                    <component :is="showArchived ? Bell : Archive" class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                    <span class="hidden md:block">{{ showArchived ? 'Active' : 'Archived' }}</span>
+                  </button>
+                  
+                  <button 
+                    v-if="!showArchived"
+                    @click="markAllAsRead"
+                    :disabled="isLoading"
+                    class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    <Check class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                    <span class="hidden md:block">Mark All</span>
+                  </button>
+
+                  <button 
+                    v-if="!showArchived && !isSelectMode"
+                    @click="confirmDeleteAll"
+                    :disabled="isLoading || currentNotifications.length === 0"
+                    class="flex items-center px-2 sm:px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    <Trash2 class="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                    <span class="hidden md:block">Delete All</span>
+                  </button>
+                </div>
+
+                <!-- Enhanced Filters and Search - Mobile Responsive -->
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+                  <!-- Mobile dropdown is placed next to action buttons (moved) -->
+
+                  <!-- Filter Buttons - Desktop / larger screens (hidden on small) -->
+                  <div class="hidden sm:flex items-center justify-start gap-1 sm:gap-2 overflow-x-auto scrollbar-hide min-w-0 pb-1">
+                    <div class="flex items-center gap-1 sm:gap-2 flex-nowrap">
+                      <button 
+                        v-for="filter in (showArchived ? archivedFilters : filters)" 
+                        :key="filter.value"
+                        @click="activeFilter = filter.value"
+                        :disabled="isLoading"
+                        :class="[
+                          'px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0',
+                          activeFilter === filter.value 
+                            ? 'bg-emerald-500 text-white shadow-sm' 
+                            : 'bg-white text-gray-700 border border-gray-200'
+                        ]"
+                      >
+                        {{ filter.label }}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
                 
                 <!-- Search Bar - Mobile responsive -->
-                <div class="relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
+                <div class="hidden md:block relative w-full sm:w-80 md:w-72 lg:w-64 xl:w-80 max-w-sm flex-shrink-0">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Search class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
                   </div>
@@ -1165,11 +1305,6 @@
             </div>
             
             <div class="flex flex-row items-center">
-              <!-- Results info - Mobile: order-2, Desktop: center -->
-              <div class="text-xs text-gray-600 order-2 sm:order-none">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredNotifications.length) }}
-                of {{ filteredNotifications.length }}
-              </div>
               
               <!-- Pagination controls - Mobile: order-3, Desktop: right -->
               <div class="flex items-center gap-1 order-3 sm:order-none">
@@ -1247,16 +1382,19 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { eventBus } from '../../eventBus'
 import {
   Bell, BellOff, Check, ArrowLeft, Search, ChevronLeft, ChevronRight,
-  AlertTriangle, Info, AlertCircle, Droplet, Leaf, BarChart, Cog, Trash2,
+  AlertTriangle, Info, AlertCircle, Droplet, Leaf, BarChart, Cog, Trash2, Filter, ChevronDown,
   CalendarClock, CalendarDays, History, Eye, Archive, X, CloudRain, 
   Thermometer, Wind, Sun, Cloud, Zap, Sprout, TreePine, Wheat, 
   Activity, Database, Wifi, WifiOff, Battery, BatteryLow, Settings2,
   TrendingUp, TrendingDown, MapPin, Gauge, ArchiveRestore, Loader2
 } from 'lucide-vue-next'
+
+// additional icons used in schedule/status
+import { Play, CheckCircle, XCircle, Clock as ClockIcon, StopCircle } from 'lucide-vue-next'
 import { getCurrentInstance } from 'vue'
 import { getWeatherData, mapWeatherCode } from '../../utils/weather.js';
 import api from '../../api/index'
@@ -1297,6 +1435,52 @@ const archivedFilters = [
 const activeFilter = ref('all')
 const searchQuery = ref('')
 const currentPage = ref(1)
+
+
+// Mobile filter dropdown state and positioning
+const mobileFilterOpen = ref(false)
+const mobileFilterButton = ref(null)
+const dropdownPosition = ref({ top: 0, left: 0, width: 0 })
+
+const toggleMobileFilter = async (event) => {
+  event && event.stopPropagation()
+  mobileFilterOpen.value = !mobileFilterOpen.value
+  if (mobileFilterOpen.value) {
+    await nextTick()
+    const btn = mobileFilterButton.value
+    if (btn && btn.getBoundingClientRect) {
+      const rect = btn.getBoundingClientRect()
+      dropdownPosition.value = { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width }
+    }
+  }
+}
+
+const closeMobileFilter = () => {
+  mobileFilterOpen.value = false
+}
+
+const selectMobileFilter = (value) => {
+  activeFilter.value = value
+  closeMobileFilter()
+}
+
+const onDocumentClickForMobileFilter = (e) => {
+  // close when clicking outside either the original container or the teleported menu
+  if (!e.target.closest) return
+  const insideButton = e.target.closest('#mobile-filter-container')
+  const insideTeleported = e.target.closest('#mobile-filter-teleport')
+  if (!insideButton && !insideTeleported) {
+    mobileFilterOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClickForMobileFilter)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClickForMobileFilter)
+})
 
 const itemsPerPageOptions = [4, 10, 15, 20, 25, 30]
 const itemsPerPage = ref(4) 
@@ -2136,6 +2320,7 @@ const getTemperatureDescription = (temp) => {
 }
 
 const getWaterLevelDescription = (level) => {
+  if (level === null || level === undefined || isNaN(level)) return 'Unknown'
   if (level >= 80) return 'Excellent water supply'
   if (level >= 50) return 'Adequate reserves'
   if (level >= 25) return 'Monitor closely'
@@ -2143,10 +2328,70 @@ const getWaterLevelDescription = (level) => {
 }
 
 const getFlowRateDescription = (flow) => {
+  if (flow === null || flow === undefined || isNaN(flow)) return 'Unknown'
   if (flow >= 40) return 'Strong flow rate'
   if (flow >= 20) return 'Normal flow'
   if (flow >= 10) return 'Reduced flow'
   return 'Very low flow'
+}
+
+// Robust numeric parsing helper
+const parseNumeric = (val) => {
+  if (val === null || val === undefined) return null
+  if (typeof val === 'number' && !isNaN(val)) return Number(val)
+  const s = String(val).trim()
+  if (s === '') return null
+  const m = s.match(/(-?\d+\.?\d*)/)
+  return m ? Number(m[1]) : null
+}
+
+// Resolve water values (try several possible paths in notification context)
+const resolveWaterLevel = (notification) => {
+  if (!notification || !notification.context) return null
+  const ctx = notification.context || {}
+  const candidates = [
+    ctx.environment?.waterLevel,
+    ctx.waterLevel,
+    ctx.level,
+    ctx.waterLevelAtStart,
+    ctx.values?.waterLevel,
+    ctx.data?.waterLevel,
+    ctx.payload?.waterLevel,
+    ctx.details?.waterLevel
+  ]
+  for (const c of candidates) {
+    const num = parseNumeric(c)
+    if (num !== null && !isNaN(num)) return num
+  }
+  return null
+}
+
+const resolveFlowRate = (notification) => {
+  if (!notification || !notification.context) return null
+  const ctx = notification.context || {}
+  const candidates = [
+    ctx.environment?.flowRate,
+    ctx.flowRate,
+    ctx.waterFlow,
+    ctx.values?.flowRate,
+    ctx.data?.flowRate,
+    ctx.payload?.flowRate
+  ]
+  for (const c of candidates) {
+    const num = parseNumeric(c)
+    if (num !== null && !isNaN(num)) return num
+  }
+  return null
+}
+
+const resolveRecommendation = (notification) => {
+  if (!notification || !notification.context) return null
+  const ctx = notification.context || {}
+  if (ctx.recommendation && ctx.recommendation !== '') return ctx.recommendation
+  if (ctx.note && ctx.note !== '') return ctx.note
+  if (ctx.remarks && ctx.remarks !== '') return ctx.remarks
+  if (notification.message && notification.message !== '') return notification.message
+  return getWateringRecommendation(notification)
 }
 
 const getUptimeDescription = (uptime) => {
@@ -2222,10 +2467,14 @@ const isTempHumidityNotification = (notification) => {
          !isWeatherNotification(notification) 
 }
 const getFormattedValue = (value) => {
-  if (!value) return null
+  // Accept 0 and numeric-like strings. Return null only for null/undefined/empty.
+  if (value === null || value === undefined) return null
   if (typeof value === 'number') return value.toFixed(1)
-  
-  const numericMatch = value.toString().match(/(\d+\.?\d*)/)
+
+  const str = value.toString().trim()
+  if (str === '') return null
+
+  const numericMatch = str.match(/(-?\d+\.?\d*)/)
   return numericMatch ? parseFloat(numericMatch[1]).toFixed(1) : null
 }
 
@@ -2435,6 +2684,188 @@ const getComprehensiveAgriculturalRecommendation = (notification) => {
   }
   return '✅ Current conditions are within acceptable ranges - continue regular monitoring'
 }
+
+const getScheduleStatusIcon = (notification) => {
+  const title = notification.title?.toLowerCase() || '';
+  if (title.includes('started') || title.includes('begin')) return Play;
+  if (title.includes('completed') || title.includes('finished')) return CheckCircle;
+  if (title.includes('failed') || title.includes('error')) return XCircle;
+  if (title.includes('scheduled') || title.includes('pending')) return Clock;
+  return CalendarClock;
+};
+
+// Generic helper to safely read multiple possible keys from notification.context
+const getContextValue = (notification, ...keys) => {
+  if (!notification) return undefined
+  const ctx = notification.context || {}
+  for (const k of keys) {
+    if (!k) continue
+    // support dot-paths like 'nextSchedule.date'
+    if (k.includes('.')) {
+      const parts = k.split('.')
+      let cur = ctx
+      let found = true
+      for (const p of parts) {
+        if (cur && Object.prototype.hasOwnProperty.call(cur, p)) {
+          cur = cur[p]
+        } else {
+          found = false
+          break
+        }
+      }
+      if (found && cur !== undefined && cur !== null) return cur
+    } else {
+      if (ctx[k] !== undefined && ctx[k] !== null) return ctx[k]
+    }
+  }
+  return undefined
+}
+
+// Heuristic detector for watering schedule notifications (handles variant payloads)
+const isWateringScheduleNotification = (notification) => {
+  if (!notification) return false
+  const type = String(getContextValue(notification, 'type', 'eventType', 'category') || '').toLowerCase()
+  if (type.includes('water') || type.includes('watering') || type.includes('schedule')) return true
+  const title = (notification.title || '').toLowerCase()
+  const msg = (notification.message || '').toLowerCase()
+  if (title.includes('watering') || title.includes('schedule') || title.includes('irrigation')) return true
+  if (msg.includes('watering') || msg.includes('schedule') || msg.includes('irrigation')) return true
+  // allow context shape where schedule fields exist even without explicit type
+  if (getContextValue(notification, 'scheduleDate', 'schedule_date', 'nextSchedule') ) return true
+  return false
+}
+
+const getScheduleStatus = (notification) => {
+  const title = notification.title?.toLowerCase() || '';
+  if (title.includes('started')) return 'In Progress';
+  if (title.includes('completed')) return 'Completed';
+  if (title.includes('failed')) return 'Failed';
+  if (title.includes('scheduled')) return 'Scheduled';
+  return 'Active';
+};
+
+// Detect start vs end schedule notifications
+const isStartNotification = (notification) => {
+  if (!notification) return false
+  const title = (notification.title || '').toLowerCase()
+  const msg = (notification.message || '').toLowerCase()
+  const type = String(getContextValue(notification, 'type', 'eventType', 'category') || '').toLowerCase()
+  return title.includes('started') || title.includes('start') || title.includes('begin') || msg.includes('started') || msg.includes('start') || type.includes('start') || type.includes('started')
+}
+
+const isEndNotification = (notification) => {
+  if (!notification) return false
+  const title = (notification.title || '').toLowerCase()
+  const msg = (notification.message || '').toLowerCase()
+  const type = String(getContextValue(notification, 'type', 'eventType', 'category') || '').toLowerCase()
+  return title.includes('completed') || title.includes('finished') || title.includes('end') || title.includes('stopped') || msg.includes('completed') || msg.includes('finished') || type.includes('completed') || type.includes('finished') || type.includes('end')
+}
+
+const getScheduleStatusDescription = (notification) => {
+  const status = getScheduleStatus(notification);
+  switch (status) {
+    case 'In Progress': return 'Watering currently active';
+    case 'Completed': return 'Watering session finished';
+    case 'Failed': return 'Issue detected during watering';
+    case 'Scheduled': return 'Next watering planned';
+    default: return 'Automated watering system';
+  }
+};
+
+const getScheduleTimeLabel = (notification) => {
+  const title = notification.title?.toLowerCase() || '';
+  if (title.includes('started')) return 'Start Time';
+  if (title.includes('completed')) return 'End Time';
+  return 'Scheduled Time';
+};
+
+const getScheduleTime = (notification) => {
+  const context = notification.context || {};
+  if (context.startTime) return context.startTime;
+  if (context.endTime) return context.endTime;
+  if (context.scheduledTime) return context.scheduledTime;
+  return formatTime(notification.time);
+};
+
+const getTimeRemaining = (notification) => {
+  const title = notification.title?.toLowerCase() || '';
+  const context = notification.context || {};
+  
+  if (title.includes('started') && context.duration) {
+    return `${context.duration} minutes remaining`;
+  }
+  if (title.includes('completed')) {
+    return 'Session completed successfully';
+  }
+  if (context.nextRun) {
+    return `Next run: ${context.nextRun}`;
+  }
+  return 'Automated schedule active';
+};
+
+const getWaterLevelStatus = (level) => {
+  if (level === null || level === undefined) return 'Unknown';
+  if (level >= 80) return 'Excellent';
+  if (level >= 50) return 'Sufficient';
+  if (level >= 25) return 'Low';
+  return 'Critical';
+};
+
+const getZoneDetails = (zone) => {
+  const zones = {
+    'Greenhouse 1': 'Tomatoes & Peppers',
+    'Greenhouse 2': 'Lettuce & Herbs',
+    'Field A': 'Corn & Wheat',
+    'Field B': 'Root Vegetables',
+    'Nursery': 'Seedlings & Cuttings'
+  };
+  return zones[zone] || 'Mixed crops';
+};
+
+const getWaterVolumeEstimate = (duration) => {
+  const mins = duration || 15;
+  const volume = mins * 12; // Assuming 12L/min flow rate
+  return `~${volume}L estimated`;
+};
+
+const formatScheduleDate = (dateString) => {
+  if (!dateString) return 'Today';
+  try {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+    
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch {
+    return dateString;
+  }
+};
+
+// Update the existing getWateringScheduleRemarks function
+const getWateringScheduleRemarks = (notification) => {
+  const title = notification.title?.toLowerCase() || '';
+  const context = notification.context || {};
+  
+  if (title.includes('started')) {
+    return `Watering session started successfully. ${context.duration || 15}-minute duration planned. System operating normally.`;
+  }
+  
+  if (title.includes('completed')) {
+    const efficiency = context.efficiency || 92;
+    return `Watering completed successfully. ${efficiency}% water efficiency achieved. System ready for next schedule.`;
+  }
+  
+  if (title.includes('failed')) {
+    return `Watering session encountered issues. Check system status and water supply. Automatic retry scheduled.`;
+  }
+  
+  return `Automated watering schedule active. Next watering based on soil moisture levels and weather conditions.`;
+};
+
 
 const getActionPriority = (notification) => {
   if (!notification.context) return 'Monitor'
@@ -3166,6 +3597,7 @@ onUnmounted(() => {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 .line-clamp-2 {
@@ -3173,6 +3605,7 @@ onUnmounted(() => {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 /* Focus styles */
