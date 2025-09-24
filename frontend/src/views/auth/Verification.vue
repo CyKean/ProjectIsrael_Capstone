@@ -233,11 +233,11 @@ const resendCode = async () => {
           number: formattedPhone,
           message: `Your new OTP code is: ${otp}`
         });
-        window.showToast("A new OTP has been sent to your phone.", 'success');
+  window.showToast("A new OTP has been sent to your phone.", 'success', true);
       } catch (smsError) {
         console.error("SMS sending failed:", smsError);
         // Still show success but indicate SMS might not have been delivered
-        window.showToast("New OTP generated. SMS delivery may be delayed.", 'info');
+  window.showToast("New OTP generated. SMS delivery may be delayed.", 'info', true);
       }
       
       // For development
@@ -248,11 +248,11 @@ const resendCode = async () => {
       
       startResendCooldown();
     } else {
-      window.showToast(response.data.message || "Failed to resend OTP.", 'failed');
+  window.showToast(response.data.message || "Failed to resend OTP.", 'failed', true);
     }
   } catch (error) {
     console.error("Resend code error:", error);
-    window.showToast("Failed to resend OTP. Please try again.", 'failed');
+  window.showToast("Failed to resend OTP. Please try again.", 'failed', true);
   } finally {
     isResendingCode.value = false;
   }
@@ -326,7 +326,7 @@ const handleVerification = async () => {
   const code = verificationCode.value.join("").trim();
 
   if (code.length !== 6) {
-    window.showToast("Please enter the 6-digit code.", 'warning');
+  window.showToast("Please enter the 6-digit code.", 'warning', true);
     return;
   }
 
@@ -352,10 +352,10 @@ const handleVerification = async () => {
       localStorage.removeItem('user');
       localStorage.removeItem('otpPhone');
 
-      window.showToast("Phone number verified! Please log in.", 'success');
+  window.showToast("Phone number verified! Please log in.", 'success', true);
       router.push("/login");
     } else {
-      window.showToast(response.data.message || "Verification failed.", 'failed');
+  window.showToast(response.data.message || "Verification failed.", 'failed', true);
     }
   } catch (error) {
     console.error("Verification error:", error);
@@ -363,9 +363,9 @@ const handleVerification = async () => {
     // Handle different error responses
     if (error.response && error.response.data) {
       const errorDetail = error.response.data.detail || error.response.data.message;
-      window.showToast(errorDetail || "Verification failed. Please try again.", 'failed');
+  window.showToast(errorDetail || "Verification failed. Please try again.", 'failed', true);
     } else {
-      window.showToast("Verification failed. Please try again.", 'failed');
+  window.showToast("Verification failed. Please try again.", 'failed', true);
     }
   } finally {
     isLoading.value = false;

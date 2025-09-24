@@ -36,10 +36,10 @@
     </div>
 
     <transition name="page-transition" mode="out-in" @before-leave="beforeLeave" @enter="enter" @after-enter="afterEnter">
-  <div :key="transitionKey" class="page-content relative z-10" :style="contentStyle">
-  <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20 mx-auto items-center justify-center">
+      <div :key="transitionKey" class="page-content relative z-10" :style="contentStyle">
+  <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-[85%] lg:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] md:h-[520px] flex shadow-xl rounded-xl overflow-hidden relative z-20 mx-auto items-stretch justify-center">
           <!-- Left Side - Image and Branding -->
-          <div class="hidden md:flex md:w-1/2 bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-end relative">
+          <div class="hidden md:flex md:w-1/2 h-full bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-center relative overflow-hidden">
             <!-- Background Image -->
             <div 
               class="absolute inset-0 bg-cover bg-center"
@@ -49,7 +49,7 @@
             <div class="absolute inset-0 bg-gradient-to-r from-[#1A3A1A] via-[#2B5329]/95 to-[#2B5329]/85"></div>
             
             <!-- Content -->
-            <div class="relative flex flex-col items-center z-10 mt-0 pt-4 mb-auto">
+            <div class="relative flex flex-col items-center z-10 h-full justify-center">
               <div class="w-32 xs:w-36 sm:w-40 h-32 xs:h-36 sm:h-40 mb-2 relative overflow-visible">
                 <img 
                   src="/images/plants.gif"
@@ -73,8 +73,8 @@
           </div>
 
           <!-- Right Side - Login Form -->
-          <div class="w-full md:w-1/2 bg-white p-4 xs:p-6 flex flex-col">
-            <div class="w-full max-w-xs mx-auto flex-1 flex flex-col justify-center">
+          <div class="w-full md:w-1/2 h-full bg-white p-4 xs:p-6 flex flex-col">
+            <div class="w-full max-w-xs mx-auto flex-1 h-full flex flex-col justify-center py-4">
               <!-- (mobile button moved to bottom) -->
 
               <h2 class="text-lg xs:text-xl font-bold text-[#2B5329] text-center mb-4 xs:mb-6">Login to your Account</h2>
@@ -426,28 +426,28 @@ const handleLogin = async () => {
   const trimmedPhone = phoneNumber.trim()
 
   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-    window.showToast('Invalid Philippine phone number.', 'warning')
+  window.showToast('Invalid Philippine phone number.', 'warning', true)
     isLoading.value = false
     return
   }
 
   const formattedPhone = toE164(trimmedPhone)
   if (!formattedPhone) {
-    window.showToast('Could not format phone number.', 'warning')
+  window.showToast('Could not format phone number.', 'warning', true)
     isLoading.value = false
     return
   }
 
   if (authType === 'pin' && !isPinComplete.value) {
     pinError.value = true
-    window.showToast('Please enter all 4 digits of your PIN.', 'warning')
+  window.showToast('Please enter all 4 digits of your PIN.', 'warning', true)
     isLoading.value = false
     return
   }
 
   const credential = authType === 'pin' ? pin : password
   if (!credential.trim()) {
-    window.showToast(`Please enter your ${authType}.`, 'warning')
+  window.showToast(`Please enter your ${authType}.`, 'warning', true)
     isLoading.value = false
     return
   }
@@ -463,17 +463,17 @@ const handleLogin = async () => {
       // Use the enhanced setUser method which will fetch complete user data
       await userStore.setUser(response.data.user);
       
-      window.showToast('Login successful!', 'success')
+  window.showToast('Login successful!', 'success', true)
       router.push('/app/dashboard')
     } else {
-      window.showToast(response.data.message || 'Login failed.', 'failed')
+  window.showToast(response.data.message || 'Login failed.', 'failed', true)
     }
   } catch (error) {
     console.error('Login error:', error)
     if (error.response && error.response.data) {
-      window.showToast(error.response.data.message || 'Login failed.', 'failed')
+  window.showToast(error.response.data.message || 'Login failed.', 'failed', true)
     } else {
-      window.showToast('Login failed.', 'failed')
+  window.showToast('Login failed.', 'failed', true)
     }
   } finally {
     isLoading.value = false

@@ -1114,7 +1114,12 @@ const processToastQueue = () => {
 };
 
 const showToastMessage = (message, severity = 'info', persistKey = null) => {
-  
+  // Only show toasts when a user is logged in
+  if (!user.value) {
+    console.log('⏩ Toast skipped (no user logged in):', message);
+    return;
+  }
+
   window.showToast(message, severity)
 }
 
@@ -1204,6 +1209,11 @@ notificationStorage.cleanExpired = function() {
 // Notification Functions
 const sendNotification = async (message, title, severity = 'info', uniqueKey = null, contextData = {}, includeSensorData = true, retryCount = 0) => {
   try {
+    // Do not save or show notifications if there's no logged-in user
+    if (!user.value) {
+      console.log('⏩ Notification skipped (no user logged in):', { message, title, uniqueKey })
+      return { success: false, skipped: true, reason: 'no_user' }
+    }
     // Create a more reliable unique key that includes timestamp
     const now = new Date();
     const hour = now.getHours();

@@ -37,9 +37,9 @@
 
     <transition name="page-transition" mode="out-in" @before-leave="beforeLeave" @enter="enter" @after-enter="afterEnter">
       <div :key="transitionKey" class="page-content relative z-10" :style="contentStyle">
-  <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] flex shadow-xl rounded-xl overflow-hidden relative z-20 mx-auto items-center justify-center">
+  <div class="max-w-3xl w-[95%] xs:w-[90%] sm:w-[85%] md:w-[85%] lg:w-full min-h-[400px] xs:min-h-[450px] sm:min-h-[500px] md:h-[520px] flex shadow-xl rounded-xl overflow-hidden relative z-20 mx-auto items-stretch justify-center">
           <!-- Left Side - Image and Branding -->
-          <div class="hidden md:flex md:w-1/2 bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-between relative">
+          <div class="hidden md:flex md:w-1/2 h-full bg-[#2B5329] text-white p-4 sm:p-6 md:p-8 flex-col justify-center relative overflow-hidden">
             <!-- Background Image -->
             <div
               class="absolute inset-0 bg-cover bg-center"
@@ -47,7 +47,7 @@
             ></div>
             <div class="absolute inset-0 bg-gradient-to-r from-[#1A3A1A] via-[#2B5329]/95 to-[#2B5329]/85"></div>
 
-            <div class="relative flex flex-col items-center z-10 mt-0 pt-4 mb-auto">
+            <div class="relative flex flex-col items-center z-10 h-full justify-center">
               <div class="w-32 xs:w-36 sm:w-40 h-32 xs:h-36 sm:h-40 mb-2 relative overflow-visible">
                 <img
                   src="/images/plants.gif"
@@ -72,8 +72,8 @@
           </div>
 
           <!-- Right Side - Registration Form -->
-          <div class="w-full md:w-1/2 bg-white p-4 xs:p-5 flex flex-col">
-            <div class="w-full max-w-xs mx-auto flex-1 flex flex-col justify-center">
+          <div class="w-full md:w-1/2 h-full bg-white p-4 xs:p-5 flex flex-col">
+            <div class="w-full max-w-xs mx-auto flex-1 h-full flex flex-col justify-center py-4">
               <h2 class="text-xl xs:text-2xl font-bold text-[#2B5329] mb-1 xs:mb-2 text-center">Create an account</h2>
               <p class="text-xs text-gray-600 mb-3 xs:mb-4 text-center">Enter your personal data to create an account</p>
 
@@ -520,24 +520,24 @@ const handleSubmit = async () => {
   const trimmedPhone = String(phoneNumber).trim()
 
   if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-    window.showToast('Enter a valid PH number.', 'warning')
+  window.showToast('Enter a valid PH number.', 'warning', true)
     return
   }
 
   const formattedPhone = toE164(trimmedPhone)
   if (!formattedPhone) {
-    window.showToast('Invalid phone format.', 'warning')
+  window.showToast('Invalid phone format.', 'warning', true)
     return
   }
 
   if (!credentialValue || !credentialValue.trim()) {
-    window.showToast(`Please enter your ${authType}.`, 'warning')
+  window.showToast(`Please enter your ${authType}.`, 'warning', true)
     return
   }
 
   if (authType === 'pin' && !isPinComplete.value) {
     pinError.value = true
-    window.showToast('Please enter all 4 digits of your PIN.', 'warning')
+  window.showToast('Please enter all 4 digits of your PIN.', 'warning', true)
     return
   }
 
@@ -552,7 +552,7 @@ const handleSubmit = async () => {
     })
 
     if (response.data.success) {
-      window.showToast(response.data.message, 'success')
+  window.showToast(response.data.message, 'success', true)
       
       // Clear any existing session before redirecting
       try {
@@ -571,7 +571,7 @@ const handleSubmit = async () => {
       
       router.push(`/auth/verify-otp?phone=${encodeURIComponent(formattedPhone)}`)
     } else {
-      window.showToast(response.data.message || 'Registration failed.', 'failed')
+  window.showToast(response.data.message || 'Registration failed.', 'failed', true)
     }
 
   } catch (error) {
@@ -580,7 +580,8 @@ const handleSubmit = async () => {
       error?.response?.data?.detail || 
       error?.response?.data?.message || 
       'Registration failed. Please try again.', 
-      'failed'
+      'failed',
+      true
     )
   } finally {
     isLoading.value = false

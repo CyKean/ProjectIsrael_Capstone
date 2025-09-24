@@ -401,14 +401,14 @@ const startResendTimer = () => {
 // Step 1: Request password reset
 const handleSendResetCode = async () => {
   const trimmedPhone = phoneNumber.value.trim()
-  if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-    window.showToast('Please enter a valid Philippine phone number.', 'warning')
+    if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
+    window.showToast('Please enter a valid Philippine phone number.', 'warning', true)
     return
   }
 
   const formattedPhone = toE164(trimmedPhone)
   if (!formattedPhone) {
-    window.showToast('Could not format phone number.', 'warning')
+    window.showToast('Could not format phone number.', 'warning', true)
     return
   }
 
@@ -421,16 +421,16 @@ const handleSendResetCode = async () => {
     })
 
     if (response.data.success) {
-      window.showToast('A password reset code has been sent to your phone.', 'success')
+      window.showToast('A password reset code has been sent to your phone.', 'success', true)
       currentStep.value = 2; // Move to verification step
       startResendTimer(); // Start the cooldown timer
     } else {
-      window.showToast(response.data.message || 'Error sending reset code.', 'failed')
+      window.showToast(response.data.message || 'Error sending reset code.', 'failed', true)
     }
 
   } catch (error) {
     console.error("Error sending reset code:", error.response?.data || error)
-    window.showToast(error.response?.data?.detail || "Error sending reset code.", 'failed')
+  window.showToast(error.response?.data?.detail || "Error sending reset code.", 'failed', true)
   } finally {
     isLoading.value = false
   }
@@ -443,7 +443,7 @@ const handleResendCode = async () => {
   try {
     const trimmedPhone = phoneNumber.value.trim();
     if (!isValidPhilippinePhoneNumber(trimmedPhone)) {
-      window.showToast('Invalid phone number.', 'warning');
+  window.showToast('Invalid phone number.', 'warning', true);
       isLoading.value = false;
       return;
     }
@@ -455,16 +455,16 @@ const handleResendCode = async () => {
       phoneNumber: formattedPhone
     })
 
-    if (response.data.success) {
-      window.showToast("A new code has been sent to your phone.", 'success')
+      if (response.data.success) {
+      window.showToast("A new code has been sent to your phone.", 'success', true)
       startResendTimer()
     } else {
-      window.showToast(response.data.message || "Error resending code.", 'failed')
+      window.showToast(response.data.message || "Error resending code.", 'failed', true)
     }
 
   } catch (error) {
     console.error("Error resending code:", error.response?.data || error)
-    window.showToast(error.response?.data?.detail || "Error resending code.", 'failed')
+  window.showToast(error.response?.data?.detail || "Error resending code.", 'failed', true)
   } finally {
     isLoading.value = false
   }

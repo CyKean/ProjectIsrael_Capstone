@@ -114,7 +114,19 @@ const processToastQueue = async () => {
   isProcessingQueue.value = false
 }
 
-const showToast = (message, severity = 'info') => {
+import { useUserStore } from '../utils/user'
+
+const userStore = useUserStore()
+const user = computed(() => userStore.user)
+
+// allowWhenLoggedOut: when true, toast will show even if there's no logged-in user
+const showToast = (message, severity = 'info', allowWhenLoggedOut = false) => {
+  if (!allowWhenLoggedOut && !user.value) {
+    // Skip toasts when no user is logged in unless explicitly allowed
+    console.log('⏩ Global toast skipped (no user logged in):', message)
+    return
+  }
+
   const id = Date.now() + Math.random()
   const toastData = {
     id,
