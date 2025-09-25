@@ -885,7 +885,7 @@
   <!-- Main Content - COMPLETELY MOBILE RESPONSIVE -->
   <div class="flex-1 w-full px-2 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 overflow-hidden">
     <!-- Main Container - Mobile Responsive Design -->
-     <div class="bg-white rounded-xl sm:rounded-2xl shadow-md border border-emerald-100 w-full h-[calc(100vh-135px)] sm:h-[calc(100vh-90px)] md:h-[calc(100vh-130px)] overflow-hidden">
+     <div class="bg-white rounded-xl sm:rounded-2xl shadow-md border border-emerald-100 w-full h-[calc(100vh-85px)] mt-1 sm:h-[calc(100vh-90px)] md:h-[calc(100vh-130px)] overflow-hidden">
       <!-- Content Wrapper -->
       <div class="flex flex-col h-full">
         <!-- Enhanced Header Section - MOBILE RESPONSIVE -->

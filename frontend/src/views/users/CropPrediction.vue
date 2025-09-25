@@ -2,7 +2,7 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-20px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] md:w-[calc(100vw-20px)] h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] overflow-y-auto">
       <!-- Content Wrapper --> 
       <div class="p-2 md:p-4 sm:p-6">
         <!-- Clean Minimalist Metrics Section - With Loading State -->

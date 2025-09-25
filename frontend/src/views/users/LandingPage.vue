@@ -107,17 +107,17 @@
               </div>
 
               <!-- Right Content with Half Circle and Basket -->
-              <div class="lg:w-1/2 relative pointer-events-none">
-                <div class="relative h-[250px] xs:h-[300px] sm:h-[400px] md:h-[500px] lg:h-[700px] w-full">
-                  <div class="absolute right-0 transform translate-x-[15%] bottom-0">
+              <div class="lg:w-1/2 relative pointer-events-none hero-basket">
+                <div class="relative h-[250px] xs:h-[300px] sm:h-[400px] md:h-[500px] lg:h-[700px] w-full hero-basket-viewport">
+                  <div class="absolute right-0 transform translate-x-[15%] bottom-0 hero-basket-wrapper">
                     <div class="relative">
                       <!-- Half circle with smoother responsive scaling -->
-                      <div class="w-[250px] h-[250px] xs:w-[300px] xs:h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[700px] lg:h-[700px] bg-[#4CAF50] rounded-full transform translate-y-1/2">
+                      <div class="w-[250px] h-[250px] xs:w-[300px] xs:h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[700px] lg:h-[700px] bg-[#4CAF50] rounded-full transform translate-y-1/2 hero-basket-circle">
                         <!-- Basket image with improved responsive positioning -->
                         <img 
                           src="/public/images/vege-basket.png" 
                           alt="Vegetable Basket" 
-                          class="absolute top-[27%] left-1/2 transform -translate-x-1/2 -translate-y-[65%] w-[85%] sm:w-[90%] max-w-[650px] z-20"
+                          class="absolute top-[27%] left-1/2 transform -translate-x-1/2 -translate-y-[65%] w-[85%] sm:w-[90%] max-w-[650px] z-20 hero-basket-img"
                         />
                       </div>
                     </div>
@@ -637,8 +637,10 @@ onUnmounted(() => {
     animation-duration: 12s; /* Slower waves on mobile */
   }
   
+  /* Ensure falling leaves animation still shows on mobile. Individual leaf elements are scaled
+     down via inline styles when `isMobile` is true, which keeps performance reasonable. */
   .leaf {
-    display: none; /* Hide some leaves on mobile for better performance */
+    display: block;
   }
 }
 
@@ -658,6 +660,42 @@ onUnmounted(() => {
 @media (min-width: 2000px) {
   .container {
     max-width: 1920px;
+  }
+}
+
+/* Make the right-side half-circle and basket slightly larger on small/mobile screens */
+@media (max-width: 640px) {
+  /* Increase viewport height so the circle has more space */
+  .hero-basket-viewport {
+    height: 340px; /* previously 250-300 depending on breakpoints */
+  }
+
+  /* Increase the half-circle size on mobile */
+  .hero-basket-circle {
+    width: 420px !important;
+    height: 420px !important;
+    transform: translateY(40%) !important; /* nudge it down a bit for better framing */
+  }
+
+  /* Scale the image inside the circle for better visibility */
+  .hero-basket-img {
+    width: 95% !important;
+    top: 30% !important;
+    -webkit-transform: translateX(-50%) translateY(-60%) !important;
+    transform: translateX(-50%) translateY(-60%) !important;
+  }
+
+  /* Slightly move the entire right container left so the basket appears more centered on narrow screens */
+  .hero-basket {
+    padding-right: 1rem;
+  }
+
+  /* Move the basket further to the right on small screens */
+  .hero-basket-wrapper {
+    /* increase the translateX to push it more off the container */
+    transform: translateX(45%) !important;
+    /* nudge the right offset negative so it reaches further into the viewport edge */
+    right: -6% !important;
   }
 }
 </style>

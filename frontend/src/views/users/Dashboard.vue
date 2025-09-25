@@ -2,7 +2,7 @@
   <!-- Container Wrapper with proper spacing -->
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Main Container with adjusted width -->
-    <div class=" bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-x-hidden">
+    <div class="mt-1 bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-[calc(100vw-15px)] h-[calc(100vh-85px)] md:h-[calc(100vh-130px)] overflow-x-hidden">
       <!-- Content Wrapper -->
       <div class="p-2 md:p-6">
         <!-- Find the Top Metrics Cards section and replace it with this updated version -->

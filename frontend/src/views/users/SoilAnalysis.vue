@@ -1,6 +1,6 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-full mx-auto w-[calc(100vw-15px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden min-w-0">
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-full mx-auto w-[calc(100vw-15px)] h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] flex flex-col overflow-hidden min-w-0">
       <div class="bg-gradient-to-r from-emerald-50 to-white p-3 md:p-5 border-b border-gray-100 rounded-t-lg">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>

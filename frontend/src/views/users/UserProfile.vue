@@ -2,7 +2,7 @@
   <div class="flex-1 w-full px-2 sm:px-6 lg:px-10 overflow-hidden">
     
     <!-- Main Container - Everything Inside -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 overflow-x-hidden w-[calc(100vw-15px)] h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-hidden">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 overflow-x-hidden w-[calc(100vw-15px)] h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] overflow-hidden">
       
       <!-- Header - Inside Main Container -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-6 border-b border-gray-100 rounded-t-lg">

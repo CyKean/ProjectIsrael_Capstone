@@ -1,6 +1,6 @@
 <template>
   <div class="flex-1 w-full px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 overflow-hidden">
-    <div class="bg-white rounded-[12px] xs:rounded-[14px] sm:rounded-[16px] overflow-x-hidden md:rounded-[18px] lg:rounded-[20px] shadow-sm xs:shadow-md sm:shadow-lg border border-green-100 h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-y-auto">
+    <div class="bg-white rounded-[12px] xs:rounded-[14px] sm:rounded-[16px] overflow-x-hidden md:rounded-[18px] lg:rounded-[20px] shadow-sm xs:shadow-md sm:shadow-lg border border-green-100 h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] overflow-y-auto">
       <div class="p-3 xs:p-4 sm:p-5 md:p-6 pb-0">
         <h1 class="text-xl xs:text-2xl sm:text-3xl font-bold text-gray-800 mb-1 xs:mb-1.5 sm:mb-2">Weather Forecasting</h1>
         <div class="flex items-center text-sm xs:text-base text-gray-500">
@@ -410,7 +410,12 @@
                       :class="getConditionColor(hour.condition)"
                       :title="hour.condition"
                     >
-                      {{ hour.condition }}
+                      <span
+                        class="block max-w-full"
+                        :style="isMobile ? ellipsisStyle : {}"
+                      >
+                        {{ isMobile ? truncateText(hour.condition) : hour.condition }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -694,6 +699,33 @@ function formatTimeHM(iso) {
   hours = hours % 12 || 12
   const ampm = isAM ? 'AM' : 'PM'
   return `${hours}:${minute.padStart(2, '0')} ${ampm}`
+}
+
+// Responsive truncate helper: keeps a reactive screen width, exposes isMobile
+// and a truncateText helper to use in templates. Also provides an
+// inline ellipsis style to ensure text-overflow on small screens.
+const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+const onResize = () => { screenWidth.value = window.innerWidth }
+onMounted(() => {
+  window.addEventListener('resize', onResize)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
+})
+
+const isMobile = computed(() => screenWidth.value < 640)
+
+const ellipsisStyle = {
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis'
+}
+
+const truncateText = (text) => {
+  if (!text) return ''
+  // Choose max length depending on viewport width (tuned for your layout)
+  const max = screenWidth.value < 420 ? 12 : screenWidth.value < 640 ? 18 : screenWidth.value < 768 ? 24 : 40
+  return text.length > max ? text.slice(0, max - 1) + '…' : text
 }
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API 

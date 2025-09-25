@@ -1,7 +1,7 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px:8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] flex flex-col overflow-y-hidden overflow-x-hidden">
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] flex flex-col overflow-y-hidden overflow-x-hidden">
       <!-- Gradient header for visual appeal -->
       <div class="bg-gradient-to-r from-emerald-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->

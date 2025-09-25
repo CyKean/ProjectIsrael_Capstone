@@ -4,7 +4,7 @@
     <!-- Main Container -->
     <!-- removed hover effect and fixed width to align with navbar -->
     <!-- Added mobile-specific overflow and height classes for scrollability -->
-    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-full max-w-full h-[calc(100vh-135px)] md:h-[calc(100vh-130px)] overflow-hidden md:overflow-visible">
+    <div class="bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-green-100 w-full max-w-full h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] overflow-hidden md:overflow-visible">
       <!-- Content Wrapper -->
       <!-- Added mobile overflow scrolling while preserving desktop flex behavior -->
       <div class="p-0 h-full flex flex-col overflow-y-auto md:overflow-visible">
