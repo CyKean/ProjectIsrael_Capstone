@@ -3514,8 +3514,39 @@ const stopPolling = () => {
   }
 };
 
+const heartbeatInterval = ref(null)
+
+const sendHeartbeat = async () => {
+  try {
+    await api.post('/system/heartbeat', {
+      timestamp: new Date().toISOString(),
+      user_agent: navigator.userAgent,
+      route: route.path
+    })
+  } catch (error) {
+    console.debug('Heartbeat failed (backend might be down)')
+  }
+}
+
+const startHeartbeat = () => {
+  // Send immediate heartbeat
+  sendHeartbeat()
+  
+  // Send heartbeat every 15 seconds
+  heartbeatInterval.value = setInterval(sendHeartbeat, 15000)
+}
+
+const stopHeartbeat = () => {
+  if (heartbeatInterval.value) {
+    clearInterval(heartbeatInterval.value)
+    heartbeatInterval.value = null
+  }
+}
+
 // Lifecycle Hooks
 onMounted(async () => {
+  startHeartbeat()
+
   await fetchNotifications()
   document.addEventListener('click', closeDropdown);
   window.addEventListener('resize', handleResize);
@@ -3589,6 +3620,32 @@ onMounted(async () => {
     motorControlLocks.value.clear();
   });
 });
+
+onBeforeUnmount(() => {
+  stopHeartbeat()
+})
+
+window.addEventListener('beforeunload', stopHeartbeat)
+
+// Optional: Handle page visibility changes
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    // Page is hidden - could reduce heartbeat frequency
+    console.debug('Page hidden')
+  } else {
+    // Page is visible - ensure normal heartbeat
+    console.debug('Page visible')
+    sendHeartbeat() // Send immediate heartbeat when page becomes visible
+  }
+}
+
+document.addEventListener('visibilitychange', handleVisibilityChange)
+
+// Clean up visibility listener
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
 
 watch(() => route.path, () => {
   isSensorDropdownOpen.value = false;

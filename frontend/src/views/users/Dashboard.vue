@@ -915,11 +915,11 @@ Chart.register(...registerables);
 const isLoading = ref(true);
 const isChartsLoading = ref(true);
 const isWeatherLoading = ref(true);
-const streamDataReceived = ref(false);
-const streamTimeout = ref(null);
-const streamConnection = ref(null);
-const lastStreamUpdate = ref(null);
-const usingFirebaseFallback = ref(false);
+// Remove EventSource related variables and add polling variables
+const sensorPollingInterval = ref(null);
+const motorPollingInterval = ref(null);
+const weatherPollingInterval = ref(null);
+const waterLevelPollingInterval = ref(null);
 const waterLevel = ref(0);
 
 const soilMoistureChartInstance = ref(null);
@@ -1137,231 +1137,226 @@ const loadWeather = async () => {
   }
 };
 
-const API_BASE = 'http://localhost:8000/api';
-
-const setupEventSource = () => {
-  try {
-    streamConnection.value = new EventSource(`${API_BASE}/stream`);
-    
-    streamConnection.value.onmessage = (event) => {
-      streamDataReceived.value = true;
-      lastStreamUpdate.value = new Date();
-      
-      if (streamTimeout.value) clearTimeout(streamTimeout.value);
-      
-      const data = JSON.parse(event.data);
-      console.log("📡 Received real-time data:", data);
-
-      // Update metrics from stream data
-      if (data.type === 'esp32-1') {
-        nitrogen.value = data.data.nitrogen || 0;
-        phosphorus.value = data.data.phosphorus || 0;
-        potassium.value = data.data.potassium || 0;
-        soilpH.value = data.data.soilPh || 7.0;
-      } 
-      else if (data.type === 'esp32-2') {
-        temperature.value = data.data.temperature || 0;
-        humidity.value = data.data.humidity || 0;
-        soilMoisture.value = data.data.soilMoisture || 0;
-      }
-      else if (data.type === 'esp32-3') {
-        waterLevel.value = data.data.waterLevel || 0;
-      }
-
-      updateChartDataFromStream(data);
-    };
-
-    streamConnection.value.onerror = (e) => {
-      console.error("❌ SSE Error:", e);
-      if (!streamDataReceived.value) {
-        console.log("⚡ Stream error, falling back to regular API");
-        fetchLatestSensorData();
-        fetchLatestWaterLevel();
-      }
-    };
-
-  } catch (error) {
-    console.error("❌ Error setting up EventSource:", error);
+// Remove EventSource setup and replace with polling functions
+const startSensorPolling = () => {
+  // Fetch immediately first
+  fetchLatestSensorData();
+  
+  // Then poll every second for real-time updates
+  sensorPollingInterval.value = setInterval(() => {
     fetchLatestSensorData();
-    fetchLatestWaterLevel();
-  }
+  }, 1000); // 1 second interval
+  
+  console.log('Sensor polling started');
 };
 
+const startMotorPolling = () => {
+  // Fetch immediately first
+  fetchMotorStatusData();
+  
+  // Poll motor status every 5 seconds
+  motorPollingInterval.value = setInterval(() => {
+    fetchMotorStatusData();
+  }, 5000); // 5 seconds interval
+  
+  console.log('Motor status polling started');
+};
+
+const startWeatherPolling = () => {
+  // Fetch immediately first
+  loadWeather();
+  
+  // Poll weather every 30 seconds
+  weatherPollingInterval.value = setInterval(() => {
+    loadWeather();
+  }, 30000); // 30 seconds interval
+  
+  console.log('Weather polling started');
+};
+
+const startWaterLevelPolling = () => {
+  // Fetch immediately first
+  fetchLatestWaterLevel();
+  
+  // Poll water level every 2 seconds
+  waterLevelPollingInterval.value = setInterval(() => {
+    fetchLatestWaterLevel();
+  }, 2000); // 2 seconds interval
+  
+  console.log('Water level polling started');
+};
+
+const stopAllPolling = () => {
+  if (sensorPollingInterval.value) {
+    clearInterval(sensorPollingInterval.value);
+    sensorPollingInterval.value = null;
+  }
+  if (motorPollingInterval.value) {
+    clearInterval(motorPollingInterval.value);
+    motorPollingInterval.value = null;
+  }
+  if (weatherPollingInterval.value) {
+    clearInterval(weatherPollingInterval.value);
+    weatherPollingInterval.value = null;
+  }
+  if (waterLevelPollingInterval.value) {
+    clearInterval(waterLevelPollingInterval.value);
+    waterLevelPollingInterval.value = null;
+  }
+  console.log('All polling stopped');
+};
+
+// Enhanced fetchLatestSensorData to update chart data in real-time
 const fetchLatestSensorData = async () => {
   try {
     const response = await api.get('/sensor-data/latest');
     const data = response.data;
     
-    // Update all device data
+    console.log('📡 Real-time sensor data:', data);
+    
+    const now = new Date();
+    let hasNewData = false;
+
+    // Process esp32-1 data (NPK) - KEEP THIS PART AS IS SINCE IT'S WORKING
     if (data['esp32-1']) {
-      nitrogen.value = data['esp32-1'].nitrogen || 0;
-      phosphorus.value = data['esp32-1'].phosphorus || 0;
-      potassium.value = data['esp32-1'].potassium || 0;
-      soilpH.value = data['esp32-1'].soilPh || 7.0;
+      const newNitrogen = data['esp32-1'].nitrogen || 0;
+      const newPhosphorus = data['esp32-1'].phosphorus || 0;
+      const newPotassium = data['esp32-1'].potassium || 0;
+      const newSoilPh = data['esp32-1'].soilPh || 7.0;
+
+      // Check if values actually changed
+      if (nitrogen.value !== newNitrogen || phosphorus.value !== newPhosphorus || 
+          potassium.value !== newPotassium || soilpH.value !== newSoilPh) {
+        
+        nitrogen.value = newNitrogen;
+        phosphorus.value = newPhosphorus;
+        potassium.value = newPotassium;
+        soilpH.value = newSoilPh;
+        
+        const newNpkReading = {
+          id: `npk-${now.getTime()}`,
+          deviceId: 'esp32-1',
+          nitrogen: Number(newNitrogen),
+          phosphorus: Number(newPhosphorus),
+          potassium: Number(newPotassium),
+          soilPh: Number(newSoilPh),
+          timestamp: now
+        };
+        
+        soilPhReadings.value = [...soilPhReadings.value.slice(-19), newNpkReading];
+        npkReadings.value = [...npkReadings.value.slice(-19), newNpkReading];
+        hasNewData = true;
+        
+        console.log('✅ NPK data updated');
+      }
     }
     
+    // FIXED: Process esp32-2 data (Environmental) - SIMPLIFIED AND DEBUGGED
     if (data['esp32-2']) {
-      temperature.value = data['esp32-2'].temperature || 0;
-      humidity.value = data['esp32-2'].humidity || 0;
-      soilMoisture.value = data['esp32-2'].soilMoisture || 0;
+      const newTemperature = data['esp32-2'].temperature || 0;
+      const newHumidity = data['esp32-2'].humidity || 0;
+      const newSoilMoisture = data['esp32-2'].soilMoisture || 0;
+
+      console.log('🌡️ Environmental data received:', {
+        temperature: newTemperature,
+        humidity: newHumidity,
+        soilMoisture: newSoilMoisture
+      });
+
+      // Check if values actually changed
+      const tempChanged = temperature.value !== newTemperature;
+      const humidityChanged = humidity.value !== newHumidity;
+      const soilMoistureChanged = soilMoisture.value !== newSoilMoisture;
+
+      if (tempChanged || humidityChanged || soilMoistureChanged) {
+        
+        // Update the display values
+        if (tempChanged) temperature.value = newTemperature;
+        if (humidityChanged) humidity.value = newHumidity;
+        if (soilMoistureChanged) soilMoisture.value = newSoilMoisture;
+        
+        const newEnvReading = {
+          id: `env-${now.getTime()}`,
+          deviceId: 'esp32-2',
+          temperature: Number(newTemperature),
+          humidity: Number(newHumidity),
+          soilMoisture: Number(newSoilMoisture),
+          timestamp: now
+        };
+        
+        console.log('🔄 Adding new environmental reading:', newEnvReading);
+        
+        // Update all three environmental chart data arrays
+        soilMoistureReadings.value = [...soilMoistureReadings.value.slice(-19), newEnvReading];
+        humidityReadings.value = [...humidityReadings.value.slice(-19), newEnvReading];
+        temperatureReadings.value = [...temperatureReadings.value.slice(-19), newEnvReading];
+        hasNewData = true;
+        
+        console.log('✅ Environmental charts updated:', {
+          soilMoistureReadings: soilMoistureReadings.value.length,
+          humidityReadings: humidityReadings.value.length,
+          temperatureReadings: temperatureReadings.value.length
+        });
+      } else {
+        console.log('🔄 Environmental data unchanged, skipping update');
+      }
+    } else {
+      console.log('❌ No esp32-2 data found in response');
+    }
+    
+    if (hasNewData) {
+      console.log('📊 New data processed, charts will update');
     }
     
   } catch (error) {
-    console.error("❌ Error fetching sensor data:", error);
+    console.error("❌ Error fetching real-time sensor data:", error);
   }
 };
 
 const fetchLatestWaterLevel = async () => {
   try {
     const response = await api.get('/water-level/latest');
-    waterLevel.value = response.data.waterLevel || 0;
-    console.log("💧 Latest Water Level:", waterLevel.value);
+    const currentWaterLevel = response.data.waterLevel || 0;
+    
+    // Only update if value has changed
+    if (waterLevel.value !== currentWaterLevel) {
+      waterLevel.value = currentWaterLevel;
+      console.log("💧 Water Level Updated:", waterLevel.value);
+    }
   } catch (error) {
     console.error("❌ Error fetching water level:", error);
   }
 };
 
-// const fetchMotorStatusData = async () => {
-//   try {
-//     // Get current motor status
-//     const statusResponse = await api.get('/motor-status/current');
-//     motorStatus.value = statusResponse.data.status || false;
+const lastSensorData = ref({
+  nitrogen: null,
+  phosphorus: null,
+  potassium: null,
+  soilPh: null,
+  temperature: null,
+  humidity: null,
+  soilMoisture: null,
+  waterLevel: null
+});
 
-//     // Get history logs
-//     const historyResponse = await api.get('/motor-status/history');
-//     let logs = historyResponse.data;
+const isDuplicateData = (newData, lastData) => {
+  if (!lastData) return false;
+  
+  return (
+    newData.nitrogen === lastData.nitrogen &&
+    newData.phosphorus === lastData.phosphorus &&
+    newData.potassium === lastData.potassium &&
+    newData.soilPh === lastData.soilPh &&
+    newData.temperature === lastData.temperature &&
+    newData.humidity === lastData.humidity &&
+    newData.soilMoisture === lastData.soilMoisture &&
+    newData.waterLevel === lastData.waterLevel
+  );
+};
 
-//     console.log('Motor history data:', logs);
 
-//     // Ensure logs is an array
-//     if (!Array.isArray(logs)) {
-//       console.warn('Motor history API did not return an array:', logs);
-//       weeklyData.value = [];
-//       motorOnPercentage.value = 0;
-//       return;
-//     }
-
-//     // Convert timestamp strings to Date objects and sort by timestamp
-//     logs = logs.map(log => {
-//       let timestamp;
-//       if (typeof log.timestamp === 'string') {
-//         timestamp = new Date(log.timestamp);
-//       } else {
-//         timestamp = new Date();
-//       }
-      
-//       return {
-//         ...log,
-//         timestamp: timestamp,
-//         status: Boolean(log.status) // Ensure boolean
-//       };
-//     }).sort((a, b) => a.timestamp - b.timestamp); // Sort chronologically
-
-//     console.log('Processed motor history logs:', logs);
-
-//     if (logs.length === 0) {
-//       console.log('No motor history data available');
-//       weeklyData.value = [];
-//       motorOnPercentage.value = 0;
-//       return;
-//     }
-
-//     // Calculate total ON time for the week
-//     const now = new Date();
-//     const startOfWeek = new Date(now);
-//     startOfWeek.setDate(now.getDate() - now.getDay());
-//     startOfWeek.setHours(0, 0, 0, 0);
-
-//     let totalOnTimeMs = 0;
-//     let lastStatus = false;
-//     let lastTimestamp = startOfWeek;
-
-//     // Calculate ON time from status changes
-//     for (let i = 0; i < logs.length; i++) {
-//       const log = logs[i];
-      
-//       // Only consider logs from this week
-//       if (log.timestamp < startOfWeek) {
-//         lastTimestamp = startOfWeek;
-//         lastStatus = log.status;
-//         continue;
-//       }
-
-//       if (lastStatus) {
-//         totalOnTimeMs += log.timestamp - lastTimestamp;
-//       }
-
-//       lastStatus = log.status;
-//       lastTimestamp = log.timestamp;
-//     }
-
-//     // Add time from last status change to now if motor was ON
-//     if (lastStatus) {
-//       totalOnTimeMs += now - lastTimestamp;
-//     }
-
-//     const totalWeekTimeMs = now - startOfWeek;
-//     motorOnPercentage.value = totalWeekTimeMs > 0 ? (totalOnTimeMs / totalWeekTimeMs) * 100 : 0;
-
-//     console.log('Total ON time:', totalOnTimeMs / 1000 / 60 / 60, 'hours');
-//     console.log('Total week time:', totalWeekTimeMs / 1000 / 60 / 60, 'hours');
-//     console.log('ON percentage:', motorOnPercentage.value);
-
-//     // Calculate daily breakdown
-//     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-//     const dailyPercentages = Array(7).fill(0);
-
-//     for (let day = 0; day < 7; day++) {
-//       const dayStart = new Date(startOfWeek);
-//       dayStart.setDate(startOfWeek.getDate() + day);
-//       const dayEnd = new Date(dayStart);
-//       dayEnd.setDate(dayStart.getDate() + 1);
-
-//       let dayOnTimeMs = 0;
-//       let dayLastStatus = false;
-//       let dayLastTimestamp = dayStart;
-
-//       for (let i = 0; i < logs.length; i++) {
-//         const log = logs[i];
-        
-//         if (log.timestamp < dayStart) {
-//           dayLastTimestamp = dayStart;
-//           dayLastStatus = log.status;
-//           continue;
-//         }
-
-//         if (log.timestamp > dayEnd) break;
-
-//         if (dayLastStatus) {
-//           dayOnTimeMs += log.timestamp - dayLastTimestamp;
-//         }
-
-//         dayLastStatus = log.status;
-//         dayLastTimestamp = log.timestamp;
-//       }
-
-//       // Add time from last status change to end of day if motor was ON
-//       if (dayLastStatus) {
-//         dayOnTimeMs += Math.min(dayEnd, now) - dayLastTimestamp;
-//       }
-
-//       const dayTotalTimeMs = Math.min(dayEnd, now) - dayStart;
-//       dailyPercentages[day] = dayTotalTimeMs > 0 ? (dayOnTimeMs / dayTotalTimeMs) * 100 : 0;
-//     }
-
-//     weeklyData.value = dailyPercentages.map((percentage, index) => ({
-//       label: dayLabels[index],
-//       percentage: percentage
-//     }));
-
-//     console.log('Daily percentages:', weeklyData.value);
-
-//   } catch (error) {
-//     console.error('Error fetching motor status and history:', error);
-//     weeklyData.value = [];
-//     motorOnPercentage.value = 0;
-//   }
-// };
+// KEEP ALL EXISTING FUNCTIONS BELOW THIS LINE UNCHANGED
+// (fetchMotorStatusData, fetchAllSensorData, chart functions, etc.)
 
 const fetchMotorStatusData = async () => {
   try {
@@ -1624,28 +1619,7 @@ const fetchAllSensorData = async () => {
   }
 };
 
-const updateChartDataFromStream = (data) => {
-  if (!data || !data.timestamp) return;
-
-  // Ensure timestamp is properly converted to Date object
-  const timestamp = new Date(data.timestamp);
-  
-  const newReading = {
-    timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp,
-    ...data.data
-  };
-
-  // Rest of the function remains the same...
-  if (data.type === 'esp32-1') {
-    soilPhReadings.value = [...soilPhReadings.value.slice(-14), newReading];
-    npkReadings.value = [...npkReadings.value.slice(-14), newReading];
-  }
-  else if (data.type === 'esp32-2') {
-    soilMoistureReadings.value = [...soilMoistureReadings.value.slice(-14), newReading];
-    humidityReadings.value = [...humidityReadings.value.slice(-14), newReading];
-    temperatureReadings.value = [...temperatureReadings.value.slice(-14), newReading];
-  }
-};
+// Remove updateChartDataFromStream function since we're now updating directly in fetchLatestSensorData
 
 const formatTimeLabel = (timestamp) => {
   try {
@@ -2142,16 +2116,28 @@ const initNpkChart = () => {
 };
 
 
-watch(soilMoistureReadings, () => {
-  if (soilMoistureChartRef.value) initSoilMoistureChart();
+watch(soilMoistureReadings, (newReadings) => {
+  console.log('🔄 Soil Moisture Readings changed:', newReadings.length, 'readings');
+  if (soilMoistureChartRef.value && newReadings.length > 0) {
+    console.log('📊 Initializing Soil Moisture Chart');
+    initSoilMoistureChart();
+  }
 }, { deep: true });
 
-watch(humidityReadings, () => {
-  if (humidityChartRef.value) initHumidityChart();
+watch(humidityReadings, (newReadings) => {
+  console.log('🔄 Humidity Readings changed:', newReadings.length, 'readings');
+  if (humidityChartRef.value && newReadings.length > 0) {
+    console.log('📊 Initializing Humidity Chart');
+    initHumidityChart();
+  }
 }, { deep: true });
 
-watch(temperatureReadings, () => {
-  if (temperatureChartRef.value) initTemperatureChart();
+watch(temperatureReadings, (newReadings) => {
+  console.log('🔄 Temperature Readings changed:', newReadings.length, 'readings');
+  if (temperatureChartRef.value && newReadings.length > 0) {
+    console.log('📊 Initializing Temperature Chart');
+    initTemperatureChart();
+  }
 }, { deep: true });
 
 watch(soilPhReadings, () => {
@@ -2200,37 +2186,7 @@ const destroyAllCharts = () => {
   });
 };
 
-const motorStatusPollingInterval = ref(null);
-const isMotorStatusPolling = ref(false);
-
-// Polling function
-const startMotorStatusPolling = () => {
-  if (motorStatusPollingInterval.value) {
-    clearInterval(motorStatusPollingInterval.value);
-  }
-  
-  isMotorStatusPolling.value = true;
-  
-  // Fetch immediately first
-  fetchMotorStatusData();
-  
-  // Then set up polling every 30 seconds (adjust as needed)
-  motorStatusPollingInterval.value = setInterval(() => {
-    fetchMotorStatusData();
-  }, 30000); // 30 seconds
-  
-  console.log('Motor status polling started');
-};
-
-// Stop polling function
-const stopMotorStatusPolling = () => {
-  if (motorStatusPollingInterval.value) {
-    clearInterval(motorStatusPollingInterval.value);
-    motorStatusPollingInterval.value = null;
-  }
-  isMotorStatusPolling.value = false;
-  console.log('Motor status polling stopped');
-};
+// Remove old motorStatusPollingInterval and replace with new polling system
 
 onMounted(async () => {
   isLoading.value = true;
@@ -2238,8 +2194,7 @@ onMounted(async () => {
   isChartsLoading.value = true;
 
   try {
-    setupEventSource();
-
+    // Remove setupEventSource() and replace with polling initialization
     await Promise.all([
       loadWeather(),
       fetchAllSensorData(),
@@ -2254,10 +2209,13 @@ onMounted(async () => {
     
     setTimeout(() => {
       initAllCharts();
-      startMotorStatusPolling();
+      
+      // Start all real-time polling
+      startSensorPolling();
+      startMotorPolling();
+      startWeatherPolling();
+      startWaterLevelPolling();
 
-      // debugData();
-      // debugApiResponse();
     }, 100);
 
   } catch (error) {
@@ -2443,20 +2401,14 @@ const getMaxY = (data, step = 10) => {
 };
 
 onBeforeUnmount(() => {
-  if (streamConnection.value) {
-    streamConnection.value.close();
-  }
-  
-  if (streamTimeout.value) {
-    clearTimeout(streamTimeout.value);
-  }
+  // Remove EventSource cleanup and replace with polling cleanup
+  stopAllPolling();
   
   try {
     destroyAllCharts();
   } catch (e) {
     console.warn('Error while destroying chart:', e);
   }
-  stopMotorStatusPolling(); 
 
   clearInterval(intervalId);
   firestoreListenersUnsubscribers.value.forEach(unsubscribe => unsubscribe());

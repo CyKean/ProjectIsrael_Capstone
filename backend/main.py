@@ -5,6 +5,9 @@ import httpx
 import logging
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
+from datetime import datetime
+import threading
+import asyncio
 
 from app.routers import crop_router,auth_router,sensor_data,motor_status,water_scheduling_router,sms,esp32_ip,dashboard_router,crop_recommendation,soil_analysis,npk_router,soilph_router,soil_moisture,temhum_router,waterlevel_router,motorcontrol_router,notification_router,user_router,schedule_router,sidebar_router,recalibration_router,system,esp32
 from app.services.backend_ip import save_backend_ip
@@ -15,6 +18,7 @@ from app.routers.esp32 import router as esp32
 
 from app.services.database import init_database
 from app.utils.route_testing import start_continuous_testing, sensor_simulator 
+from backend_schedule_manager import backend_scheduler
 
 load_dotenv()
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
@@ -59,6 +63,40 @@ async def add_cors_headers(request: Request, call_next):
     response.headers["Access-Control-Expose-Headers"] = "*"
     
     return response
+
+# Global heartbeat storage
+last_heartbeat = None
+heartbeat_lock = threading.Lock()
+
+@app.post("/api/system/heartbeat")
+async def receive_heartbeat(heartbeat_data: dict):
+    global last_heartbeat
+    with heartbeat_lock:
+        last_heartbeat = datetime.utcnow()
+    return {
+        "status": "ok", 
+        "received_at": last_heartbeat.isoformat() + 'Z',
+        "message": "Heartbeat received"
+    }
+
+@app.get("/api/system/heartbeat")
+async def get_heartbeat():
+    global last_heartbeat
+    with heartbeat_lock:
+        if last_heartbeat:
+            current_time = datetime.utcnow()
+            seconds_ago = (current_time - last_heartbeat).total_seconds()
+            return {
+                "last_seen": last_heartbeat.isoformat() + 'Z',
+                "seconds_ago": seconds_ago,
+                "status": "active" if seconds_ago < 30 else "inactive"
+            }
+        else:
+            return {
+                "last_seen": None, 
+                "seconds_ago": None,
+                "status": "never_active"
+            }
 
 # Include all routers
 app.include_router(crop_router.router, prefix="/api/crop", tags=["crop"])
@@ -162,7 +200,22 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
+def start_backend_scheduler():
+    """
+    Start the backend schedule manager when the backend starts
+    """
+    try:
+        # Start the backend scheduler
+        asyncio.create_task(backend_scheduler.start())
+        print("✅ Backend Schedule Manager started")
+    except Exception as e:
+        print(f"❌ Failed to start Backend Schedule Manager: {e}")
 
+# Start the scheduler when the application starts
+@app.on_event("startup")
+async def startup_event():
+    start_backend_scheduler()
+    print("🚀 Application startup complete")
 
 # @app.on_event("startup")
 # async def startup_event():
@@ -175,4 +228,3 @@ async def global_exception_handler(request: Request, exc: Exception):
 #     """Stop the sensor simulation when application shuts down"""
 #     sensor_simulator.stop()
 #     print("✅ Sensor simulation stopped")
-
