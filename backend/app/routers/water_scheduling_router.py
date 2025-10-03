@@ -195,6 +195,8 @@ async def get_schedules_for_esp32():
 @router.post("/api/watering-schedule")
 async def handle_schedule_operation(request: Request, esp_ip: str = Depends(get_esp32_ip)):
     try:
+
+        print(f"🔧 DEBUG: Using ESP32 IP from dependency: {esp_ip}")
         body = await request.json()
 
         # Fix common typos in incoming data
