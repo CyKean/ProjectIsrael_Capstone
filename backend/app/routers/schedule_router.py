@@ -182,7 +182,6 @@ async def set_motor_status_philippine_time(status: dict, esp_ip: str = Depends(g
                         "$push": {
                             "history": {
                                 "$each": [history_item],
-                                "$slice": -1000  # Keep last 1000 items
                             }
                         }
                     },
@@ -1036,7 +1035,7 @@ async def set_motor_status(status: dict):
                     {"_id": "motor_history"},
                     {
                         "$setOnInsert": {"created_at": datetime.utcnow(), "type": "motor_history"},
-                        "$push": {"history": {"$each": [history_item], "$slice": -100}}
+                        "$push": {"history": {"$each": [history_item]}}
                     },
                     upsert=True
                 )

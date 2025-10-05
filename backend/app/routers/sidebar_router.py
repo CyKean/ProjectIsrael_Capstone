@@ -708,7 +708,6 @@ async def control_motor(control: MotorControl, db=Depends(get_database)):
                 "$push": {
                     "history": {
                         "$each": [history_entry],
-                        "$slice": -200  # Keep last 200 history entries
                     }
                 },
                 "$setOnInsert": {

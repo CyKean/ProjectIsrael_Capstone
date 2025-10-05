@@ -54,6 +54,60 @@ class WaterLevelData(BaseModel):
     waterLevel: float
     device_id: str  # Added device_id field
 
+# async def save_sensor_reading(sensor_type: str, reading_data: dict):
+#     """Save sensor reading to the appropriate document with readings array"""
+#     try:
+#         db = await get_database()
+#         collection = db["sensor_readings"]
+        
+#         # Create a unique ID for the reading
+#         reading_id = str(ObjectId())
+        
+#         # Prepare the reading document with Philippine time in Firestore format
+#         reading = {
+#             "_id": reading_id,
+#             "device_id": reading_data["device_id"],
+#             "timestamp": convert_to_firestore_timestamp(get_ph_time())  # Use Firestore format
+#         }
+        
+#         # Add sensor-specific fields
+#         if sensor_type == "esp32-1":
+#             reading.update({
+#                 "nitrogen": reading_data["nitrogen"],
+#                 "phosphorus": reading_data["phosphorus"],
+#                 "potassium": reading_data["potassium"],
+#                 "soilPh": reading_data["soilPh"]
+#             })
+#         elif sensor_type == "esp32-2":
+#             reading.update({
+#                 "soilMoisture": reading_data["soilMoisture"],
+#                 "temperature": reading_data["temperature"],
+#                 "humidity": reading_data["humidity"]
+#             })
+        
+#         # Update the document for this sensor type, pushing the new reading to the readings array
+#         await collection.update_one(
+#             {"_id": sensor_type},
+#             {
+#                 "$push": {
+#                     "readings": {
+#                         "$each": [reading],
+#                         "$sort": {"timestamp._seconds": -1},  # Sort by seconds
+#                         "$slice": 1000  # Limit array size to prevent excessive growth
+#                     }
+#                 },
+#                 "$setOnInsert": {"_id": sensor_type}  # Create document if it doesn't exist
+#             },
+#             upsert=True
+#         )
+        
+#         print(f"✅ {sensor_type} data saved to MongoDB for device {reading_data['device_id']}")
+#         return True
+        
+#     except Exception as e:
+#         print(f"❌ MongoDB save error ({sensor_type}): {e}")
+#         return False
+
 async def save_sensor_reading(sensor_type: str, reading_data: dict):
     """Save sensor reading to the appropriate document with readings array"""
     try:
@@ -92,8 +146,7 @@ async def save_sensor_reading(sensor_type: str, reading_data: dict):
                 "$push": {
                     "readings": {
                         "$each": [reading],
-                        "$sort": {"timestamp._seconds": -1},  # Sort by seconds
-                        "$slice": 1000  # Limit array size to prevent excessive growth
+                        "$sort": {"timestamp._seconds": -1}  # Sort by seconds, no limit
                     }
                 },
                 "$setOnInsert": {"_id": sensor_type}  # Create document if it doesn't exist

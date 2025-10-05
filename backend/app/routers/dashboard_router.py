@@ -623,74 +623,6 @@ async def get_current_motor_status(db = Depends(get_database)):
         print(f"Error in get_current_motor_status: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-# @router.get("/motor-status/history")
-# async def get_motor_history(
-#     week_only: bool = True,
-#     db = Depends(get_database)
-# ):
-#     """Get motor status history from motor_history document"""
-#     try:
-#         motor_status = db["motor_status"]
-        
-#         # Get the motor_history document
-#         history_doc = await motor_status.find_one({"_id": "motor_history"})
-        
-#         if not history_doc or not history_doc.get("history"):
-#             return []
-        
-#         history_data = history_doc["history"]
-        
-#         if week_only:
-#             # Make start_of_week timezone-aware (UTC)
-#             start_of_week = datetime.now().replace(tzinfo=None) - timedelta(days=datetime.now().weekday())
-#             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-#             # Filter history by timestamp
-#             filtered_history = []
-#             for item in history_data:
-#                 item_timestamp = item.get("timestamp")
-#                 # Handle ISO format timestamp string
-#                 if isinstance(item_timestamp, str):
-#                     try:
-#                         # Parse ISO string and make it timezone-naive for comparison
-#                         parsed_timestamp = datetime.fromisoformat(item_timestamp.replace('Z', '+00:00'))
-#                         # Remove timezone info for comparison
-#                         item_timestamp = parsed_timestamp.replace(tzinfo=None)
-#                     except Exception as e:
-#                         print(f"Error parsing timestamp {item_timestamp}: {e}")
-#                         continue
-#                 # Handle regular datetime (make timezone-naive)
-#                 elif isinstance(item_timestamp, datetime):
-#                     item_timestamp = item_timestamp.replace(tzinfo=None)
-#                 else:
-#                     continue
-                
-#                 if item_timestamp and item_timestamp >= start_of_week:
-#                     filtered_history.append(item)
-#             history_data = filtered_history
-        
-#         # Sort by timestamp (newest first) - handle both string and datetime timestamps
-#         def get_timestamp(item):
-#             ts = item.get("timestamp")
-#             if isinstance(ts, str):
-#                 try:
-#                     return datetime.fromisoformat(ts.replace('Z', '+00:00'))
-#                 except:
-#                     return datetime.now()
-#             elif isinstance(ts, datetime):
-#                 return ts
-#             return datetime.now()
-        
-#         history_data.sort(key=lambda x: get_timestamp(x), reverse=True)
-        
-#         return history_data
-    
-#     except Exception as e:
-#         print(f"Error in get_motor_history: {str(e)}")
-#         import traceback
-#         traceback.print_exc()
-#         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
 @router.get("/motor-status/history")
 async def get_motor_history(
     week_only: bool = True,
@@ -841,7 +773,6 @@ async def create_sensor_reading(
                             "readings": {
                                 "$each": [sensor_reading],
                                 "$sort": {"timestamp._seconds": -1},
-                                "$slice": 1000
                             }
                         }
                     }
@@ -897,7 +828,6 @@ async def update_motor_status(
                     "history": {
                         "$each": [history_entry],
                         "$sort": {"timestamp._seconds": -1},
-                        "$slice": 1000
                     }
                 }
             },
