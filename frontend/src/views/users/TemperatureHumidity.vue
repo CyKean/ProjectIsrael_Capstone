@@ -30,6 +30,21 @@
                   @input="performSearch"
                 />
               </div>
+              
+              <!-- Items Per Page Selector -->
+              <div class="relative flex-1 sm:flex-none">
+                <select 
+                  v-model="itemsPerPage"
+                  @change="handleItemsPerPageChange"
+                  class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 shadow-sm"
+                >
+                  <option value="10">10/page</option>
+                  <option value="20">20/page</option>
+                  <option value="50">50/page</option>
+                  <option value="100">100/page</option>
+                </select>
+              </div>
+
               <!-- Filter Button -->
               <div class="flex flex-row gap-2">
                 <div class="relative flex-1 sm:flex-none">
@@ -140,7 +155,7 @@
                 <!-- Print Button -->
                 <div class="relative flex-1 sm:flex-none">
                   <button 
-                    @click="printTable"
+                    @click="openDateRangeModal"
                     class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
                   >
                     <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
@@ -393,8 +408,8 @@
           <div class="border-t border-gray-200 py-2 px-3 bg-gray-50 flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="text-[10px] md:text-xs text-gray-600">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-                of {{ sortedData.length }}
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, totalItems) }}
+                of {{ totalItems }}
               </div>
               <div class="flex items-center gap-1">
                 <button 
@@ -438,13 +453,65 @@
       </div>
 
     </div>
-  </div>
 
-  <LoadingPage 
-    :isVisible="isLoading" 
-    title="Loading Temperature & Humidity Data" 
-    message="Please wait while we fetch the latest temperature and humidity measurements"
-  />
+    <!-- Date Range Selection Modal for Printing -->
+    <div v-show="showDateRangeModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        <!-- Modal Header -->
+        <div class="bg-green-500 text-white px-6 py-4 rounded-t-lg">
+          <h3 class="text-lg font-semibold">Select Date Range for Printing</h3>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+            <input
+              type="date"
+              v-model="printStartDate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+            <input
+              type="date"
+              v-model="printEndDate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+          
+          <div class="text-xs text-gray-500">
+            <p>• Select the date range for the data you want to print</p>
+            <p>• Leave empty to print all available data</p>
+          </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
+          <button
+            @click="showDateRangeModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            Cancel
+          </button>
+          <button
+            @click="confirmPrintWithDateRange"
+            class="px-4 py-2 text-sm font-medium text-white bg-green-500 border border-transparent rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            Generate Print
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <LoadingPage 
+      :isVisible="isLoading" 
+      title="Loading Temperature & Humidity Data" 
+      message="Please wait while we fetch the latest temperature and humidity measurements"
+    />
+  </div>
 </template>
   
 <script setup>
@@ -461,6 +528,8 @@ import Chart from 'chart.js/auto'
 
 const tempHumidityData = ref([])
 const isLoading = ref(true)
+const totalItems = ref(0)
+const totalPages = ref(1)
 
 const chartCanvas = ref(null)
 const chart = ref(null)
@@ -481,15 +550,80 @@ const humidityStats = ref({
   avg: '--'
 })
 
+// Print date range modal
+const showDateRangeModal = ref(false)
+const printStartDate = ref('')
+const printEndDate = ref('')
+
 let pollingInterval = null
 const POLLING_FREQUENCY = 5000 
 
 let PRINT_CHART_DATA_LIMIT = 0 
 
-const printTable = async () => {
+// Open date range selection modal
+const openDateRangeModal = () => {
   // Close any open dropdowns
   activeDropdown.value = null;
   
+  // Set default dates (last 7 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  
+  printEndDate.value = endDate.toISOString().split('T')[0];
+  printStartDate.value = startDate.toISOString().split('T')[0];
+  
+  showDateRangeModal.value = true;
+}
+
+// Confirm print with selected date range
+const confirmPrintWithDateRange = async () => {
+  showDateRangeModal.value = false;
+  isLoading.value = true;
+
+  try {
+    // Validate date inputs
+    if (!printStartDate.value || !printEndDate.value) {
+      window.showToast('Please select both start and end dates', 'warning');
+      isLoading.value = false;
+      return;
+    }
+    const startDate = new Date(printStartDate.value);
+    const endDate = new Date(printEndDate.value);
+    if (startDate > endDate) {
+      window.showToast('Start date cannot be after end date', 'warning');
+      isLoading.value = false;
+      return;
+    }
+
+    // Fetch data from the correct endpoint with correct parameter names
+    const response = await api.get('/temperature-humidity/readings/range', {
+      params: {
+        from_date: printStartDate.value,
+        to_date: printEndDate.value
+      }
+    });
+    const filteredData = response.data || [];
+
+    if (filteredData.length === 0) {
+      window.showToast('No data found for the selected date range.', 'warning');
+      isLoading.value = false;
+      return;
+    }
+
+    // Process and print the data
+    await printTableWithDateRange(filteredData);
+
+  } catch (error) {
+    console.error('Error printing with date range:', error);
+    window.showToast('Failed to generate print. Please check your date range.', 'error');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// Modified print function with date range
+const printTableWithDateRange = async (filteredData) => {
   const tempContainer = document.createElement('div');
   tempContainer.style.width = '800px';
   tempContainer.style.height = '400px';
@@ -512,8 +646,9 @@ const printTable = async () => {
     day: 'numeric' 
   });
   
-  const tempHumidityRows = sortedData.value.map(row => ({
-    id: row.id,
+  // Use the filteredData passed as parameter instead of fetching again
+  const tempHumidityRows = filteredData.map((row, index) => ({
+    id: index + 1,
     date: row.date,
     time: row.time,
     device: row.deviceId || 'N/A',
@@ -521,11 +656,9 @@ const printTable = async () => {
     humidity: row.humidity
   }));
   
-  // For printing, take the most recent PRINT_CHART_DATA_LIMIT records then sort oldest -> newest
-  const allForPrint = tempHumidityData.value
-    .filter(item => item.temperature !== '--' && item.humidity !== '--')
-  const printChartData = allForPrint
-    .slice(-PRINT_CHART_DATA_LIMIT || undefined)
+  // Prepare chart data for printing
+  const allForPrint = filteredData
+    .filter(item => item.temperature !== '--' && item.humidity !== '--' && item.rawTimestamp)
     .map(item => ({
       timestamp: item.rawTimestamp,
       temperature: Number(item.temperature),
@@ -533,10 +666,10 @@ const printTable = async () => {
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
   
-  console.log(`📊 Print chart will show ${printChartData.length} records`);
+  console.log(`📊 Print chart will show ${allForPrint.length} records from selected date range`);
   
-  const tempValues = printChartData.map(item => item.temperature);
-  const humidityValues = printChartData.map(item => item.humidity);
+  const tempValues = allForPrint.map(item => item.temperature);
+  const humidityValues = allForPrint.map(item => item.humidity);
   
   const tempMin = tempValues.length > 0 ? Math.min(...tempValues) : 0;
   const tempMax = tempValues.length > 0 ? Math.max(...tempValues) : 50;
@@ -553,154 +686,344 @@ const printTable = async () => {
   try {
     const ctx = tempCanvas.getContext('2d');
     
-    const tempChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: printChartData.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [
-          {
-            label: 'Temperature (°C)',
-            data: printChartData.map(item => item.temperature),
-            borderColor: '#ef4444', // red-500
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#ef4444',
-            pointBorderWidth: 2,
-            yAxisID: 'y-temperature'
-          },
-          {
-            label: 'Humidity (%)',
-            data: printChartData.map(item => item.humidity),
-            borderColor: '#3b82f6', // blue-500
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2,
-            yAxisID: 'y-humidity'
-          }
-        ]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false, 
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              font: { size: 14 }
+    if (allForPrint.length > 0) {
+      const tempChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allForPrint.map(item => {
+            return item.timestamp.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })
+          }),
+          datasets: [
+            {
+              label: 'Temperature (°C)',
+              data: allForPrint.map(item => item.temperature),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#ef4444',
+              pointBorderWidth: 2,
+              yAxisID: 'y-temperature'
+            },
+            {
+              label: 'Humidity (%)',
+              data: allForPrint.map(item => item.humidity),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#3b82f6',
+              pointBorderWidth: 2,
+              yAxisID: 'y-humidity'
             }
-          }
+          ]
         },
-        scales: {
-          'y-temperature': {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { 
               display: true,
-              text: 'Temperature (°C)',
-              color: '#ef4444',
-              font: {
-                size: 14,
-                weight: '600'
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: { size: 14 }
               }
-            },
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(tempMin * 0.95)),
-            max: Math.ceil(tempMax * 1.05),
-            ticks: {
-              font: { size: 12 },
-              color: '#ef4444',
-              padding: 8
-            },
-            grid: {
-              color: 'rgba(239, 68, 68, 0.1)'
             }
           },
-          'y-humidity': {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
+          scales: {
+            'y-temperature': {
+              type: 'linear',
               display: true,
-              text: 'Humidity (%)',
-              color: '#3b82f6',
-              font: {
-                size: 14,
-                weight: '600'
+              position: 'left',
+              title: {
+                display: true,
+                text: 'Temperature (°C)',
+                color: '#ef4444',
+                font: {
+                  size: 14,
+                  weight: '600'
+                }
+              },
+              beginAtZero: false,
+              min: Math.max(0, Math.floor(tempMin * 0.95)),
+              max: Math.ceil(tempMax * 1.05),
+              ticks: {
+                font: { size: 12 },
+                color: '#ef4444',
+                padding: 8
+              },
+              grid: {
+                color: 'rgba(239, 68, 68, 0.1)'
               }
             },
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(humidityMin * 0.95)),
-            max: Math.min(100, Math.ceil(humidityMax * 1.05)),
-            ticks: {
-              font: { size: 12 },
-              color: '#3b82f6',
-              padding: 8
+            'y-humidity': {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Humidity (%)',
+                color: '#3b82f6',
+                font: {
+                  size: 14,
+                  weight: '600'
+                }
+              },
+              beginAtZero: false,
+              min: Math.max(0, Math.floor(humidityMin * 0.95)),
+              max: Math.min(100, Math.ceil(humidityMax * 1.05)),
+              ticks: {
+                font: { size: 12 },
+                color: '#3b82f6',
+                padding: 8
+              },
+              grid: {
+                drawOnChartArea: false
+              }
             },
-            grid: {
-              drawOnChartArea: false
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              color: '#64748b',
-              maxTicksLimit: 10,
-              maxRotation: 45
+            x: {
+              ticks: {
+                font: { size: 10 },
+                color: '#64748b',
+                maxTicksLimit: 10,
+                maxRotation: 45
+              }
             }
           }
         }
-      }
-    });
-    
-    setTimeout(async () => {
-      try {
-        chartImage = tempCanvas.toDataURL('image/png', 1.0);
-        
-        tempChart.destroy();
-        document.body.removeChild(tempContainer);
-        
-        generatePrintHTML(chartImage, tempHumidityRows, formattedDate, now, 
-                         printChartData.length, tempMin, tempMax, tempAvg, 
-                         humidityMin, humidityMax, humidityAvg);
-      } catch (error) {
-        console.error('Error capturing chart:', error);
-        document.body.removeChild(tempContainer);
-        generatePrintHTML('', tempHumidityRows, formattedDate, now, 0, 0, 0, 0, 0, 0, 0);
-      }
-    }, 500);
+      });
+      
+      setTimeout(async () => {
+        try {
+          chartImage = tempCanvas.toDataURL('image/png', 1.0);
+          tempChart.destroy();
+          document.body.removeChild(tempContainer);
+          
+          generatePrintHTML(chartImage, tempHumidityRows, formattedDate, now, 
+                           allForPrint.length, tempMin, tempMax, tempAvg, 
+                           humidityMin, humidityMax, humidityAvg);
+        } catch (error) {
+          console.error('Error capturing chart:', error);
+          document.body.removeChild(tempContainer);
+          generatePrintHTML('', tempHumidityRows, formattedDate, now, 0, 0, 0, 0, 0, 0, 0);
+        }
+      }, 500);
+    } else {
+      document.body.removeChild(tempContainer);
+      generatePrintHTML('', tempHumidityRows, formattedDate, now, 0, 0, 0, 0, 0, 0, 0);
+    }
     
   } catch (error) {
     console.error('Error creating chart:', error);
     document.body.removeChild(tempContainer);
     generatePrintHTML('', tempHumidityRows, formattedDate, now, 0, 0, 0, 0, 0, 0, 0);
   }
-};
+}
+
+const fetchDataForPrintAll = async () => {
+  try {
+    const params = new URLSearchParams();
+    
+    // For /readings/all endpoint, use simple date format
+    if (printStartDate.value) {
+      params.append('start_date', printStartDate.value);
+    }
+    
+    if (printEndDate.value) {
+      params.append('end_date', printEndDate.value);
+    }
+    
+    console.log('🔍 Using /readings/all endpoint with params:', params.toString());
+    
+    const response = await api.get(`/temperature-humidity/readings/all?${params.toString()}`);
+    const allReadings = response.data;
+    
+    console.log(`📊 /readings/all endpoint returned ${allReadings.length} readings`);
+    
+    const processedData = allReadings.map((reading, index) => {
+      let formattedDate = '--';
+      let formattedTime = '--';
+      let rawTimestamp = null;
+
+      try {
+        if (reading.timestamp) {
+          if (typeof reading.timestamp === 'string') {
+            rawTimestamp = new Date(reading.timestamp);
+          } else if (typeof reading.timestamp === 'object' && reading.timestamp.$date) {
+            rawTimestamp = new Date(reading.timestamp.$date);
+          } else if (reading.timestamp instanceof Date) {
+            rawTimestamp = reading.timestamp;
+          } else if (reading.timestamp._seconds) {
+            rawTimestamp = new Date(reading.timestamp._seconds * 1000);
+          }
+        }
+
+        if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+          formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+          });
+
+          formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      } catch (e) {
+        console.error("Error formatting date:", e, reading.timestamp);
+      }
+
+      const temperature = reading.temperature !== undefined && reading.temperature !== null 
+        ? Number(reading.temperature).toFixed(2) 
+        : '--';
+      
+      const humidity = reading.humidity !== undefined && reading.humidity !== null 
+        ? Number(reading.humidity).toFixed(2) 
+        : '--';
+
+      return {
+        id: index + 1,
+        temperature: temperature,
+        humidity: humidity,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: rawTimestamp,
+        deviceId: reading.device_id || 'esp32-2',
+        soilMoisture: reading.soilMoisture || null
+      };
+    });
+
+    return processedData;
+  } catch (error) {
+    console.error("❌ Error fetching data from /readings/all endpoint:", error);
+    
+    if (error.response) {
+      console.error('Backend response error:', error.response.data);
+    }
+    
+    window.showToast('Failed to fetch data for printing from all endpoint.', 'error');
+    return [];
+  }
+}
+
+const fetchDataForPrintRange = async () => {
+  try {
+    if (!printStartDate.value || !printEndDate.value) {
+      console.error('❌ Both start and end dates are required for range endpoint');
+      return [];
+    }
+    
+    console.log('📅 Using range endpoint with dates:', printStartDate.value, 'to', printEndDate.value);
+    
+    // Remove the limit parameter from the URL
+    const response = await api.get(`/temperature-humidity/readings/range?from_date=${printStartDate.value}&to_date=${printEndDate.value}`);
+    const allReadings = response.data; // Now response.data is directly the array
+    
+    console.log(`📊 Range endpoint returned ${allReadings.length} readings`);
+    
+    if (allReadings.length === 0) {
+      console.warn('⚠️ No data returned from range endpoint.');
+    }
+    
+    const processedData = allReadings.map((reading, index) => {
+      let formattedDate = '--';
+      let formattedTime = '--';
+      let rawTimestamp = null;
+
+      try {
+        if (reading.timestamp) {
+          if (typeof reading.timestamp === 'string') {
+            rawTimestamp = new Date(reading.timestamp);
+          } else if (typeof reading.timestamp === 'object' && reading.timestamp.$date) {
+            rawTimestamp = new Date(reading.timestamp.$date);
+          } else if (reading.timestamp instanceof Date) {
+            rawTimestamp = reading.timestamp;
+          } else if (reading.timestamp._seconds) {
+            rawTimestamp = new Date(reading.timestamp._seconds * 1000);
+          }
+        }
+
+        if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+          formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+          });
+
+          formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      } catch (e) {
+        console.error("Error formatting date:", e, reading.timestamp);
+      }
+
+      const temperature = reading.temperature !== undefined && reading.temperature !== null 
+        ? Number(reading.temperature).toFixed(2) 
+        : '--';
+      
+      const humidity = reading.humidity !== undefined && reading.humidity !== null 
+        ? Number(reading.humidity).toFixed(2) 
+        : '--';
+
+      return {
+        id: index + 1,
+        temperature: temperature,
+        humidity: humidity,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: rawTimestamp,
+        deviceId: reading.device_id || 'esp32-2',
+        soilMoisture: reading.soilMoisture || null
+      };
+    });
+
+    return processedData;
+  } catch (error) {
+    console.error("❌ Error fetching data from range endpoint:", error);
+    
+    if (error.response) {
+      console.error('Backend response error:', error.response.data);
+      console.error('Status:', error.response.status);
+    }
+    
+    // Don't show error toast here, let the fallback handle it
+    console.log('🔄 Range endpoint failed, will try fallback...');
+    throw error; // Re-throw to trigger fallback
+  }
+}
 
 const generatePrintHTML = (chartImage, tempHumidityRows, formattedDate, now, 
                           chartRecordCount, tempMin, tempMax, tempAvg, 
                           humidityMin, humidityMax, humidityAvg) => {
+  // Add date range info to summary
+  const dateRangeText = printStartDate.value && printEndDate.value 
+    ? `${printStartDate.value} to ${printEndDate.value}`
+    : 'All available data';
+
   const tableContent = `
     <!DOCTYPE html>
     <html>
@@ -886,16 +1209,16 @@ const generatePrintHTML = (chartImage, tempHumidityRows, formattedDate, now,
       <div class="summary">
         <h3>Report Summary</h3>
         <div class="summary-item">
+          <span class="summary-label">Date Range:</span>
+          <span class="summary-value">${dateRangeText}</span>
+        </div>
+        <div class="summary-item">
           <span class="summary-label">Total Records:</span>
           <span class="summary-value">${tempHumidityRows.length}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Chart Data Points:</span>
           <span class="summary-value">${chartRecordCount}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Date Range:</span>
-          <span class="summary-value">${tempHumidityRows.length > 0 ? tempHumidityRows[tempHumidityRows.length-1].date + ' to ' + tempHumidityRows[0].date : 'N/A'}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Report Generated:</span>
@@ -906,7 +1229,7 @@ const generatePrintHTML = (chartImage, tempHumidityRows, formattedDate, now,
       <div class="section-header">Temperature & Humidity Trend Analysis</div>
       ${chartImage ? `
         <div class="chart-title">Temperature & Humidity Levels Over Time</div>
-        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
+        <div class="chart-info">Showing ${chartRecordCount} data points from selected date range</div>
         <img src="${chartImage}" class="chart-image" alt="Temperature & Humidity Chart" />
         
         <div class="stats-summary">
@@ -927,7 +1250,7 @@ const generatePrintHTML = (chartImage, tempHumidityRows, formattedDate, now,
             </div>
           </div>
         </div>
-      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
+      ` : '<p style="text-align: center; color: #6b7280;">No chart data available for the selected date range</p>'}
       
       <div class="section-header">Detailed Temperature & Humidity Sensor Readings</div>
       <table>
@@ -1004,176 +1327,368 @@ const paginationNumbers = computed(() => {
   if (total <= 1) return [1]
   
   if (current === 1) {
-    return [1, '..', total]
+    return total <= 3 ? Array.from({length: total}, (_, i) => i + 1) : [1, 2, '...', total]
   } else if (current === total) {
-    return [1, '..', total]
+    return total <= 3 ? Array.from({length: total}, (_, i) => i + 1) : [1, '...', total - 1, total]
   } else {
-    return [current, '...', total]
+    if (total <= 5) {
+      return Array.from({length: total}, (_, i) => i + 1)
+    } else {
+      return [1, '...', current - 1, current, current + 1, '...', total]
+    }
   }
 })
 
 const dataCache = ref(null)
 
+// New function to fetch all data for export/print
+const fetchAllDataForExport = async () => {
+  try {
+    const response = await api.get('/temperature-humidity/readings?limit=0')
+    const allReadings = response.data.data || response.data
+    
+    const processedData = allReadings.map((reading, index) => {
+      let formattedDate = '--'
+      let formattedTime = '--'
+      let timestampSeconds = null
+      let rawTimestamp = null
 
-const fetchTempHumidityData = async () => {
+      try {
+        if (reading.timestamp) {
+          if (typeof reading.timestamp === 'object') {
+            const sec = reading.timestamp._seconds ?? reading.timestamp.seconds
+            const nsec = reading.timestamp._nanoseconds ?? reading.timestamp.nanoseconds
+            if (sec !== undefined && sec !== null) {
+              const s = Number(sec)
+              const ns = Number(nsec) || 0
+              if (!isNaN(s)) rawTimestamp = new Date(s * 1000 + ns / 1000000)
+            }
+          } else if (typeof reading.timestamp === 'number') {
+            const num = Number(reading.timestamp)
+            if (num > 1e12) {
+              rawTimestamp = new Date(num)
+            } else {
+              rawTimestamp = new Date(num * 1000)
+            }
+          } else if (typeof reading.timestamp === 'string') {
+            const parsed = new Date(reading.timestamp)
+            if (!isNaN(parsed)) rawTimestamp = parsed
+          }
+        }
+
+        if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+          formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+          })
+
+          formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          })
+
+          timestampSeconds = rawTimestamp.getTime() / 1000
+        }
+      } catch (e) {
+        console.error("Error formatting date:", e, reading.timestamp)
+      }
+
+      const temperature = reading.temperature !== undefined && reading.temperature !== null 
+        ? Number(reading.temperature).toFixed(2) 
+        : '--'
+      
+      const humidity = reading.humidity !== undefined && reading.humidity !== null 
+        ? Number(reading.humidity).toFixed(2) 
+        : '--'
+
+      return {
+        id: index + 1,
+        timestamp: timestampSeconds,
+        temperature: temperature,
+        humidity: humidity,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: rawTimestamp,
+        deviceId: reading.device_id,
+        soilMoisture: reading.soilMoisture || null
+      }
+    })
+
+    return processedData
+  } catch (error) {
+    console.error("❌ Error fetching all data for export:", error)
+    return []
+  }
+}
+
+// Function to fetch latest 20 records for chart only
+const fetchLatestChartData = async () => {
+  try {
+    const response = await api.get('/temperature-humidity/readings?limit=20&sort=desc')
+    const allReadings = response.data.data || response.data
+    
+    const processedData = allReadings.map((reading, index) => {
+      let formattedDate = '--'
+      let formattedTime = '--'
+      let timestampSeconds = null
+      let rawTimestamp = null
+
+      try {
+        if (reading.timestamp) {
+          if (typeof reading.timestamp === 'object') {
+            const sec = reading.timestamp._seconds ?? reading.timestamp.seconds
+            const nsec = reading.timestamp._nanoseconds ?? reading.timestamp.nanoseconds
+            if (sec !== undefined && sec !== null) {
+              const s = Number(sec)
+              const ns = Number(nsec) || 0
+              if (!isNaN(s)) rawTimestamp = new Date(s * 1000 + ns / 1000000)
+            }
+          } else if (typeof reading.timestamp === 'number') {
+            const num = Number(reading.timestamp)
+            if (num > 1e12) {
+              rawTimestamp = new Date(num)
+            } else {
+              rawTimestamp = new Date(num * 1000)
+            }
+          } else if (typeof reading.timestamp === 'string') {
+            const parsed = new Date(reading.timestamp)
+            if (!isNaN(parsed)) rawTimestamp = parsed
+          }
+        }
+
+        if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+          formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+          })
+
+          formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          })
+
+          timestampSeconds = rawTimestamp.getTime() / 1000
+        }
+      } catch (e) {
+        console.error("Error formatting date:", e, reading.timestamp)
+      }
+
+      const temperature = reading.temperature !== undefined && reading.temperature !== null 
+        ? Number(reading.temperature).toFixed(2) 
+        : '--'
+      
+      const humidity = reading.humidity !== undefined && reading.humidity !== null 
+        ? Number(reading.humidity).toFixed(2) 
+        : '--'
+
+      return {
+        id: index + 1,
+        timestamp: timestampSeconds,
+        temperature: temperature,
+        humidity: humidity,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: rawTimestamp,
+        deviceId: reading.device_id,
+        soilMoisture: reading.soilMoisture || null
+      }
+    })
+
+    // Initialize chart data with the latest 20 records
+    initializeChartData(processedData)
+    
+  } catch (error) {
+    console.error("❌ Error fetching latest chart data:", error)
+  }
+}
+
+// Updated fetch function with pagination - FOR TABLE DATA ONLY
+const fetchTempHumidityData = async (page = 1, limit = 20) => {
   try {
     // isLoading.value = true
     
-    // Use the correct endpoint
-    const response = await api.get('/temperature-humidity/readings')
-    const allReadings = response.data
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    })
     
-  // DEBUG: show raw readings shapes so we can diagnose timestamp formats
-  console.debug('DEBUG: raw readings sample (from /temperature-humidity/readings):', allReadings.slice(0, 5))
-  console.log(`📊 Total temperature & humidity readings fetched: ${allReadings.length}`)
+    // Add search query if provided
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value)
+    }
     
-    const processedData = allReadings
-      .map((reading, index) => {
-          // Handle timestamp --- use the timestamp from the DB only. Do NOT default to current time.
-          let formattedDate = '--'
-          let formattedTime = '--'
-          let timestampSeconds = null
-          let rawTimestamp = null
+    // Use the correct endpoint with pagination parameters
+    const response = await api.get(`/temperature-humidity/readings?${params.toString()}`)
+    const result = response.data
+    
+    // DEBUG: show raw readings shapes so we can diagnose timestamp formats
+    console.debug('DEBUG: raw readings sample (from /temperature-humidity/readings):', result.data?.slice(0, 5) || result.slice(0, 5))
+    console.log(`📊 Temperature & humidity readings fetched: ${result.data?.length || result.length} (Page ${page}, Limit ${limit})`)
+      
+    const allReadings = result.data || result
+    
+    const processedData = allReadings.map((reading, index) => {
+        // Handle timestamp --- use the timestamp from the DB only. Do NOT default to current time.
+        let formattedDate = '--'
+        let formattedTime = '--'
+        let timestampSeconds = null
+        let rawTimestamp = null
 
-          try {
-            if (reading.timestamp) {
-                // Several possible timestamp shapes we may receive from backend:
-                // - Firestore-like: { _seconds, _nanoseconds } or { seconds, nanoseconds }
-                // - MongoDB $date: { $date: 167... } or { $date: { $numberLong: '...' } }
-                // - Numeric seconds or milliseconds
-                // - ISO string
-                try {
-                  // If timestamp is a JSON string containing an object, parse it first
-                  if (typeof reading.timestamp === 'string' && reading.timestamp.trim().startsWith('{')) {
-                    try {
-                      reading.timestamp = JSON.parse(reading.timestamp)
-                    } catch (e) {
-                      // ignore parse error and continue
-                      console.debug('DEBUG: failed to JSON.parse timestamp string', reading.timestamp)
+        try {
+          if (reading.timestamp) {
+              // Several possible timestamp shapes we may receive from backend:
+              // - Firestore-like: { _seconds, _nanoseconds } or { seconds, nanoseconds }
+              // - MongoDB $date: { $date: 167... } or { $date: { $numberLong: '...' } }
+              // - Numeric seconds or milliseconds
+              // - ISO string
+              try {
+                // If timestamp is a JSON string containing an object, parse it first
+                if (typeof reading.timestamp === 'string' && reading.timestamp.trim().startsWith('{')) {
+                  try {
+                    reading.timestamp = JSON.parse(reading.timestamp)
+                  } catch (e) {
+                    // ignore parse error and continue
+                    console.debug('DEBUG: failed to JSON.parse timestamp string', reading.timestamp)
+                  }
+                }
+
+                if (typeof reading.timestamp === 'object') {
+                  // Firestore-like
+                  const sec = reading.timestamp._seconds ?? reading.timestamp.seconds
+                  const nsec = reading.timestamp._nanoseconds ?? reading.timestamp.nanoseconds
+                  if (sec !== undefined && sec !== null) {
+                    const s = Number(sec)
+                    const ns = Number(nsec) || 0
+                    if (!isNaN(s)) rawTimestamp = new Date(s * 1000 + ns / 1000000)
+                  } else if ('$date' in reading.timestamp) {
+                    const d = reading.timestamp.$date
+                    if (typeof d === 'number') {
+                      rawTimestamp = new Date(d)
+                    } else if (typeof d === 'string') {
+                      const parsed = new Date(d)
+                      if (!isNaN(parsed)) rawTimestamp = parsed
+                    } else if (d && typeof d === 'object' && ('$numberLong' in d)) {
+                      const ms = Number(d.$numberLong)
+                      if (!isNaN(ms)) rawTimestamp = new Date(ms)
                     }
                   }
-
-                  if (typeof reading.timestamp === 'object') {
-                    // Firestore-like
-                    const sec = reading.timestamp._seconds ?? reading.timestamp.seconds
-                    const nsec = reading.timestamp._nanoseconds ?? reading.timestamp.nanoseconds
-                    if (sec !== undefined && sec !== null) {
-                      const s = Number(sec)
-                      const ns = Number(nsec) || 0
-                      if (!isNaN(s)) rawTimestamp = new Date(s * 1000 + ns / 1000000)
-                    } else if ('$date' in reading.timestamp) {
-                      const d = reading.timestamp.$date
-                      if (typeof d === 'number') {
-                        rawTimestamp = new Date(d)
-                      } else if (typeof d === 'string') {
-                        const parsed = new Date(d)
-                        if (!isNaN(parsed)) rawTimestamp = parsed
-                      } else if (d && typeof d === 'object' && ('$numberLong' in d)) {
-                        const ms = Number(d.$numberLong)
-                        if (!isNaN(ms)) rawTimestamp = new Date(ms)
-                      }
-                    }
-                    // Fallback: scan object (including nested objects) for numeric-looking properties
-                    if (!rawTimestamp) {
-                      const stack = [reading.timestamp]
-                      const seen = new Set()
-                      while (stack.length && !rawTimestamp) {
-                        const obj = stack.pop()
-                        if (!obj || typeof obj !== 'object') continue
-                        if (seen.has(obj)) continue
-                        seen.add(obj)
-                        for (const val of Object.values(obj)) {
-                          if (val == null) continue
-                          if (typeof val === 'object') {
-                            stack.push(val)
-                            continue
+                  // Fallback: scan object (including nested objects) for numeric-looking properties
+                  if (!rawTimestamp) {
+                    const stack = [reading.timestamp]
+                    const seen = new Set()
+                    while (stack.length && !rawTimestamp) {
+                      const obj = stack.pop()
+                      if (!obj || typeof obj !== 'object') continue
+                      if (seen.has(obj)) continue
+                      seen.add(obj)
+                      for (const val of Object.values(obj)) {
+                        if (val == null) continue
+                        if (typeof val === 'object') {
+                          stack.push(val)
+                          continue
+                        }
+                        const maybeNum = Number(val)
+                        if (!isNaN(maybeNum)) {
+                          // Heuristic: >1e12 is ms, >1e9 is seconds
+                          if (maybeNum > 1e12) {
+                            rawTimestamp = new Date(maybeNum)
+                          } else if (maybeNum > 1e9) {
+                            rawTimestamp = new Date(maybeNum * 1000)
                           }
-                          const maybeNum = Number(val)
-                          if (!isNaN(maybeNum)) {
-                            // Heuristic: >1e12 is ms, >1e9 is seconds
-                            if (maybeNum > 1e12) {
-                              rawTimestamp = new Date(maybeNum)
-                            } else if (maybeNum > 1e9) {
-                              rawTimestamp = new Date(maybeNum * 1000)
-                            }
-                            if (rawTimestamp) break
-                          }
+                          if (rawTimestamp) break
                         }
                       }
                     }
-                  } else if (typeof reading.timestamp === 'number') {
-                    // Could be seconds or milliseconds -- guess based on magnitude
-                    const num = Number(reading.timestamp)
-                    if (num > 1e12) {
-                      // milliseconds
-                      rawTimestamp = new Date(num)
-                    } else {
-                      // seconds
-                      rawTimestamp = new Date(num * 1000)
-                    }
-                  } else if (typeof reading.timestamp === 'string') {
-                    const parsed = new Date(reading.timestamp)
-                    if (!isNaN(parsed)) rawTimestamp = parsed
                   }
-                } catch (e) {
-                  console.warn('Unhandled timestamp shape', reading.timestamp, e)
+                } else if (typeof reading.timestamp === 'number') {
+                  // Could be seconds or milliseconds -- guess based on magnitude
+                  const num = Number(reading.timestamp)
+                  if (num > 1e12) {
+                    // milliseconds
+                    rawTimestamp = new Date(num)
+                  } else {
+                    // seconds
+                    rawTimestamp = new Date(num * 1000)
+                  }
+                } else if (typeof reading.timestamp === 'string') {
+                  const parsed = new Date(reading.timestamp)
+                  if (!isNaN(parsed)) rawTimestamp = parsed
                 }
+              } catch (e) {
+                console.warn('Unhandled timestamp shape', reading.timestamp, e)
               }
-
-              if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
-              formattedDate = rawTimestamp.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: '2-digit'
-              })
-
-              formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              })
-
-              timestampSeconds = rawTimestamp.getTime() / 1000
-            } else {
-              // Keep placeholders when timestamp missing or invalid
-              console.warn('Invalid or missing timestamp on reading:', reading)
             }
-          } catch (e) {
-            console.error("Error formatting date:", e, reading.timestamp)
+
+            if (rawTimestamp && !isNaN(rawTimestamp.getTime())) {
+            formattedDate = rawTimestamp.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit'
+            })
+
+            formattedTime = rawTimestamp.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            })
+
+            timestampSeconds = rawTimestamp.getTime() / 1000
+          } else {
+            // Keep placeholders when timestamp missing or invalid
+            console.warn('Invalid or missing timestamp on reading:', reading)
           }
-
-        const temperature = reading.temperature !== undefined && reading.temperature !== null 
-          ? Number(reading.temperature).toFixed(2) 
-          : '--'
-        
-        const humidity = reading.humidity !== undefined && reading.humidity !== null 
-          ? Number(reading.humidity).toFixed(2) 
-          : '--'
-
-        return {
-          id: index + 1,
-          timestamp: timestampSeconds,
-          temperature: temperature,
-          humidity: humidity,
-          date: formattedDate,
-          time: formattedTime,
-          rawTimestamp: rawTimestamp, // may be null if timestamp invalid
-          deviceId: reading.device_id,
-          soilMoisture: reading.soilMoisture || null
+        } catch (e) {
+          console.error("Error formatting date:", e, reading.timestamp)
         }
-      })
+
+      const temperature = reading.temperature !== undefined && reading.temperature !== null 
+        ? Number(reading.temperature).toFixed(2) 
+        : '--'
+      
+      const humidity = reading.humidity !== undefined && reading.humidity !== null 
+        ? Number(reading.humidity).toFixed(2) 
+        : '--'
+
+      return {
+        id: (page - 1) * limit + index + 1, // Calculate ID based on pagination
+        timestamp: timestampSeconds,
+        temperature: temperature,
+        humidity: humidity,
+        date: formattedDate,
+        time: formattedTime,
+        rawTimestamp: rawTimestamp, // may be null if timestamp invalid
+        deviceId: reading.device_id,
+        soilMoisture: reading.soilMoisture || null
+      }
+    })
 
     dataCache.value = processedData
     
     // Update the main data array
     tempHumidityData.value = processedData
-  // DEBUG: show processedData sample (after parsing)
-  console.debug('DEBUG: processed readings sample:', processedData.slice(0, 5))
+    
+    // Update pagination info
+    if (result.pagination) {
+      totalItems.value = result.pagination.totalItems
+      totalPages.value = result.pagination.totalPages
+    } else {
+      // Fallback if backend doesn't return pagination info
+      totalItems.value = processedData.length
+      totalPages.value = Math.ceil(processedData.length / limit)
+    }
+    
+    // DEBUG: show processedData sample (after parsing)
+    console.debug('DEBUG: processed readings sample:', processedData.slice(0, 5))
     isLoading.value = false
     
-    // Update chart with all data
-    initializeChartData(processedData)
+    // Set print chart data limit from current table data
     PRINT_CHART_DATA_LIMIT = processedData.length
     
   } catch (error) {
@@ -1182,7 +1697,6 @@ const fetchTempHumidityData = async () => {
     
     if (dataCache.value) {
       tempHumidityData.value = dataCache.value
-      initializeChartData(dataCache.value)
     }
   }
 }
@@ -1193,9 +1707,15 @@ const setupPollingListener = () => {
     clearInterval(pollingInterval)
   }
   
-  // Start polling immediately and then set interval
-  fetchTempHumidityData()
-  pollingInterval = setInterval(fetchTempHumidityData, POLLING_FREQUENCY)
+  // Fetch initial data separately
+  fetchLatestChartData() // Fetch latest 20 records for chart
+  fetchTempHumidityData(currentPage.value, itemsPerPage.value) // Fetch current page for table
+  
+  // Set up polling
+  pollingInterval = setInterval(() => {
+    fetchLatestChartData() // Always fetch latest 20 for chart
+    fetchTempHumidityData(currentPage.value, itemsPerPage.value) // Fetch current page for table
+  }, POLLING_FREQUENCY)
   
   // Return cleanup function
   return () => {
@@ -1563,7 +2083,6 @@ const initializeChart = () => {
   })
 }
 
-
 const updateChart = () => {
   // Check if chart exists and has data
   if (!chart.value || !chartData.value.length) {
@@ -1655,6 +2174,7 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
+// Updated computed properties for client-side operations on current page data
 const filteredData = computed(() => {
   let result = [...tempHumidityData.value]
 
@@ -1702,38 +2222,36 @@ const sortedData = computed(() => {
 })
 
 const paginatedData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return sortedData.value.slice(startIndex, endIndex)
+  // Since we're fetching per page from server, just return the sorted data
+  return sortedData.value
 })
 
-const totalPages = computed(() => {
-  return Math.ceil(sortedData.value.length / itemsPerPage.value)
-})
-
-const displayedPages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const pages = []
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
-  } else {
-    pages.push(1)
-
-    if (current <= 3) {
-      pages.push(2, 3, 4, 5, '...', total)
-    } else if (current >= total - 2) {
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
-    } else {
-      pages.push('...', current - 1, current, current + 1, '...', total)
-    }
+// Updated pagination functions
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    fetchTempHumidityData(currentPage.value, itemsPerPage.value)
   }
+}
 
-  return pages
-})
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    fetchTempHumidityData(currentPage.value, itemsPerPage.value)
+  }
+}
+
+const goToPage = (page) => {
+  if (typeof page === 'number' && page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    fetchTempHumidityData(currentPage.value, itemsPerPage.value)
+  }
+}
+
+const handleItemsPerPageChange = () => {
+  currentPage.value = 1
+  fetchTempHumidityData(currentPage.value, itemsPerPage.value)
+}
 
 const toggleDropdown = (dropdownName) => {
   if (activeDropdown.value === dropdownName) {
@@ -1750,7 +2268,8 @@ const handleClickOutside = (event) => {
 }
 
 const performSearch = () => {
-  currentPage.value = 1 
+  currentPage.value = 1
+  fetchTempHumidityData(currentPage.value, itemsPerPage.value)
 }
 
 const applyFilters = () => {
@@ -1783,152 +2302,326 @@ const setSortKey = (key) => {
   activeDropdown.value = null
 }
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
+const parseBackendTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
+  
+  if (timestamp instanceof Date) {
+    return timestamp;
   }
-}
-
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
+  
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
   }
-}
-
-const updatePagination = () => {
-  currentPage.value = 1 
-}
-
-const goToPage = (page) => {
-  if (typeof page === 'number') {
-    currentPage.value = page
+  
+  if (typeof timestamp === 'number') {
+    if (timestamp > 1e12) {
+      return new Date(timestamp);
+    } else {
+      return new Date(timestamp * 1000);
+    }
   }
-}
+  
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  
+  console.warn('Unable to parse timestamp, using current time:', timestamp);
+  return new Date();
+};
 
+const formatDateForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
+};
+
+const formatTimeForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+// Updated export function to fetch all data for export
 const exportData = async (format) => {
-  const dataToExport = sortedData.value
-  if (!dataToExport.length) return
-
-  const exportHeaders = headers.map(h => h.label)
-  const exportRows = dataToExport.map(row =>
-    headers.map(header => row[header.key] ?? '')
-  )
-
-  if (format === 'csv') {
-    let csvContent = exportHeaders.join(',') + '\n'
-    exportRows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    saveAs(blob, 'temperature_humidity_data.csv')
-    window.showToast('Temperature & Humidity exported as CSV', 'success')
-  } else if (format === 'pdf') {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm'
-    })
+  try {
+    isLoading.value = true
+    console.log(`📤 Starting ${format.toUpperCase()} export...`)
     
-    doc.setFontSize(16)
-    doc.text('Temperature & Humidity Data Report', 105, 15, { align: 'center' })
+    // For exports, fetch ALL data without pagination
+    let allData = []
     
-    doc.setFontSize(10)
-    const dateStr = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-    doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' })
-    
-    doc.setFontSize(12)
-    doc.text('Current Readings:', 15, 30)
-    doc.text(`Temperature: ${currentTempValue.value}°C`, 15, 36)
-    doc.text(`Humidity: ${currentHumidityValue.value}%`, 15, 42)
-    
-    if (chartCanvas.value) {
-      const canvas = chartCanvas.value
-      const chartImage = canvas.toDataURL('image/png')
+    try {
+      console.log('🚀 Fetching ALL Temperature & Humidity data for export...')
+      const response = await api.get('/temperature-humidity/readings/all') // Adjust endpoint as needed
       
-      const imgWidth = 180 
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 50, imgWidth, imgHeight)
+      console.log('📊 Backend response received:', {
+        dataLength: response.data?.length,
+        firstRecord: response.data?.[0]
+      })
+      
+      if (response.data && Array.isArray(response.data)) {
+        allData = response.data.map((reading, index) => {
+          const timestamp = parseBackendTimestamp(reading.timestamp)
+          
+          return {
+            id: reading.id || `export_${index}`,
+            temperature: reading.temperature?.toFixed(2) || '--',
+            humidity: reading.humidity?.toFixed(2) || '--',
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.deviceId || 'esp32-2',
+            timestampMs: timestamp.getTime()
+          }
+        })
+        
+        // Sort by timestamp (newest first)
+        allData.sort((a, b) => b.timestampMs - a.timestampMs)
+        
+        console.log(`✅ Fetched ALL ${allData.length} records for export`)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching ALL data for export:', error)
+      console.error('Error details:', error.response?.data)
+      
+      // Don't fall back to current page data - show error instead
+      window.showToast('Error fetching all data for export', 'error')
+      isLoading.value = false
+      return
+    }
+
+    if (!allData.length) {
+      window.showToast('No data available for export', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    console.log(`📊 Exporting ALL ${allData.length} records`)
+
+    // Create export data with ALL records
+    const exportHeaders = headers.map(h => h.label)
+    const exportRows = allData.map(row =>
+      headers.map(header => {
+        if (header.key === 'date') return formatDateForDisplay(row.rawTimestamp);
+        if (header.key === 'time') return formatTimeForDisplay(row.rawTimestamp);
+        return row[header.key] ?? ''
+      })
+    )
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    if (format === 'csv') {
+      let csvContent = exportHeaders.join(',') + '\n'
+      exportRows.forEach(row => {
+        csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+      })
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      saveAs(blob, `temperature_humidity_data_${timestamp}.csv`)
+      window.showToast(`Exported ${allData.length} Temperature & Humidity records as CSV`, 'success')
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 10
+      const tableWidth = pageWidth - (margin * 2)
+      
+      // Title section
+      doc.setFontSize(16)
+      doc.setTextColor(16, 185, 129)
+      doc.text('Temperature & Humidity Data Report', pageWidth / 2, 20, { align: 'center' })
       
       doc.setFontSize(10)
-      doc.text('Temperature Statistics:', 15, 50 + imgHeight + 10)
-      doc.text(`Minimum: ${tempStats.value.min}°C`, 15, 50 + imgHeight + 16)
-      doc.text(`Average: ${tempStats.value.avg}°C`, 15, 50 + imgHeight + 22)
-      doc.text(`Maximum: ${tempStats.value.max}°C`, 15, 50 + imgHeight + 28)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+      doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
       
-      doc.text('Humidity Statistics:', 15, 50 + imgHeight + 38)
-      doc.text(`Minimum: ${humidityStats.value.min}%`, 15, 50 + imgHeight + 44)
-      doc.text(`Average: ${humidityStats.value.avg}%`, 15, 50 + imgHeight + 50)
-      doc.text(`Maximum: ${humidityStats.value.max}%`, 15, 50 + imgHeight + 56)
+      // Statistics section - more compact
+      doc.setFontSize(11)
+      doc.setTextColor(30, 41, 59)
+      doc.text('Current Readings & Statistics:', pageWidth / 2, 42, { align: 'center' })
       
-      doc.addPage()
-      doc.setFontSize(14)
-      doc.text('Temperature & Humidity Data Table', 105, 15, { align: 'center' })
-      autoTable(doc, {
+      doc.setFontSize(9)
+      doc.text(`Temperature: ${currentTempValue.value}°C | Min: ${tempStats.value.min}°C | Avg: ${tempStats.value.avg}°C | Max: ${tempStats.value.max}°C`, 
+               pageWidth / 2, 48, { align: 'center' })
+      doc.text(`Humidity: ${currentHumidityValue.value}% | Min: ${humidityStats.value.min}% | Avg: ${humidityStats.value.avg}% | Max: ${humidityStats.value.max}%`, 
+               pageWidth / 2, 54, { align: 'center' })
+      
+      let startY = 60
+      
+      console.log(`📄 Starting table at Y position: ${startY}mm on first page`)
+      
+      // Configure autoTable for ALL data with full width
+      const tableConfig = {
         head: [exportHeaders],
         body: exportRows,
-        startY: 22,
+        startY: startY,
+        margin: { left: margin, right: margin },
+        tableWidth: tableWidth,
         styles: { 
           fontSize: 8,
-          cellPadding: 2,
-          overflow: 'linebreak'
+          cellPadding: 3,
+          overflow: 'linebreak',
+          textColor: [51, 51, 51],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+          minCellHeight: 6,
+          cellWidth: 'wrap'
         },
         headStyles: {
-          fillColor: [16, 185, 129], 
-          textColor: 255
+          fillColor: [16, 185, 129],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 4
+        },
+        bodyStyles: {
+          cellPadding: 3,
+          lineWidth: 0.1,
+          minCellHeight: 6
         },
         alternateRowStyles: {
-          fillColor: [241, 245, 249] 
+          fillColor: [240, 253, 244]
         },
-        margin: { top: 20 }
+        // Full width column distribution - adjust based on your actual headers
+        columnStyles: {
+          0: { cellWidth: tableWidth * 0.20 }, // Date
+          1: { cellWidth: tableWidth * 0.15 }, // Time
+          2: { cellWidth: tableWidth * 0.20 }, // Temperature
+          3: { cellWidth: tableWidth * 0.20 }, // Humidity
+          // 4: { cellWidth: tableWidth * 0.15 }, // Device
+          // Add more columns if needed
+        },
+        pageBreak: 'auto',
+        showHead: 'everyPage',
+        tableLineWidth: 0.1,
+        theme: 'grid',
+        didDrawPage: function (data) {
+          // Only add header on first page
+          if (data.pageNumber === 1) {
+            doc.setFontSize(16)
+            doc.setTextColor(16, 185, 129)
+            doc.text('Temperature & Humidity Data Report', pageWidth / 2, 20, { align: 'center' })
+            
+            doc.setFontSize(10)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+            doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
+            
+            // Statistics on first page only
+            doc.setFontSize(11)
+            doc.setTextColor(30, 41, 59)
+            doc.text('Current Readings & Statistics:', pageWidth / 2, 42, { align: 'center' })
+            
+            doc.setFontSize(9)
+            doc.text(`Temperature: ${currentTempValue.value}°C | Min: ${tempStats.value.min}°C | Avg: ${tempStats.value.avg}°C | Max: ${tempStats.value.max}°C`, 
+                     pageWidth / 2, 48, { align: 'center' })
+            doc.text(`Humidity: ${currentHumidityValue.value}% | Min: ${humidityStats.value.min}% | Avg: ${humidityStats.value.avg}% | Max: ${humidityStats.value.max}%`, 
+                     pageWidth / 2, 54, { align: 'center' })
+          }
+          
+          // Footer on every page
+          doc.setFontSize(8)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Page ${data.pageNumber} - ${allData.length} total records`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          )
+        }
+      }
+      
+      // Generate the table
+      autoTable(doc, tableConfig)
+      
+      doc.save(`temperature_humidity_report_${timestamp}.pdf`)
+      window.showToast(`Exported ${allData.length} Temperature & Humidity records as PDF`, 'success')
+    } else if (format === 'docs') {
+      const tableRows = [
+        new TableRow({
+          children: exportHeaders.map(h => new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+            shading: {
+              fill: "10B981",
+              color: "FFFFFF"
+            }
+          }))
+        }),
+        ...exportRows.map(row =>
+          new TableRow({
+            children: row.map(cell =>
+              new TableCell({
+                children: [new Paragraph(cell ? cell.toString() : '')],
+                width: { size: 20, type: 'pct' } // Equal width distribution
+              })
+            )
+          })
+        )
+      ]
+      
+      const docxDoc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1000,
+                right: 1000,
+                bottom: 1000,
+                left: 1000,
+              }
+            }
+          },
+          children: [
+            new Paragraph({ 
+              text: 'Temperature & Humidity Data Report', 
+              heading: 'Heading1',
+              alignment: 'center'
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleString()} | Total Records: ${allData.length}`,
+              alignment: 'center'
+            }),
+            new Paragraph({ text: '' }),
+            new Table({ 
+              width: {
+                size: 100,
+                type: 'pct'
+              },
+              rows: tableRows 
+            })
+          ]
+        }]
       })
-    } else {
-      doc.text('Temperature & Humidity Chart Not Available', 105, 50, { align: 'center' })
-      autoTable(doc, {
-        head: [exportHeaders],
-        body: exportRows,
-        startY: 60,
-        styles: { fontSize: 10 }
-      })
+      const buffer = await Packer.toBlob(docxDoc)
+      saveAs(buffer, `temperature_humidity_data_${timestamp}.docx`)
+      window.showToast(`Exported ${allData.length} Temperature & Humidity records as DOCX`, 'success')
     }
     
-    doc.save('temperature_humidity_report.pdf')
-    window.showToast('Temperature & Humidity report exported as PDF', 'success')
-  } else if (format === 'docs') {
-    const tableRows = [
-      new TableRow({
-        children: exportHeaders.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...exportRows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'Temperature & Humidity Data Table', heading: 'Heading1' }),
-          new Table({ rows: tableRows })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'temperature_humidity_data.docx')
+  } catch (error) {
+    console.error('❌ Export error:', error)
+    window.showToast('Error exporting data. Please try again.', 'error')
+  } finally {
+    isLoading.value = false
+    activeDropdown.value = null
   }
-
-  activeDropdown.value = null
 }
 
-watch([searchQuery, activeFilters, itemsPerPage], () => {
+watch([searchQuery, activeFilters], () => {
   currentPage.value = 1
 })
 
@@ -1937,7 +2630,11 @@ let unsubscribe = null
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   
-  // Replace WebSocket with polling (like SoilMoisture.vue)
+  // Fetch initial data separately
+  fetchLatestChartData() // For chart - latest 20 records
+  fetchTempHumidityData(currentPage.value, itemsPerPage.value) // For table - current page
+  
+  // Then setup polling
   const cleanup = setupPollingListener()
   
   // Store cleanup function

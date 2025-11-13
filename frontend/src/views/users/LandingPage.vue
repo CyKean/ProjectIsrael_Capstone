@@ -195,14 +195,6 @@
                 <span>Create Account</span>
               </button>
             </div>
-
-            <!-- Divider -->
-            <div class="modal-divider">
-              <div class="modal-divider-line"></div>
-              <span class="modal-divider-text">OR</span>
-              <div class="modal-divider-line"></div>
-            </div>
-
           </div>
         </div>
       </div>

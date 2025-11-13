@@ -25,7 +25,7 @@
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search NPK measurements..."
+                  placeholder="Search soil pH measurements..."
                   class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
                   v-model="searchQuery"
                   @input="performSearch"
@@ -141,16 +141,67 @@
                 <!-- Print Button -->
                 <div class="relative flex-1 sm:flex-none">
                   <button 
-                    @click="printTable"
+                    @click="openPrintModal"
                     class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
                   >
                     <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
                     <span class="hidden md:block">Print</span>
                   </button>
                 </div>
+                
               </div>
               
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Range Print Modal -->
+      <div v-if="showPrintModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-96 max-w-[90%]">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Select Date Range for Print</h3>
+            <p class="text-sm text-gray-500 mt-1">Choose the date range for the soil moisture data you want to print</p>
+          </div>
+          
+          <!-- Date Range Inputs -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.start"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.end"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              >
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <p v-if="printDateError" class="mt-2 text-sm text-red-600">{{ printDateError }}</p>
+          
+          <!-- Buttons -->
+          <div class="mt-6 flex justify-end space-x-3">
+            <button 
+              @click="cancelPrint"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              @click="handlePrintWithDateRange"
+              class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600"
+            >
+              Print
+            </button>
           </div>
         </div>
       </div>
@@ -298,8 +349,8 @@
                   class="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-2">
                 <div class="flex justify-between items-start mb-2">
                   <div>
-                    <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
-                    <div class="text-[10px] text-gray-500">{{ row.time }}</div>
+                    <div class="text-xs font-medium text-gray-900">{{ formatDateForDisplay(row.rawTimestamp) }}</div>
+                    <div class="text-[10px] text-gray-500">{{ formatTimeForDisplay(row.rawTimestamp) }}</div>
                   </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -386,10 +437,10 @@
                       </span>
                     </td>
                     <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
-                      <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
+                      <div class="text-sm font-medium text-gray-700">{{ formatDateForDisplay(row.rawTimestamp) }}</div>
                     </td>
                     <td class="w-[20%] px-4 py-3.5 md:text-[15px] whitespace-nowrap border-b border-gray-200">
-                      <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
+                      <div class="text-sm font-medium text-gray-700">{{ formatTimeForDisplay(row.rawTimestamp) }}</div>
                     </td>
                   </tr>
                   
@@ -410,8 +461,8 @@
           <div class="border-t border-gray-200 py-2 px-3 bg-gray-50" v-if="!isLoading && paginatedData.length > 0">
               <div class="flex items-center justify-between">
                 <div class="text-[10px] md:text-xs text-gray-600">
-                  Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-                  of {{ sortedData.length }}
+                  Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, paginationInfo.totalItems) }}
+                  of {{ paginationInfo.totalItems }}
                 </div>
                 <div class="flex items-center gap-1">
                   <button 
@@ -443,7 +494,7 @@
                   
                   <button 
                     @click="nextPage"
-                    :disabled="currentPage >= totalPages"
+                    :disabled="currentPage >= paginationInfo.totalPages"
                     class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
                   >
                     <ChevronRight class="w-3.5 h-3.5" />
@@ -477,12 +528,67 @@ import { saveAs } from 'file-saver'
 import api from '../../api/index'
 import Chart from 'chart.js/auto'
 
+// Utility functions for timestamp handling
+const parseBackendTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
+  
+  // If it's already a Date object, return it
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's an ISO string, parse it directly
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+  
+  // If it's a number (Unix timestamp in seconds or milliseconds)
+  if (typeof timestamp === 'number') {
+    // Check if it's in milliseconds (13 digits) or seconds (10 digits)
+    if (timestamp > 1e12) { // milliseconds
+      return new Date(timestamp);
+    } else { // seconds
+      return new Date(timestamp * 1000);
+    }
+  }
+  
+  // If it's an object with _seconds (Firebase format)
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  
+  // Fallback to current time
+  console.warn('Unable to parse timestamp, using current time:', timestamp);
+  return new Date();
+};
+
+const formatDateForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
+};
+
+const formatTimeForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+// Reactive data
 const soilPhData = ref([])
 const isLoading = ref(true)
 const chartCanvas = ref(null)
-// const chart = ref(null)
 let chart = null;
-const chartData = ref([])
 const currentPhValue = ref('--')
 const lastUpdated = ref('--')
 const phStats = ref({
@@ -496,41 +602,745 @@ let combinedRealtimeData = []
 
 const dataCache = ref(null)
 let pollingInterval = null;
-// let Chart = null;
 let lastProcessedTimestamp = 0;
-
-let ChartJS = null;
 
 let PRINT_CHART_DATA_LIMIT = 0;  
 
-const loadChartJS = async () => {
+// Pagination state
+const paginationInfo = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalItems: 0,
+  itemsPerPage: 20,
+  hasNext: false,
+  hasPrev: false
+})
+
+const itemsPerPage = ref(20)
+const currentPage = ref(1)
+
+// UI state
+const searchQuery = ref('')
+const activeDropdown = ref(null)
+const sortKey = ref('date')
+const sortDirection = ref('desc')
+const activeFilters = ref({})
+
+const filters = ref({
+  soilPh: { min: '', max: '' }
+})
+
+const filterFields = [
+  { key: 'soilPh', label: 'Soil pH Level' }
+]
+
+const headers = [
+  { key: 'id', label: 'ID' },
+  { key: 'soilPh', label: 'Soil pH' },
+  { key: 'phStatus', label: 'pH Status' },
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' }
+]
+
+const exportFormats = ['csv', 'pdf']
+
+// Print-related reactive data
+const showPrintModal = ref(false)
+const printDateRange = ref({
+  start: '',
+  end: ''
+})
+const printDateError = ref('')
+
+// Main data fetching with pagination
+const fetchSoilPhData = async (page = 1, limit = 20) => {
   try {
-    const chartModule = await import('chart.js/auto');
-    Chart = chartModule.default;
-    return true;
+    isLoading.value = true;
+    
+    console.log(`Fetching page ${page} with limit ${limit}`);
+    
+    const response = await api.get(`/soil-ph/readings?page=${page}&limit=${limit}`);
+    
+    console.log('API Response:', response.data);
+    
+    const { data, pagination } = response.data;
+    
+    // Update pagination info
+    paginationInfo.value = pagination;
+    currentPage.value = pagination.currentPage;
+    
+    const processedData = Array.isArray(data) ? data.map((reading, index) => {
+      try {
+        // Use the utility function to parse timestamp
+        const timestamp = parseBackendTimestamp(reading.timestamp);
+        
+        // Get soil pH value
+        const soilPhValue = reading.soilPh !== undefined ? Number(reading.soilPh) : null;
+        const soilPh = soilPhValue !== null ? soilPhValue.toFixed(1) : '--';
+        const phStatus = calculatePhStatus(soilPhValue);
+
+        return {
+          id: reading.id || `page_${page}_index_${index}`,
+          timestamp: timestamp.getTime() / 1000,
+          soilPh: soilPh,
+          phStatus: phStatus,
+          date: formatDateForDisplay(reading.timestamp),
+          time: formatTimeForDisplay(reading.timestamp),
+          rawTimestamp: timestamp,
+          deviceId: reading.device_id || reading.deviceId || 'esp32-1'
+        };
+      } catch (error) {
+        console.error('Error processing reading:', reading, error);
+        // Return fallback data with current timestamp
+        const fallbackTimestamp = new Date();
+        return {
+          id: `fallback_${page}_${index}`,
+          timestamp: fallbackTimestamp.getTime() / 1000,
+          soilPh: '--',
+          phStatus: 'UNKNOWN',
+          date: formatDateForDisplay(fallbackTimestamp),
+          time: formatTimeForDisplay(fallbackTimestamp),
+          rawTimestamp: fallbackTimestamp,
+          deviceId: 'esp32-1'
+        };
+      }
+    }).filter(reading => reading !== null) : [];
+
+    soilPhData.value = processedData;
+    isLoading.value = false;
+    
+    // Initialize chart with current page data
+    initializeChartData(processedData);
+    
+    console.log(`✅ Processed ${processedData.length} readings for page ${page}`);
+    
   } catch (error) {
-    console.error('Failed to load Chart.js:', error);
-    return false;
+    console.error("❌ Error in fetchSoilPhData:", error);
+    isLoading.value = false;
+    
+    // Fallback to empty data with default pagination
+    soilPhData.value = [];
+    paginationInfo.value = {
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+      itemsPerPage: limit
+    };
   }
 };
 
-const printTable = async () => {
+const setupRealtimeListener = () => {
+  pollingInterval = setInterval(async () => {
+    try {
+      const response = await api.get(`/soil-ph/readings/realtime`);
+      if (response.data && Array.isArray(response.data)) {
+        processRealtimeData(response.data);
+      }
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  }, 5000);
+  
+  return () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+  };
+};
+
+const processRealtimeData = (data) => {
+  if (!Array.isArray(data) || data.length === 0) return;
+
+  try {
+    const processedData = data
+      .filter(item => item && item.soilPh !== undefined && item.soilPh !== null && item.soilPh !== '--')
+      .map((item, index) => {
+        try {
+          const timestamp = parseBackendTimestamp(item.timestamp);
+          const value = Number(item.soilPh);
+          
+          if (isNaN(value)) return null;
+          
+          return {
+            timestamp,
+            value,
+            deviceId: item.deviceId || 'esp32-1',
+            soilPh: value.toFixed(1),
+            phStatus: calculatePhStatus(value),
+            date: formatDateForDisplay(item.timestamp),
+            time: formatTimeForDisplay(item.timestamp),
+            rawTimestamp: timestamp,
+            id: `rt_${Date.now()}_${index}`
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(item => item !== null);
+    
+    // Add new data to table (prepend to show newest first)
+    if (processedData.length > 0) {
+      soilPhData.value = [...processedData, ...soilPhData.value].slice(0, 100);
+    }
+    
+    // Update chart data
+    const chartDataPoints = processedData.map(item => ({
+      timestamp: item.timestamp,
+      value: item.value,
+      deviceId: item.deviceId
+    }));
+    
+    combinedRealtimeData = [...combinedRealtimeData, ...chartDataPoints];
+    combinedRealtimeData.sort((a, b) => b.timestamp - a.timestamp);
+    combinedRealtimeData = combinedRealtimeData.slice(0, 20);
+    
+    const chronologicalData = [...combinedRealtimeData].sort((a, b) => a.timestamp - b.timestamp);
+    
+    chartLabels = chronologicalData.map(item => 
+      item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      })
+    );
+    
+    chartValues = chronologicalData.map(item => item.value);
+    
+    if (combinedRealtimeData.length > 0) {
+      const latestReading = combinedRealtimeData[0];
+      currentPhValue.value = latestReading.value.toFixed(1);
+      
+      lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      
+      const values = combinedRealtimeData.map(item => item.value);
+      phStats.value = {
+        min: Math.min(...values).toFixed(1),
+        max: Math.max(...values).toFixed(1),
+        avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
+      };
+    }
+    
+    updateChart();
+    
+  } catch (error) {
+    console.error('Error in processRealtimeData:', error);
+  }
+};
+
+const fetchStats = async () => {
+  try {
+    const response = await api.get(`/soil-ph/stats?hours=24`);
+    const stats = response.data;
+    
+    phStats.value = {
+      min: typeof stats.min === 'number' ? stats.min.toFixed(1) : '--',
+      max: typeof stats.max === 'number' ? stats.max.toFixed(1) : '--',
+      avg: typeof stats.avg === 'number' ? stats.avg.toFixed(1) : '--'
+    };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+  }
+};
+
+const calculatePhStatus = (ph) => {
+  if (ph === null || ph === undefined) return 'UNKNOWN';
+  if (ph < 6.6) return 'ACIDIC';
+  if (ph >= 6.6 && ph <= 7.3) return 'NEUTRAL';
+  return 'ALKALINE';
+}
+
+// Chart functions
+const initializeChartData = (data) => {
+  // Sort data by timestamp (newest first) and take the first 20
+  const sortedData = [...data]
+    .filter(item => item.soilPh !== '--' && !isNaN(Number(item.soilPh)))
+    .sort((a, b) => new Date(b.rawTimestamp) - new Date(a.rawTimestamp))
+    .slice(0, 20)
+    .sort((a, b) => new Date(a.rawTimestamp) - new Date(b.rawTimestamp)); // Sort chronologically for chart
+
+  chartLabels = sortedData.map(item => 
+    item.rawTimestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  );
+  
+  chartValues = sortedData.map(item => Number(item.soilPh));
+  combinedRealtimeData = sortedData.map(item => ({
+    timestamp: item.rawTimestamp,
+    value: Number(item.soilPh),
+    deviceId: item.deviceId || 'esp32-1'
+  }));
+  
+  if (sortedData.length > 0) {
+    const latestReading = sortedData[sortedData.length - 1];
+    currentPhValue.value = latestReading.soilPh;
+    
+    lastUpdated.value = latestReading.rawTimestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  }
+  
+  initializeChart();
+};
+
+const initializeChart = () => {
+  nextTick(() => {
+    if (!chartCanvas.value) return;
+    
+    // Destroy existing chart
+    if (chart && typeof chart.destroy === 'function') {
+      try {
+        chart.destroy();
+      } catch (error) {
+        console.error('Error destroying chart:', error);
+      }
+    }
+    
+    try {
+      const ctx = chartCanvas.value.getContext('2d');
+      
+      // Calculate proper y-axis range
+      const values = chartValues.filter(val => !isNaN(val));
+      const minValue = values.length > 0 ? Math.min(...values) : 0;
+      const maxValue = values.length > 0 ? Math.max(...values) : 14;
+      const yMin = Math.max(0, Math.floor(minValue * 0.9));
+      const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Soil pH',
+            data: chartValues,
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#f97316',
+            pointBorderWidth: 1.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 0
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: yMin,
+              max: yMax,
+              title: {
+                display: true,
+                text: 'pH Level',
+                color: '#f97316',
+                font: {
+                  size: 11,
+                  weight: '600'
+                }
+              },
+              ticks: {
+                font: {
+                  size: 10
+                },
+                color: '#64748b',
+                padding: 8
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.04)',
+                drawBorder: false
+              }
+            },
+            x: {
+              ticks: {
+                font: {
+                  size: 10
+                },
+                maxRotation: 0,
+                padding: 8,
+                color: '#64748b'
+              },
+              grid: {
+                display: false,
+                drawBorder: false
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#334155',
+              bodyColor: '#334155',
+              borderColor: '#e2e8f0',
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 6,
+              displayColors: true,
+              boxWidth: 8,
+              boxHeight: 8,
+              usePointStyle: true,
+              titleFont: {
+                size: 12,
+                weight: '600'
+              },
+              bodyFont: {
+                size: 12
+              },
+              callbacks: {
+                label: function(context) {
+                  return `pH: ${context.raw.toFixed(1)}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing chart:', error);
+    }
+  });
+};
+
+const updateChart = () => {
+  if (!chart) return;
+
+  try {
+    // Only update if we have data
+    if (chartValues.length === 0) return;
+    
+    // Update chart data
+    chart.data.labels = [...chartLabels];
+    chart.data.datasets[0].data = [...chartValues];
+    
+    // Calculate proper min/max values for y-axis
+    const values = chartValues.filter(val => !isNaN(val));
+    const minValue = values.length > 0 ? Math.min(...values) : 0;
+    const maxValue = values.length > 0 ? Math.max(...values) : 14;
+    
+    // Set y-axis range with some padding
+    const yMin = Math.max(0, Math.floor(minValue * 0.9));
+    const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
+    
+    if (chart.options && chart.options.scales && chart.options.scales.y) {
+      chart.options.scales.y.min = yMin;
+      chart.options.scales.y.max = yMax;
+    }
+    
+    // Update the chart
+    chart.update();
+  } catch (error) {
+    console.error('Error updating chart:', error);
+  }
+};
+
+// Pagination functions
+const nextPage = async () => {
+  if (currentPage.value < paginationInfo.value.totalPages) {
+    await fetchSoilPhData(currentPage.value + 1, itemsPerPage.value);
+  }
+};
+
+const prevPage = async () => {
+  if (currentPage.value > 1) {
+    await fetchSoilPhData(currentPage.value - 1, itemsPerPage.value);
+  }
+};
+
+const goToPage = async (page) => {
+  if (typeof page === 'number' && page >= 1 && page <= paginationInfo.value.totalPages) {
+    await fetchSoilPhData(page, itemsPerPage.value);
+  }
+};
+
+const paginationNumbers = computed(() => {
+  const total = paginationInfo.value.totalPages;
+  const current = currentPage.value;
+  
+  if (total <= 1) return [1];
+  
+  if (current === 1) {
+    return [1, '..', total];
+  } else if (current === total) {
+    return [1, '..', total];
+  } else {
+    return [current, '...', total];
+  }
+});
+
+// Client-side data processing (for current page)
+const sortedByTimestampData = computed(() => {
+  return [...soilPhData.value].sort((a, b) => {
+    const aTime = a.rawTimestamp instanceof Date ? a.rawTimestamp.getTime() : new Date(a.rawTimestamp).getTime();
+    const bTime = b.rawTimestamp instanceof Date ? b.rawTimestamp.getTime() : new Date(b.rawTimestamp).getTime();
+    
+    // Sort newest first (descending order)
+    return bTime - aTime;
+  });
+});
+
+const filteredData = computed(() => {
+  let result = [...sortedByTimestampData.value]
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(row => {
+      return Object.values(row).some(value => 
+        String(value).toLowerCase().includes(query)
+      )
+    })
+  }
+
+  Object.keys(activeFilters.value).forEach(key => {
+    const { min, max } = activeFilters.value[key]
+    if (min !== '' && max !== '') {
+      result = result.filter(row => row[key] >= min && row[key] <= max)
+    } else if (min !== '') {
+      result = result.filter(row => row[key] >= min)
+    } else if (max !== '') {
+      result = result.filter(row => row[key] <= max)
+    }
+  })
+
+  return result
+})
+
+const sortedData = computed(() => {
+  if (!sortKey.value) return filteredData.value
+
+  return [...filteredData.value].sort((a, b) => {
+    let aValue = a[sortKey.value]
+    let bValue = b[sortKey.value]
+    
+    if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+    if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection.value === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue)
+    }
+    
+    return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
+  })
+})
+
+const paginatedData = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value
+  const endIndex = startIndex + itemsPerPage.value
+  return sortedData.value.slice(startIndex, endIndex)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(sortedData.value.length / itemsPerPage.value)
+})
+
+// UI functions
+const toggleDropdown = (dropdownName) => {
+  if (activeDropdown.value === dropdownName) {
+    activeDropdown.value = null
+  } else {
+    activeDropdown.value = dropdownName
+  }
+}
+
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.relative')) {
+    activeDropdown.value = null
+  }
+}
+
+const performSearch = async () => {
+  if (searchQuery.value.trim()) {
+    try {
+      isLoading.value = true;
+      const response = await api.get(`/soil-ph/readings/search?query=${encodeURIComponent(searchQuery.value)}&page=1&limit=${itemsPerPage.value}`);
+      const { data, pagination } = response.data;
+      
+      // Process search results with proper timestamp handling
+      const processedData = Array.isArray(data) ? data.map((reading, index) => {
+        try {
+          const timestamp = parseBackendTimestamp(reading.timestamp);
+          const soilPhValue = reading.soilPh !== undefined ? Number(reading.soilPh) : null;
+          const soilPh = soilPhValue !== null ? soilPhValue.toFixed(1) : '--';
+          const phStatus = calculatePhStatus(soilPhValue);
+
+          return {
+            id: reading.id || `search_${index}`,
+            timestamp: timestamp.getTime() / 1000,
+            soilPh: soilPh,
+            phStatus: phStatus,
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.device_id || reading.deviceId || 'esp32-1'
+          };
+        } catch (error) {
+          console.error('Error processing search result:', reading, error);
+          return null;
+        }
+      }).filter(reading => reading !== null) : [];
+
+      soilPhData.value = processedData;
+      paginationInfo.value = pagination;
+      currentPage.value = 1;
+      isLoading.value = false;
+    } catch (error) {
+      console.error('Search error:', error);
+      isLoading.value = false;
+      currentPage.value = 1;
+    }
+  } else {
+    // If search is cleared, fetch normal paginated data
+    fetchSoilPhData(1, itemsPerPage.value);
+  }
+}
+
+const applyFilters = () => {
+  const newFilters = {}
+
+  Object.keys(filters.value).forEach(key => {
+    const min = parseFloat(filters.value[key].min)
+    const max = parseFloat(filters.value[key].max)
+    
+    if (!isNaN(min) || !isNaN(max)) {
+      newFilters[key] = {
+        min: isNaN(min) ? '' : min,
+        max: isNaN(max) ? '' : max
+      }
+    }
+  })
+
+  activeFilters.value = newFilters
+  currentPage.value = 1 
+  activeDropdown.value = null
+}
+
+const setSortKey = (key) => {
+  if (sortKey.value === key) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDirection.value = 'asc' 
+  }
+  activeDropdown.value = null 
+}
+
+// Print functions with date range filtering
+const openPrintModal = () => {
+  // Set default date range (last 7 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  
+  printDateRange.value = {
+    start: startDate.toISOString().split('T')[0],
+    end: endDate.toISOString().split('T')[0]
+  };
+  
+  printDateError.value = '';
+  showPrintModal.value = true;
   activeDropdown.value = null;
-  
-  const tempContainer = document.createElement('div');
-  tempContainer.style.width = '800px';
-  tempContainer.style.height = '400px';
-  tempContainer.style.position = 'absolute';
-  tempContainer.style.left = '-9999px';
-  tempContainer.style.backgroundColor = 'white';
-  tempContainer.style.padding = '20px';
-  
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 800;
-  tempCanvas.height = 400;
-  tempContainer.appendChild(tempCanvas);
-  document.body.appendChild(tempContainer);
-  
+}
+
+const cancelPrint = () => {
+  showPrintModal.value = false;
+  printDateError.value = '';
+}
+
+const handlePrintWithDateRange = async () => {
+  // Validate date range
+  if (!printDateRange.value.start || !printDateRange.value.end) {
+    printDateError.value = 'Please select both start and end dates';
+    return;
+  }
+
+  const startDate = new Date(printDateRange.value.start);
+  const endDate = new Date(printDateRange.value.end);
+  endDate.setHours(23, 59, 59, 999); // Include entire end day
+
+  if (startDate > endDate) {
+    printDateError.value = 'Start date cannot be after end date';
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+    showPrintModal.value = false;
+    
+    // Fetch data for the selected date range
+      const response = await api.get(`/soil-ph/readings/range?from_date=${printDateRange.value.start}&to_date=${printDateRange.value.end}`);
+    
+    const data = response.data.data || [];
+    
+    // Process the data for printing
+    const soilPhRows = data.map((reading, index) => {
+      try {
+        const timestamp = parseBackendTimestamp(reading.timestamp);
+        const soilPhValue = reading.soilPh !== undefined ? Number(reading.soilPh) : null;
+        const soilPh = soilPhValue !== null ? soilPhValue.toFixed(1) : '--';
+        const phStatus = calculatePhStatus(soilPhValue);
+
+        return {
+          id: reading.id || `print_${index}`,
+          date: formatDateForDisplay(reading.timestamp),
+          time: formatTimeForDisplay(reading.timestamp),
+          device: reading.device_id || reading.deviceId || 'esp32-1',
+          soilPh: soilPh,
+          phStatus: phStatus,
+          rawTimestamp: timestamp
+        };
+      } catch (error) {
+        console.error('Error processing reading for print:', reading, error);
+        return null;
+      }
+    }).filter(reading => reading !== null);
+
+    if (soilPhRows.length === 0) {
+      window.showToast('No data found for the selected date range', 'warning');
+      isLoading.value = false;
+      return;
+    }
+
+    // Sort by timestamp (newest first)
+    soilPhRows.sort((a, b) => b.rawTimestamp - a.rawTimestamp);
+
+    // Generate print content
+    await generatePrintContent(soilPhRows, printDateRange.value);
+    
+  } catch (error) {
+    console.error('Error fetching data for print:', error);
+    window.showToast('Error fetching data for printing', 'error');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const generatePrintContent = async (soilPhRows, dateRange) => {
   const now = new Date();
   const formattedDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -538,182 +1348,155 @@ const printTable = async () => {
     month: 'long', 
     day: 'numeric' 
   });
-  
-  const soilPhRows = sortedData.value.map(row => ({
-    id: row.id,
-    date: row.date,
-    time: row.time,
-    device: row.deviceId || 'N/A',
-    soilPh: row.soilPh,
-    phStatus: row.phStatus
-  }));
-  
-  const printChartData = soilPhData.value
-    .slice(0, PRINT_CHART_DATA_LIMIT)
-    .filter(item => item.soilPh !== '--')
+
+  // Prepare chart data
+  const printChartData = soilPhRows
+    .filter(item => item.soilPh !== '--' && !isNaN(Number(item.soilPh)))
     .map(item => ({
       timestamp: item.rawTimestamp, 
       value: Number(item.soilPh)
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
-  
-  // Calculate min and max values for x-axis labels
+
+  // Calculate statistics with safe defaults
   const values = printChartData.map(item => item.value);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  
+  const minValue = values.length > 0 ? Math.min(...values) : 0;
+  const maxValue = values.length > 0 ? Math.max(...values) : 14;
+  const avgValue = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
+
   let chartImage = '';
   
-  try {
-    const ctx = tempCanvas.getContext('2d');
-    
-    const tempChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: printChartData.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [{
-          label: 'Soil pH',
-          data: printChartData.map(item => item.value), 
-          borderColor: '#f97316', 
-          backgroundColor: 'rgba(249, 115, 22, 0.15)', 
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 3, 
-          pointHoverRadius: 5,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#f97316',
-          pointBorderWidth: 2
-        }]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false, 
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              font: { size: 14 }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `pH: ${context.raw.toFixed(1)}`;
-              }
-            }
-          }
+  // Generate chart if we have data
+  if (printChartData.length > 0) {
+    chartImage = await generateChartImage(printChartData, minValue, maxValue);
+  }
+
+  // Generate the print HTML
+  generatePrintHTML(chartImage, soilPhRows, formattedDate, now, printChartData.length, minValue, maxValue, avgValue, dateRange);
+}
+
+const generateChartImage = async (chartData, minValue, maxValue) => {
+  return new Promise((resolve) => {
+    // Check if we have data to create a chart
+    if (!chartData || chartData.length === 0) {
+      resolve('');
+      return;
+    }
+
+    try {
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.width = '800px';
+      tempContainer.style.height = '400px';
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 800;
+      tempCanvas.height = 400;
+      tempContainer.appendChild(tempCanvas);
+      document.body.appendChild(tempContainer);
+
+      const ctx = tempCanvas.getContext('2d');
+      
+      const tempChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartData.map(item => {
+            return item.timestamp.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            });
+          }),
+          datasets: [{
+            label: 'Soil pH',
+            data: chartData.map(item => item.value),
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#f97316',
+            pointBorderWidth: 2
+          }]
         },
-        scales: {
-          y: {
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(minValue * 0.95)),
-            max: Math.min(14, Math.ceil(maxValue * 1.05)),
-            title: {
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: {
               display: true,
-              text: 'pH Level',
-              color: '#f97316',
-              font: {
-                size: 14,
-                weight: '600'
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: { size: 14 }
               }
-            },
-            ticks: {
-              font: { size: 12 },
-              color: '#64748b',
-              callback: function(value) {
-                // Show min and max values on y-axis
-                if (value === minValue || value === maxValue) {
-                  return value.toFixed(1);
-                }
-                return value;
-              }
-            },
-            grid: {
-              color: 'rgba(100, 116, 139, 0.2)'
             }
           },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              color: '#64748b',
-              maxTicksLimit: 8,
-              maxRotation: 45,
-              callback: function(value, index, values) {
-                // Show first, last, min, and max labels
-                if (index === 0 || index === values.length - 1) {
-                  return this.getLabelForValue(value);
-                }
-                
-                // Find indices of min and max values
-                const data = this.chart.data.datasets[0].data;
-                const minIndex = data.indexOf(minValue);
-                const maxIndex = data.indexOf(maxValue);
-                
-                if (index === minIndex || index === maxIndex) {
-                  return this.getLabelForValue(value);
-                }
-                
-                // Show fewer labels for better readability
-                if (values.length > 10 && index % Math.floor(values.length / 4) !== 0) {
-                  return '';
-                }
-                
-                return this.getLabelForValue(value);
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: Math.max(0, Math.floor(minValue * 0.95)),
+              max: Math.min(14, Math.ceil(maxValue * 1.05)),
+              title: {
+                display: true,
+                text: 'pH Level',
+                color: '#f97316',
+                font: { size: 14, weight: '600' }
+              },
+              ticks: {
+                font: { size: 12 },
+                color: '#64748b'
+              },
+              grid: {
+                color: 'rgba(100, 116, 139, 0.2)'
               }
             },
-            title: {
-              display: true,
-              text: `Time (Min: ${minValue.toFixed(1)}, Max: ${maxValue.toFixed(1)})`,
-              color: '#64748b',
-              font: {
-                size: 12,
-                weight: '600'
+            x: {
+              ticks: {
+                font: { size: 10 },
+                color: '#64748b',
+                maxTicksLimit: 8,
+                maxRotation: 45
               }
             }
           }
         }
-      }
-    });
-    
-    setTimeout(async () => {
-      try {
-        chartImage = tempCanvas.toDataURL('image/png', 1.0);
-        
-        tempChart.destroy();
-        document.body.removeChild(tempContainer);
-        
-        generatePrintHTML(chartImage, soilPhRows, formattedDate, now, printChartData.length, minValue, maxValue);
-      } catch (error) {
-        console.error('Error capturing chart:', error);
-        document.body.removeChild(tempContainer);
-        generatePrintHTML('', soilPhRows, formattedDate, now, 0, minValue, maxValue);
-      }
-    }, 500);
-    
-  } catch (error) {
-    console.error('Error creating chart:', error);
-    document.body.removeChild(tempContainer);
-    generatePrintHTML('', soilPhRows, formattedDate, now, 0, minValue, maxValue);
-  }
-};
+      });
 
-const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartRecordCount, minValue, maxValue) => {
+      setTimeout(() => {
+        try {
+          const chartImage = tempCanvas.toDataURL('image/png', 1.0);
+          tempChart.destroy();
+          document.body.removeChild(tempContainer);
+          resolve(chartImage);
+        } catch (error) {
+          console.error('Error capturing chart:', error);
+          document.body.removeChild(tempContainer);
+          resolve('');
+        }
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error creating chart:', error);
+      resolve('');
+    }
+  });
+}
+
+const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartRecordCount, minValue, maxValue, avgValue, dateRange) => {
   const tableContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Soil pH Analysis Data</title>
+      <title>Soil pH Analysis Data - ${dateRange.start} to ${dateRange.end}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -731,6 +1514,12 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
           color: #065f46;
           margin: 0 0 8px 0;
           font-size: 24px;
+        }
+        .header .date-range {
+          color: #f97316;
+          font-size: 16px;
+          font-weight: 600;
+          margin: 5px 0;
         }
         .header .date {
           color: #6b7280;
@@ -890,11 +1679,16 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
     <body>
       <div class="header">
         <h1>Soil pH Analysis Report</h1>
+        <div class="date-range">Date Range: ${dateRange.start} to ${dateRange.end}</div>
         <div class="date">${formattedDate}</div>
       </div>
       
       <div class="summary">
         <h3>Report Summary</h3>
+        <div class="summary-item">
+          <span class="summary-label">Date Range:</span>
+          <span class="summary-value">${dateRange.start} to ${dateRange.end}</span>
+        </div>
         <div class="summary-item">
           <span class="summary-label">Total Records:</span>
           <span class="summary-value">${soilPhRows.length}</span>
@@ -908,8 +1702,8 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
           <span class="summary-value">${minValue.toFixed(1)} - ${maxValue.toFixed(1)}</span>
         </div>
         <div class="summary-item">
-          <span class="summary-label">Date Range:</span>
-          <span class="summary-value">${soilPhRows.length > 0 ? soilPhRows[soilPhRows.length-1].date + ' to ' + soilPhRows[0].date : 'N/A'}</span>
+          <span class="summary-label">Average pH:</span>
+          <span class="summary-value">${avgValue.toFixed(1)}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Report Generated:</span>
@@ -917,26 +1711,28 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
         </div>
       </div>
       
-      <div class="section-header">Soil pH Trend Analysis</div>
       ${chartImage ? `
+        <div class="section-header">Soil pH Trend Analysis</div>
         <div class="chart-title">Soil pH Levels Over Time</div>
-        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
-        <div class="chart-range">pH Range: ${minValue.toFixed(1)} (Min) - ${maxValue.toFixed(1)} (Max)</div>
+        <div class="chart-info">Showing ${chartRecordCount} data points from selected date range</div>
+        <div class="chart-range">pH Range: ${minValue.toFixed(1)} (Min) - ${maxValue.toFixed(1)} (Max) | Average: ${avgValue.toFixed(1)}</div>
         <img src="${chartImage}" class="chart-image" alt="Soil pH Chart" />
         
         <div class="stats-summary">
           <div class="stat-item">
             <h4>Soil pH Statistics</h4>
             <div class="stat-values">
-              Current: ${currentPhValue.value}<br>
-              Min: ${minValue.toFixed(1)} | Avg: ${phStats.value.avg} | Max: ${maxValue.toFixed(1)}
+              Min: ${minValue.toFixed(1)}<br>
+              Avg: ${avgValue.toFixed(1)}<br>
+              Max: ${maxValue.toFixed(1)}
             </div>
           </div>
           <div class="stat-item">
             <h4>Data Points</h4>
             <div class="stat-values">
               Total: ${chartRecordCount}<br>
-              Time Range: ${soilPhRows.length > 0 ? soilPhRows[soilPhRows.length-1].date + ' to ' + soilPhRows[0].date : 'N/A'}
+              Date Range<br>
+              ${dateRange.start} to ${dateRange.end}
             </div>
           </div>
           <div class="stat-item">
@@ -947,7 +1743,7 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
             </div>
           </div>
         </div>
-      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
+      ` : '<p style="text-align: center; color: #6b7280;">No chart data available for the selected date range</p>'}
       
       <div class="section-header">Detailed Soil pH Sensor Readings</div>
       <table>
@@ -987,885 +1783,359 @@ const generatePrintHTML = (chartImage, soilPhRows, formattedDate, now, chartReco
     </html>
   `;
   
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  iframe.style.left = '-9999px';
-  document.body.appendChild(iframe);
-  
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  
-  iframeDoc.open();
-  iframeDoc.write(tableContent);
-  iframeDoc.close();
-  
-  iframe.onload = function() {
-    try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 100);
-    } catch (error) {
-      console.error('Print error:', error);
-      document.body.removeChild(iframe);
-      
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(tableContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }
-  };
-};
-
-const paginationNumbers = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  
-  if (total <= 1) return [1]
-  
-  if (current === 1) {
-    return [1, '..', total]
-  } else if (current === total) {
-    return [1, '..', total]
-  } else {
-    return [current, '...', total]
-  }
-})
-
-const fetchSoilPhData = async () => {
   try {
-    isLoading.value = true;
+    // Open print window with better error handling
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
     
-    console.log('Fetching data from:', `/soil-ph/readings`);
+    if (!printWindow) {
+      throw new Error('Popup window was blocked. Please allow popups for this site.');
+    }
     
-    const response = await api.get(`/soil-ph/readings`);
+    printWindow.document.write(tableContent);
+    printWindow.document.close();
     
-    console.log('API Response:', response);
-    
-    const data = response.data;
-    
-    console.log('API Data:', data);
-    
-    const processedData = Array.isArray(data) ? data.map((reading, index) => {
+    // Wait for the window to load before printing
+    printWindow.onload = function() {
       try {
-        let timestamp;
-        if (reading.timestamp instanceof Date) {
-          timestamp = reading.timestamp;
-        } else if (typeof reading.timestamp === 'number') {
-          timestamp = new Date(reading.timestamp * 1000);
-        } else if (reading.timestamp && reading.timestamp._seconds) {
-          timestamp = new Date(reading.timestamp._seconds * 1000);
-        } else {
-          timestamp = new Date();
-        }
+        printWindow.focus();
+        printWindow.print();
         
-        const formattedDate = timestamp.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit'
-        });
-
-        const formattedTime = timestamp.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-
-        const soilPhValue = reading.soilPh !== undefined ? Number(reading.soilPh) : 
-                           reading.ph !== undefined ? Number(reading.ph) : null;
-
-        const soilPh = soilPhValue !== null ? soilPhValue.toFixed(1) : '--';
-        const phStatus = calculatePhStatus(soilPhValue);
-
-        return {
-          id: `${index}`,
-          timestamp: timestamp.getTime() / 1000,
-          soilPh: soilPh,
-          phStatus: phStatus,
-          date: formattedDate,
-          time: formattedTime,
-          rawTimestamp: timestamp,
-          deviceId: reading.deviceId || reading.device_id || 'esp32-1'
-        };
-      } catch (error) {
-        console.error('Error processing reading:', reading, error);
-        return null;
-      }
-    }).filter(reading => reading !== null) : [];
-
-    dataCache.value = processedData;
-    soilPhData.value = processedData;
-    isLoading.value = false;
-    
-    // FIX: Call initializeChartData
-    initializeChartData(processedData);
-    PRINT_CHART_DATA_LIMIT = processedData.length;
-    
-    console.log(`✅ Processed ${processedData.length} readings`);
-    
-  } catch (error) {
-    console.error("❌ Error in fetchSoilPhData:", error);
-    isLoading.value = false;
-    
-    if (dataCache.value) {
-      soilPhData.value = dataCache.value;
-      initializeChartData(dataCache.value);
-    }
-  }
-};
-
-const setupRealtimeListener = () => {
-  pollingInterval = setInterval(async () => {
-    try {
-      const response = await api.get(`/soil-ph/readings/realtime`);
-      if (response.data && Array.isArray(response.data)) {
-        processRealtimeData(response.data);
-      }
-    } catch (error) {
-      console.error('Polling error:', error);
-    }
-  }, 5000);
-  
-  return () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
-  };
-};
-
-const processRealtimeData = (data) => {
-  if (!Array.isArray(data) || data.length === 0) return;
-
-  try {
-    // Get the highest existing ID to continue sequencing
-    const maxId = soilPhData.value.length > 0 
-      ? Math.max(...soilPhData.value.map(item => parseInt(item.id.replace('rt-', '')) || 0))
-      : 0;
-
-    const processedData = data
-      .filter(item => item && item.soilPh !== undefined && item.soilPh !== null && item.soilPh !== '--')
-      .map((item, index) => {
-        try {
-          const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : new Date();
-          const value = Number(item.soilPh);
-          
-          if (isNaN(value)) return null;
-          
-          const formattedDate = timestamp.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-          });
-          
-          const formattedTime = timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          });
-          
-          return {
-            timestamp,
-            value,
-            deviceId: item.deviceId || 'esp32-1',
-            soilPh: value.toFixed(1),
-            phStatus: calculatePhStatus(value),
-            date: formattedDate,
-            time: formattedTime,
-            rawTimestamp: timestamp,
-            // Use sequential ID instead of timestamp
-            id: `${maxId + index + 1}`
-          };
-        } catch {
-          return null;
-        }
-      })
-      .filter(item => item !== null);
-    
-    // Add new data to table (prepend to show newest first)
-    if (processedData.length > 0) {
-      soilPhData.value = [...processedData, ...soilPhData.value].slice(0, 100);
-    }
-    
-    // Rest of your chart update logic remains the same...
-    const chartDataPoints = processedData.map(item => ({
-      timestamp: item.timestamp,
-      value: item.value,
-      deviceId: item.deviceId
-    }));
-    
-    combinedRealtimeData = [...combinedRealtimeData, ...chartDataPoints];
-    combinedRealtimeData.sort((a, b) => b.timestamp - a.timestamp);
-    combinedRealtimeData = combinedRealtimeData.slice(0, 20);
-    
-    const chronologicalData = [...combinedRealtimeData].sort((a, b) => a.timestamp - b.timestamp);
-    
-    chartLabels = chronologicalData.map(item => 
-      item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      })
-    );
-    
-    chartValues = chronologicalData.map(item => item.value);
-    
-    if (combinedRealtimeData.length > 0) {
-      const latestReading = combinedRealtimeData[0];
-      currentPhValue.value = latestReading.value.toFixed(1);
-      
-      lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      });
-      
-      const values = combinedRealtimeData.map(item => item.value);
-      phStats.value = {
-        min: Math.min(...values).toFixed(1),
-        max: Math.max(...values).toFixed(1),
-        avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
-      };
-    }
-    
-    updateChart();
-    
-  } catch (error) {
-    console.error('Error in processRealtimeData:', error);
-  }
-};
-
-const fetchStats = async () => {
-  try {
-    const response = await api.get(`/soil-ph/stats?hours=24`);
-    
-    if (!response.ok) {
-      console.error('Stats fetch failed:', response.status, response.statusText);
-      return;
-    }
-    
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Expected JSON but got:', contentType);
-      return;
-    }
-    
-    const stats = await response.json();
-    console.log('Stats data:', stats); 
-    
-    phStats.value = {
-      min: typeof stats.min === 'number' ? stats.min.toFixed(1) : '--',
-      max: typeof stats.max === 'number' ? stats.max.toFixed(1) : '--',
-      avg: typeof stats.avg === 'number' ? stats.avg.toFixed(1) : '--'
-    };
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-  }
-};
-
-const updateRealtimeData = (snapshot, deviceId) => {
-  const newData = snapshot.docs
-    .filter(doc => doc.data().soilPh !== undefined)
-    .map(doc => {
-      const data = doc.data()
-      const timestamp = data.timestamp instanceof Timestamp 
-        ? data.timestamp.toDate() 
-        : new Date(data.timestamp.seconds * 1000)
-      
-      return {
-        timestamp,
-        value: Number(data.soilPh),
-        deviceId
-      }
-    })
-  
-  combinedRealtimeData = combinedRealtimeData.filter(item => item.deviceId !== deviceId)
-  combinedRealtimeData.push(...newData)
-
-  combinedRealtimeData.sort((a, b) => a.timestamp - b.timestamp)
-  combinedRealtimeData = combinedRealtimeData.slice(-20)
-  
-  chartData.value = combinedRealtimeData
-  
-  if (combinedRealtimeData.length > 0) {
-    const latestReading = combinedRealtimeData[combinedRealtimeData.length - 1]
-    currentPhValue.value = latestReading.value.toFixed(1)
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-    
-    const values = combinedRealtimeData.map(item => item.value)
-    phStats.value = {
-      min: Math.min(...values).toFixed(1),
-      max: Math.max(...values).toFixed(1),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
-    }
-  }
-  
-  requestAnimationFrame(() => {
-    updateChart()
-  })
-}
-
-const initializeChartData = (data) => {
-  // Sort data by timestamp (newest first) and take the first 20
-  const sortedData = [...data].sort((a, b) => {
-    const aTime = a.rawTimestamp instanceof Date ? a.rawTimestamp.getTime() : new Date(a.rawTimestamp).getTime();
-    const bTime = b.rawTimestamp instanceof Date ? b.rawTimestamp.getTime() : new Date(b.rawTimestamp).getTime();
-    return bTime - aTime; // Newest first
-  });
-  
-  const initialChartData = sortedData
-    .filter(item => item.soilPh !== '--' && !isNaN(Number(item.soilPh)))
-    .slice(0, 20) // Get first 20 records (newest)
-    .map(item => ({
-      timestamp: item.rawTimestamp,
-      value: Number(item.soilPh),
-      deviceId: item.deviceId || 'esp32-1'
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp); // Sort chronologically for chart
-
-  chartLabels = initialChartData.map(item => 
-    item.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-  );
-  
-  chartValues = initialChartData.map(item => item.value);
-  combinedRealtimeData = initialChartData;
-  
-  if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1];
-    currentPhValue.value = latestReading.value.toFixed(1);
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
-    const values = initialChartData.map(item => item.value);
-    phStats.value = {
-      min: Math.min(...values).toFixed(1),
-      max: Math.max(...values).toFixed(1),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(1)
-    };
-  }
-  
-  initializeChart();
-};
-
-// FIX: Enhanced initializeChart with proper styling like SoilMoisture.vue
-const initializeChart = () => {
-  nextTick(() => {
-    if (!chartCanvas.value) return;
-    
-    // Destroy existing chart
-    if (chart && typeof chart.destroy === 'function') {
-      try {
-        chart.destroy();
-      } catch (error) {
-        console.error('Error destroying chart:', error);
-      }
-    }
-    
-    try {
-      const ctx = chartCanvas.value.getContext('2d');
-      
-      // Calculate proper y-axis range
-      const values = chartValues.filter(val => !isNaN(val));
-      const minValue = values.length > 0 ? Math.min(...values) : 0;
-      const maxValue = values.length > 0 ? Math.max(...values) : 14;
-      const yMin = Math.max(0, Math.floor(minValue * 0.9));
-      const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
-      
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            label: 'Soil pH',
-            data: chartValues,
-            borderColor: '#f97316',
-            backgroundColor: 'rgba(249, 115, 22, 0.15)',
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#f97316',
-            pointBorderWidth: 1.5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: {
-            duration: 0
-          },
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              min: yMin,
-              max: yMax,
-              title: {
-                display: true,
-                text: 'pH Level',
-                color: '#f97316',
-                font: {
-                  size: 11,
-                  weight: '600'
-                }
-              },
-              ticks: {
-                font: {
-                  size: 10
-                },
-                color: '#64748b',
-                padding: 8
-              },
-              grid: {
-                color: 'rgba(0, 0, 0, 0.04)',
-                drawBorder: false
-              }
-            },
-            x: {
-              ticks: {
-                font: {
-                  size: 10
-                },
-                maxRotation: 0,
-                padding: 8,
-                color: '#64748b'
-              },
-              grid: {
-                display: false,
-                drawBorder: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false,
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#334155',
-              bodyColor: '#334155',
-              borderColor: '#e2e8f0',
-              borderWidth: 1,
-              padding: 12,
-              cornerRadius: 6,
-              displayColors: true,
-              boxWidth: 8,
-              boxHeight: 8,
-              usePointStyle: true,
-              titleFont: {
-                size: 12,
-                weight: '600'
-              },
-              bodyFont: {
-                size: 12
-              },
-              callbacks: {
-                label: function(context) {
-                  return `pH: ${context.raw.toFixed(1)}`;
-                }
-              }
-            }
+        // Close the window after printing (or if user cancels)
+        setTimeout(() => {
+          if (!printWindow.closed) {
+            printWindow.close();
           }
-        }
-      });
-    } catch (error) {
-      console.error('Error initializing chart:', error);
-    }
-  });
-};
-
-const safeChartUpdate = () => {
-  if (chart.value && typeof chart.value.update === 'function') {
-    chart.value.update('none');
-  }
-};
-
-// FIX: Update the updateChart function to handle undefined chart
-const updateChart = () => {
-  if (!chart) return;
-
-  try {
-    // Only update if we have data
-    if (chartValues.length === 0) return;
-    
-    // Update chart data
-    chart.data.labels = [...chartLabels];
-    chart.data.datasets[0].data = [...chartValues];
-    
-    // Calculate proper min/max values for y-axis
-    const values = chartValues.filter(val => !isNaN(val));
-    const minValue = values.length > 0 ? Math.min(...values) : 0;
-    const maxValue = values.length > 0 ? Math.max(...values) : 14;
-    
-    // Set y-axis range with some padding
-    const yMin = Math.max(0, Math.floor(minValue * 0.9));
-    const yMax = Math.min(14, Math.ceil(maxValue * 1.1));
-    
-    if (chart.options && chart.options.scales && chart.options.scales.y) {
-      chart.options.scales.y.min = yMin;
-      chart.options.scales.y.max = yMax;
-    }
-    
-    // Update the chart
-    chart.update();
-  } catch (error) {
-    console.error('Error updating chart:', error);
-  }
-};
-
-const isNewRecord = (record) => {
-  if (!record || !record.timestamp) return false;
-  
-  const recordTime = record.timestamp.getTime();
-  
-  // Check if this record is newer than the last processed one
-  if (recordTime > lastProcessedTimestamp) {
-    lastProcessedTimestamp = recordTime;
-    return true;
-  }
-  
-  // Also check if we have this exact record already
-  const exists = combinedRealtimeData.some(existing => 
-    existing.timestamp.getTime() === recordTime && 
-    existing.value === record.value
-  );
-  
-  return !exists;
-};
-
-const calculatePhStatus = (ph) => {
-  if (ph < 6.6) return 'ACIDIC'
-  if (ph >= 6.6 && ph <= 7.3) return 'NEUTRAL'
-  return 'ALKALINE'
-}
-
-const filters = ref({
-  soilPh: { min: '', max: '' }
-})
-
-const searchQuery = ref('')
-const itemsPerPage = ref(20) 
-const currentPage = ref(1)
-const activeDropdown = ref(null)
-const sortKey = ref('date')
-const sortDirection = ref('desc')
-const activeFilters = ref({})
-
-const filterFields = [
-  { key: 'soilPh', label: 'Soil pH Level' }
-]
-
-const headers = [
-  { key: 'id', label: 'ID' },
-  { key: 'soilPh', label: 'Soil pH' },
-  { key: 'phStatus', label: 'pH Status' },
-  { key: 'date', label: 'Date' },
-  { key: 'time', label: 'Time' }
-]
-
-const exportFormats = ['csv', 'pdf']
-
-const sortedByTimestampData = computed(() => {
-  return [...soilPhData.value].sort((a, b) => {
-    // Convert to timestamps for comparison
-    const aTime = a.rawTimestamp instanceof Date ? a.rawTimestamp.getTime() : new Date(a.rawTimestamp).getTime();
-    const bTime = b.rawTimestamp instanceof Date ? b.rawTimestamp.getTime() : new Date(b.rawTimestamp).getTime();
-    
-    // Sort newest first (descending order)
-    return bTime - aTime;
-  });
-});
-
-const filteredData = computed(() => {
-  let result = [...sortedByTimestampData.value] // Use the sorted data
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
-    })
-  }
-
-  Object.keys(activeFilters.value).forEach(key => {
-    const { min, max } = activeFilters.value[key]
-    if (min !== '' && max !== '') {
-      result = result.filter(row => row[key] >= min && row[key] <= max)
-    } else if (min !== '') {
-      result = result.filter(row => row[key] >= min)
-    } else if (max !== '') {
-      result = result.filter(row => row[key] <= max)
-    }
-  })
-
-  return result
-})
-
-const sortedData = computed(() => {
-  if (!sortKey.value) return filteredData.value
-
-  return [...filteredData.value].sort((a, b) => {
-    let aValue = a[sortKey.value]
-    let bValue = b[sortKey.value]
-    
-    if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-    if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-    
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection.value === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
-    }
-    
-    return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
-  })
-})
-
-const paginatedData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return sortedData.value.slice(startIndex, endIndex)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(sortedData.value.length / itemsPerPage.value)
-})
-
-const displayedPages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const pages = []
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
-  } else {
-    pages.push(1)
-
-    if (current <= 3) {
-      pages.push(2, 3, 4, 5, '...', total)
-    } else if (current >= total - 2) {
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
-    } else {
-      pages.push('...', current - 1, current, current + 1, '...', total)
-    }
-  }
-
-  return pages
-})
-
-const toggleDropdown = (dropdownName) => {
-  if (activeDropdown.value === dropdownName) {
-    activeDropdown.value = null
-  } else {
-    activeDropdown.value = dropdownName
-  }
-}
-
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.relative')) {
-    activeDropdown.value = null
-  }
-}
-
-const performSearch = () => {
-  currentPage.value = 1 
-}
-
-const applyFilters = () => {
-  const newFilters = {}
-
-  Object.keys(filters.value).forEach(key => {
-    const min = parseFloat(filters.value[key].min)
-    const max = parseFloat(filters.value[key].max)
-    
-    if (!isNaN(min) || !isNaN(max)) {
-      newFilters[key] = {
-        min: isNaN(min) ? '' : min,
-        max: isNaN(max) ? '' : max
+        }, 500);
+      } catch (printError) {
+        console.error('Error during printing:', printError);
+        window.showToast('Error during printing', 'error');
+        printWindow.close();
       }
+    };
+    
+  } catch (error) {
+    console.error('Error opening print window:', error);
+    window.showToast('Error opening print window. Please allow popups.', 'error');
+    
+    // Fallback: Try to print in current window
+    try {
+      const currentWindow = window.open();
+      currentWindow.document.write(tableContent);
+      currentWindow.document.close();
+      currentWindow.print();
+      setTimeout(() => currentWindow.close(), 500);
+    } catch (fallbackError) {
+      console.error('Fallback print also failed:', fallbackError);
+      window.showToast('Print functionality is not available', 'error');
     }
-  })
-
-  activeFilters.value = newFilters
-  currentPage.value = 1 
-  activeDropdown.value = null
-}
-
-const setSortKey = (key) => {
-  if (sortKey.value === key) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortKey.value = key
-    sortDirection.value = 'asc' 
-  }
-  activeDropdown.value = null 
-}
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
-}
-
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
-
-const updatePagination = () => {
-  currentPage.value = 1 
-}
-
-const goToPage = (page) => {
-  if (typeof page === 'number') {
-    currentPage.value = page
   }
 }
 
 const exportData = async (format) => {
-  const dataToExport = sortedData.value
-  if (!dataToExport.length) return
-
-  const exportHeaders = headers.map(h => h.label)
-  const exportRows = dataToExport.map(row =>
-    headers.map(header => row[header.key] ?? '')
-  )
-
-  if (format === 'csv') {
-    let csvContent = exportHeaders.join(',') + '\n'
-    exportRows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    saveAs(blob, 'soil_ph_data.csv')
-    window.showToast('Soil PH exported as CSV', 'success')
-  } else if (format === 'pdf') {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm'
-    })
+  try {
+    isLoading.value = true
+    console.log(`📤 Starting ${format.toUpperCase()} export...`)
     
-    doc.setFontSize(16)
-    doc.text('Soil pH Data Report', 105, 15, { align: 'center' })
+    // For exports, fetch all data without pagination
+    let allData = []
     
-    doc.setFontSize(10)
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' })
-    
-    if (chartCanvas.value) {
-      try {
-        const chartImage = chartCanvas.value.toDataURL('image/png', 1.0)
+    try {
+      console.log('🚀 Fetching all Soil pH data for export...')
+      const response = await api.get('/soil-ph/readings/all')
+      
+      if (response.data && Array.isArray(response.data)) {
+        allData = response.data.map((reading, index) => {
+          const timestamp = parseBackendTimestamp(reading.timestamp)
+          
+          // Use soilPh field from backend, fallback to ph field
+          const phValue = reading.soilPh !== undefined ? reading.soilPh : reading.ph
+          const phNumber = parseFloat(phValue) || 0
+          
+          // Determine pH status
+          let phStatus = 'Unknown'
+          if (phValue !== '--' && !isNaN(phNumber)) {
+            if (phNumber < 6.5) {
+              phStatus = 'Acidic'
+            } else if (phNumber >= 6.5 && phNumber <= 7.5) {
+              phStatus = 'Neutral'
+            } else if (phNumber > 7.5) {
+              phStatus = 'Alkaline'
+            }
+          }
+          
+          return {
+            id: reading.id || `export_${index}`,
+            ph: phValue?.toFixed(2) || '--',
+            phStatus: phStatus,
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.device_id || 'esp32-1',
+            timestampMs: timestamp.getTime()
+          }
+        })
         
-        const imgWidth = 160 
-        const imgHeight = 90 
-        doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 30, imgWidth, imgHeight)
+        // Sort by timestamp (newest first)
+        allData.sort((a, b) => b.timestampMs - a.timestampMs)
         
-        doc.setFontSize(12)
-        doc.text('Soil pH Trend', 105, 125, { align: 'center' })
-        
-        doc.setFontSize(10)
-        doc.text(
-          `Current: ${currentPhValue.value} | Min: ${phStats.value.min} | Avg: ${phStats.value.avg} | Max: ${phStats.value.max}`,
-          105,
-          130,
-          { align: 'center' }
-        )
-      } catch (error) {
-        console.error('Error adding chart to PDF:', error)
+        console.log(`✅ Fetched ${allData.length} records for export`)
       }
+    } catch (error) {
+      console.error('❌ Error fetching all data for export:', error)
+      // Fallback to current data if /all endpoint doesn't exist
+      allData = sortedData.value
+    }
+
+    if (!allData.length) {
+      window.showToast('No data available for export', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    // Create export data with pH status
+    const exportHeaders = ['Date', 'Time', 'pH Level', 'pH Status', 'Device']
+    const exportRows = allData.map(row => [
+      row.date || formatDateForDisplay(row.rawTimestamp),
+      row.time || formatTimeForDisplay(row.rawTimestamp), 
+      row.ph !== undefined ? row.ph : '--',
+      row.phStatus !== undefined ? row.phStatus : 'Unknown',
+      row.deviceId || 'esp32-1'
+    ])
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    if (format === 'csv') {
+      let csvContent = exportHeaders.join(',') + '\n'
+      exportRows.forEach(row => {
+        csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+      })
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      saveAs(blob, `soil_ph_data_${timestamp}.csv`)
+      window.showToast(`Exported ${allData.length} Soil pH records as CSV`, 'success')
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 10
+      const tableWidth = pageWidth - (margin * 2)
+      
+      // Title section - more compact
+      doc.setFontSize(16)
+      doc.setTextColor(16, 163, 74)
+      doc.text('Soil pH Data Report', pageWidth / 2, 20, { align: 'center' })
+      
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+      doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
+      
+      // Add pH status summary - more compact
+      const statusCounts = allData.reduce((acc, row) => {
+        const status = row.phStatus || 'Unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+      
+      doc.setFontSize(9)
+      doc.setTextColor(75, 85, 99)
+      
+      let statusY = 40
+      const statusEntries = Object.entries(statusCounts)
+      let statusText = 'pH Status: '
+      statusEntries.forEach(([status, count], index) => {
+        const percentage = ((count / allData.length) * 100).toFixed(1)
+        statusText += `${status} ${count} (${percentage}%)`
+        if (index < statusEntries.length - 1) statusText += ' | '
+      })
+      
+      // Single line for status summary to save space
+      doc.text(statusText, pageWidth / 2, statusY, { align: 'center' })
+      
+      // FIXED: Start table much lower to utilize first page space
+      let startY = 48 // Reduced from higher position
+      
+      console.log(`📄 Starting table at Y position: ${startY}mm on first page`)
+      
+      // Configure autoTable
+      const tableConfig = {
+        head: [exportHeaders],
+        body: exportRows,
+        startY: startY,
+        margin: { left: margin, right: margin },
+        tableWidth: tableWidth,
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak',
+          textColor: [51, 51, 51],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+          minCellHeight: 6,
+          cellWidth: 'wrap'
+        },
+        headStyles: {
+          fillColor: [16, 163, 74],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 3
+        },
+        bodyStyles: {
+          cellPadding: 2,
+          lineWidth: 0.1,
+          minCellHeight: 6
+        },
+        alternateRowStyles: {
+          fillColor: [250, 250, 250]
+        },
+        columnStyles: {
+          0: { cellWidth: tableWidth * 0.22 }, // Date
+          1: { cellWidth: tableWidth * 0.18 }, // Time
+          2: { cellWidth: tableWidth * 0.15 }, // pH Level
+          3: { cellWidth: tableWidth * 0.25 }, // pH Status
+          4: { cellWidth: tableWidth * 0.20 }  // Device
+        },
+        pageBreak: 'auto',
+        showHead: 'everyPage',
+        tableLineWidth: 0.1,
+        theme: 'grid',
+        didParseCell: function (data) {
+          // Color code pH status cells
+          if (data.column.index === 3 && data.section === 'body' && data.cell.raw) {
+            const status = data.cell.raw.toString()
+            if (status === 'Acidic') {
+              data.cell.styles.fillColor = [254, 226, 226]
+              data.cell.styles.textColor = [220, 38, 38]
+            } else if (status === 'Neutral') {
+              data.cell.styles.fillColor = [254, 252, 232]
+              data.cell.styles.textColor = [202, 138, 4]
+            } else if (status === 'Alkaline') {
+              data.cell.styles.fillColor = [219, 234, 254]
+              data.cell.styles.textColor = [37, 99, 235]
+            }
+          }
+        },
+        didDrawPage: function (data) {
+          // Only add header on first page
+          if (data.pageNumber === 1) {
+            doc.setFontSize(16)
+            doc.setTextColor(16, 163, 74)
+            doc.text('Soil pH Data Report', pageWidth / 2, 20, { align: 'center' })
+            
+            doc.setFontSize(10)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+            doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
+            
+            // Status summary on first page only
+            doc.setFontSize(9)
+            doc.setTextColor(75, 85, 99)
+            doc.text(statusText, pageWidth / 2, 40, { align: 'center' })
+          }
+          
+          // Footer on every page
+          doc.setFontSize(8)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Page ${data.pageNumber} - ${allData.length} total records`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          )
+        }
+      }
+      
+      // Generate the table
+      autoTable(doc, tableConfig)
+      
+      doc.save(`soil_ph_report_${timestamp}.pdf`)
+      window.showToast(`Exported ${allData.length} Soil pH records as PDF`, 'success')
+    } else if (format === 'docs') {
+      const tableRows = [
+        new TableRow({
+          children: exportHeaders.map(h => new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+            shading: {
+              fill: "2DA74B",
+              color: "FFFFFF"
+            }
+          }))
+        }),
+        ...exportRows.map(row =>
+          new TableRow({
+            children: row.map((cell, index) => {
+              const cellText = cell ? cell.toString() : ''
+              const textRun = new TextRun({ text: cellText, size: 20 })
+              
+              if (index === 3 && cellText) {
+                if (cellText === 'Acidic') {
+                  textRun.color = "FF0000"
+                } else if (cellText === 'Neutral') {
+                  textRun.color = "FFA500"
+                } else if (cellText === 'Alkaline') {
+                  textRun.color = "0000FF"
+                }
+              }
+              
+              return new TableCell({
+                children: [new Paragraph({ children: [textRun] })],
+                width: { size: 20, type: 'pct' }
+              })
+            })
+          })
+        )
+      ]
+      
+      const docxDoc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1000,
+                right: 1000,
+                bottom: 1000,
+                left: 1000,
+              }
+            }
+          },
+          children: [
+            new Paragraph({ 
+              text: 'Soil pH Data Report', 
+              heading: 'Heading1',
+              alignment: 'center'
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleString()} | Total Records: ${allData.length}`,
+              alignment: 'center'
+            }),
+            new Paragraph({ text: '' }),
+            new Table({ 
+              width: {
+                size: 100,
+                type: 'pct'
+              },
+              rows: tableRows 
+            })
+          ]
+        }]
+      })
+      const buffer = await Packer.toBlob(docxDoc)
+      saveAs(buffer, `soil_ph_data_${timestamp}.docx`)
+      window.showToast(`Exported ${allData.length} Soil pH records as DOCX`, 'success')
     }
     
-    autoTable(doc, {
-      head: [exportHeaders],
-      body: exportRows,
-      startY: 135,
-      margin: { horizontal: 10 },
-      styles: { 
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: 'linebreak'
-      },
-      headStyles: {
-        fillColor: [16, 163, 74],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [240, 253, 244] 
-      },
-      columnStyles: {
-        0: { cellWidth: 'auto' },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: 'auto' },
-        4: { cellWidth: 'auto' }
-      }
-    })
-    
-    doc.save('soil_ph_report.pdf')
-    window.showToast('Soil pH report exported as PDF', 'success')
-  } else if (format === 'docs') {
-    const tableRows = [
-      new TableRow({
-        children: exportHeaders.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...exportRows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'Soil pH Data Table', heading: 'Heading1' }),
-          new Table({ rows: tableRows })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'soil_ph_data.docx')
+  } catch (error) {
+    console.error('❌ Export error:', error)
+    window.showToast('Error exporting data. Please try again.', 'error')
+  } finally {
+    isLoading.value = false
+    activeDropdown.value = null 
   }
-
-  activeDropdown.value = null 
 }
 
 watch([searchQuery, activeFilters, itemsPerPage], () => {
@@ -1873,7 +2143,6 @@ watch([searchQuery, activeFilters, itemsPerPage], () => {
 })
 
 let cleanupRealtime = null
-let resizeObserver = null;
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
@@ -1881,8 +2150,9 @@ onMounted(() => {
   // Always setup realtime listener, regardless of initial data
   cleanupRealtime = setupRealtimeListener();
   
-  // Then fetch initial data
-  fetchSoilPhData();
+  // Fetch first page of data with pagination
+  fetchSoilPhData(1, itemsPerPage.value);
+  fetchStats();
 });
 
 onUnmounted(() => {
@@ -1903,7 +2173,7 @@ onUnmounted(() => {
 </script>
   
 <style>
-/* Core styles */
+/* Your existing CSS styles remain exactly the same */
 .relative {
   position: relative;
 }

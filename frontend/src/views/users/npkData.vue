@@ -1,7 +1,8 @@
 <template>
   <div class="flex-1 w-full px-2 sm:px-6 md:px-8 lg:px-10 overflow-hidden">
     <!-- Enhanced main container with more appealing design -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">        <!-- Gradient header for visual appeal -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-100 w-[calc(100vw-1rem)] sm:w-full h-[calc(100vh-85px)] mt-1 md:h-[calc(100vh-130px)] flex flex-col overflow-hidden mx-auto">
+      <!-- Gradient header for visual appeal -->
       <div class="bg-gradient-to-r from-green-50 to-white p-4 md:p-6 border-b border-gray-100 rounded-t-lg">
         <!-- Header with controls aligned side by side -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -139,7 +140,7 @@
                 <!-- Print Button -->
                 <div class="relative flex-1 sm:flex-none">
                   <button 
-                    @click="printTable"
+                    @click="openPrintModal"
                     class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
                   >
                     <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
@@ -148,6 +149,56 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Range Print Modal -->
+      <div v-if="showPrintModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-96 max-w-[90%]">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Select Date Range for Print</h3>
+            <p class="text-sm text-gray-500 mt-1">Choose the date range for the NPK data you want to print</p>
+          </div>
+          
+          <!-- Date Range Inputs -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.start"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.end"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              >
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <p v-if="printDateError" class="mt-2 text-sm text-red-600">{{ printDateError }}</p>
+          
+          <!-- Buttons -->
+          <div class="mt-6 flex justify-end space-x-3">
+            <button 
+              @click="cancelPrint"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              @click="handlePrintWithDateRange"
+              class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600"
+            >
+              Print
+            </button>
           </div>
         </div>
       </div>
@@ -328,7 +379,15 @@
         
         <!-- Table Container - Larger width -->
         <div class="flex-1 md:w-full md:w-2/3 lg:w-2/3 flex flex-col">
-          <!-- Fixed Header with enhanced styling -->
+          <!-- Loading overlay for pagination -->
+          <div v-if="isFetching" class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-20">
+            <div class="bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+              <span class="text-sm text-gray-600">Loading data...</span>
+            </div>
+          </div>
+
+          <!-- Mobile View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
               <div v-for="(row, index) in paginatedData" :key="index" 
                   class="bg-gray-50 rounded-lg p-3 border border-gray-200">
@@ -354,7 +413,7 @@
                 </div>
               </div>
               
-              <div v-if="paginatedData.length === 0 && !isLoading" 
+              <div v-if="paginatedData.length === 0 && !isLoading && !isFetching" 
                   class="flex flex-col items-center justify-center py-8">
                 <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
                 <p class="text-gray-500 text-xs font-medium">No NPK data found</p>
@@ -369,7 +428,6 @@
                 <table class="min-w-full">
                   <thead>
                     <tr>
-                     
                       <th class="w-[20%] py-2.5 px-3 text-left text-[9px] md:text-[15px] font-medium text-gray-500 uppercase tracking-wider">
                         <div class="text-green-600">Nitrogen</div>
                         <div class="text-gray-400 text-[6px] md:text-[9px]">(mg/kg)</div>
@@ -404,7 +462,6 @@
                       :key="index"
                       class="hover:bg-gray-50 transition-colors"
                     >
-                      
                       <td class="w-[20%] py-3 px-3 whitespace-nowrap border-b border-gray-200">
                         <div class="text-[9px] md:text-[15px] font-semibold" :class="getNitrogenTextClass(row.nitrogen)">
                           {{ row.nitrogen }}
@@ -428,7 +485,7 @@
                       </td>
                     </tr>
                     
-                    <tr v-if="paginatedData.length === 0 && !isLoading">
+                    <tr v-if="paginatedData.length === 0 && !isLoading && !isFetching">
                       <td colspan="6" class="px-4 py-8 text-center">
                         <div class="flex flex-col items-center justify-center">
                           <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
@@ -448,13 +505,12 @@
       <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
         <div class="flex items-center justify-between">
           <div class="text-[10px] md:text-xs text-gray-600">
-            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-            of {{ sortedData.length }}
+            Showing {{ showingText }}
           </div>
           <div class="flex items-center gap-1">
             <button 
               @click="prevPage"
-              :disabled="currentPage === 1"
+              :disabled="currentPage === 1 || isFetching"
               class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
             >
               <ChevronLeft class="w-3.5 h-3.5" />
@@ -465,7 +521,7 @@
                 v-for="(page, index) in paginationNumbers"
                 :key="index"
                 @click="goToPage(page)"
-                :disabled="page === '...'"
+                :disabled="page === '...' || isFetching"
                 :class="[
                   'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
                   page === currentPage 
@@ -481,7 +537,7 @@
             
             <button 
               @click="nextPage"
-              :disabled="currentPage >= totalPages"
+              :disabled="currentPage >= totalPages || isFetching"
               class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
             >
               <ChevronRight class="w-3.5 h-3.5" />
@@ -512,17 +568,23 @@ import api from '../../api/index.js'
 import Chart from 'chart.js/auto'
 import html2canvas from 'html2canvas';
 
+// Data state
 const npkData = ref([])
+const chartData = ref([]) // Separate data for charts
 const isLoading = ref(true)
+const isFetching = ref(false)
+const isFetchingCharts = ref(false)
 const chartsInitialized = ref(false)
 
+// Chart references
 const nitrogenChartCanvas = ref(null)
 const phosphorusChartCanvas = ref(null)
 const potassiumChartCanvas = ref(null)
 const nitrogenChart = ref(null)
 const phosphorusChart = ref(null)
 const potassiumChart = ref(null)
-const chartData = ref([])
+
+// Current values and stats
 const currentNitrogenValue = ref('--')
 const currentPhosphorusValue = ref('--')
 const currentPotassiumValue = ref('--')
@@ -531,6 +593,12 @@ const currentDate = ref('')
 const nitrogenStats = ref({ min: '--', max: '--', avg: '--' })
 const phosphorusStats = ref({ min: '--', max: '--', avg: '--' })
 const potassiumStats = ref({ min: '--', max: '--', avg: '--' })
+
+// Pagination state
+const totalItems = ref(0)
+const totalPagesFromAPI = ref(0)
+const itemsPerPage = ref(20)
+const currentPage = ref(1)
 
 // Polling system
 const pollingInterval = ref(null)
@@ -542,8 +610,6 @@ let PRINT_CHART_DATA_LIMIT = 0;
 
 // Table controls
 const searchQuery = ref('')
-const itemsPerPage = ref(20) 
-const currentPage = ref(1)
 const activeDropdown = ref(null)
 const sortKey = ref('date')
 const sortDirection = ref('desc')
@@ -562,7 +628,6 @@ const filterFields = [
 ]
 
 const headers = [
-  { key: 'id', label: 'ID' },
   { key: 'nitrogen', label: 'Nitrogen (mg/kg)' },
   { key: 'phosphorus', label: 'Phosphorus (mg/kg)' },
   { key: 'potassium', label: 'Potassium (mg/kg)' },
@@ -572,79 +637,227 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
-// Real-time functions
-const realTime = async () => {
-  if (isUpdating.value) return;
+// Print-related reactive data
+const showPrintModal = ref(false)
+const printDateRange = ref({
+  start: '',
+  end: ''
+})
+const printDateError = ref('')
+
+// Utility functions for timestamp handling
+const parseBackendTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
   
-  isUpdating.value = true;
-  
-  try {
-    console.log('🔄 Polling for new NPK data...')
-    await realTimeFetch()
-  } catch (error) {
-    console.error("❌ Error fetching NPK data:", error)
-  } finally {
-    isUpdating.value = false;
+  // If it's already a Date object, return it
+  if (timestamp instanceof Date) {
+    return timestamp;
   }
-}
+  
+  // If it's an ISO string, parse it directly
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+  
+  // If it's a number (Unix timestamp in seconds or milliseconds)
+  if (typeof timestamp === 'number') {
+    // Check if it's in milliseconds (13 digits) or seconds (10 digits)
+    if (timestamp > 1e12) { // milliseconds
+      return new Date(timestamp);
+    } else { // seconds
+      return new Date(timestamp * 1000);
+    }
+  }
+  
+  // If it's an object with _seconds (Firebase format)
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  
+  // Fallback to current time
+  console.warn('Unable to parse timestamp, using current time:', timestamp);
+  return new Date();
+};
 
-const realTimeFetch = async () => {
+const formatDateForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
+};
+
+const formatTimeForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+const formatDateForInput = (date) => {
+  return date.toISOString().split('T')[0];
+};
+
+// Separate function to fetch chart data (latest 20 records)
+const fetchChartData = async () => {
+  if (isFetchingCharts.value) return;
+  
+  isFetchingCharts.value = true;
+  
   try {
-    const response = await api.get('/npk-data')
-    const responseData = response.data
+    console.log('📊 Fetching latest data for charts...')
     
-    console.log('✅ Data received:', responseData)
+    // Use the recent endpoint to get latest data for charts
+    const response = await api.get('/npk-data/recent', {
+      params: {
+        hours: 24, // Get last 24 hours
+        limit: 20  // Get 20 latest records for charts
+      }
+    })
+    
+    const responseData = response.data
 
-    if (Array.isArray(responseData)) {
-      const processedData = responseData.map((reading, index) => {
-        const timestamp = reading.timestamp?._seconds 
-          ? new Date(reading.timestamp._seconds * 1000)
-          : new Date(reading.timestamp || Date.now())
+    if (responseData.data && Array.isArray(responseData.data)) {
+      const processedChartData = responseData.data.map((reading, index) => {
+        const timestamp = parseBackendTimestamp(reading.timestamp)
         
         return {
-          id: `${index}`, 
+          id: reading.id || `chart_${index}`,
           nitrogen: reading.nitrogen?.toFixed(2) || '--',
           phosphorus: reading.phosphorus?.toFixed(2) || '--',
           potassium: reading.potassium?.toFixed(2) || '--',
-          date: timestamp.toLocaleDateString(),
-          time: timestamp.toLocaleTimeString(),
+          date: formatDateForDisplay(reading.timestamp),
+          time: formatTimeForDisplay(reading.timestamp),
           rawTimestamp: timestamp,
           deviceId: reading.device_id || 'esp32-1',
           soilPh: reading.soilPh?.toFixed(2) || '--',
           timestampMs: timestamp.getTime()
         }
       })
-      .sort((a, b) => b.timestampMs - a.timestampMs)
-      .map(({ timestampMs, ...reading }) => reading)
 
-      // CRITICAL FIX: Replace the array completely to trigger reactivity
-      npkData.value = processedData
-      dataCache.value = processedData
+      // Update chart data with latest 20 records
+      updateChartsWithData(processedChartData)
       
-      // Log the latest data to verify it's current
-      if (processedData.length > 0) {
-        console.log('📅 Latest record date:', processedData[0].date, processedData[0].time)
-      }
-      
-      const validChartData = processedData
-        .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
-        .map(reading => ({
-          timestamp: reading.rawTimestamp,
-          nitrogen: Number(reading.nitrogen),
-          phosphorus: Number(reading.phosphorus),
-          potassium: Number(reading.potassium)
-        }))
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 20)
-      
-      chartData.value = validChartData
-      initializeChartData(validChartData)
-      PRINT_CHART_DATA_LIMIT = processedData.length
+      console.log(`✅ Chart data loaded: ${processedChartData.length} latest records`)
     }
     
   } catch (error) {
-    console.error('❌ Fetch error:', error.message)
+    console.error('❌ Chart data fetch error:', error.message)
+    // Fallback: use current page data for charts if chart-specific fetch fails
+    if (npkData.value.length > 0) {
+      updateChartsWithData(npkData.value.slice(0, 20))
+    }
+  } finally {
+    isFetchingCharts.value = false
+  }
+}
+
+// Paginated data fetching for table
+const fetchPageData = async (page = 1, limit = 20) => {
+  if (isFetching.value) return;
+  
+  isFetching.value = true;
+  
+  try {
+    console.log(`📄 Fetching page ${page} with ${limit} items`)
+    
+    const response = await api.get('/npk-data', {
+      params: {
+        page: page,
+        limit: limit
+      }
+    })
+    
+    const responseData = response.data
+
+    if (responseData.data && Array.isArray(responseData.data)) {
+      const processedData = responseData.data.map((reading, index) => {
+        const timestamp = parseBackendTimestamp(reading.timestamp)
+        
+        return {
+          id: reading.id || `esp32-1_${index}`,
+          nitrogen: reading.nitrogen?.toFixed(2) || '--',
+          phosphorus: reading.phosphorus?.toFixed(2) || '--',
+          potassium: reading.potassium?.toFixed(2) || '--',
+          date: formatDateForDisplay(reading.timestamp),
+          time: formatTimeForDisplay(reading.timestamp),
+          rawTimestamp: timestamp,
+          deviceId: reading.device_id || 'esp32-1',
+          soilPh: reading.soilPh?.toFixed(2) || '--',
+          timestampMs: timestamp.getTime()
+        }
+      })
+
+      // Update table data only
+      npkData.value = processedData
+      dataCache.value = processedData
+      
+      // Update pagination info from API response
+      if (responseData.pagination) {
+        totalItems.value = responseData.pagination.totalItems
+        totalPagesFromAPI.value = responseData.pagination.totalPages
+        itemsPerPage.value = responseData.pagination.itemsPerPage
+        currentPage.value = responseData.pagination.currentPage
+      }
+      
+      console.log(`✅ Page ${page} loaded: ${processedData.length} records`)
+    }
+    
+  } catch (error) {
+    console.error('❌ Page fetch error:', error.message)
+    // Fallback to cached data if available
     npkData.value = dataCache.value || []
+    window.showToast('Failed to load data. Please try again.', 'error')
+  } finally {
+    isFetching.value = false
+  }
+}
+
+const updateChartsWithData = (data) => {
+  const validChartData = data
+    .filter(reading => reading.nitrogen !== '--' && reading.phosphorus !== '--' && reading.potassium !== '--')
+    .map(reading => ({
+      timestamp: reading.rawTimestamp,
+      nitrogen: Number(reading.nitrogen),
+      phosphorus: Number(reading.phosphorus),
+      potassium: Number(reading.potassium)
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp) // Sort ascending for proper timeline
+    .slice(-20) // Take the last 20 items (most recent)
+  
+  chartData.value = validChartData
+  initializeChartData(validChartData)
+  PRINT_CHART_DATA_LIMIT = data.length
+}
+
+// Real-time functions (for charts and first page)
+const realTime = async () => {
+  if (isUpdating.value || isFetching.value || isFetchingCharts.value) return;
+  
+  isUpdating.value = true;
+  
+  try {
+    console.log('🔄 Polling for new NPK data...')
+    
+    // Fetch latest data for charts
+    await fetchChartData()
+    
+    // If we're on the first page, also update the table
+    if (currentPage.value === 1) {
+      await fetchPageData(1, itemsPerPage.value)
+    }
+    
+  } catch (error) {
+    console.error("❌ Error fetching NPK data:", error)
+  } finally {
+    isUpdating.value = false;
   }
 }
 
@@ -667,6 +880,7 @@ const stopPolling = () => {
   }
 }
 
+// Chart functions (updated to use chartData)
 const initializeChartData = (data) => {
   const validChartData = data
     .filter(item => {
@@ -681,15 +895,15 @@ const initializeChartData = (data) => {
       phosphorus: Number(item.phosphorus),
       potassium: Number(item.potassium)
     }))
-    .sort((a, b) => a.timestamp - b.timestamp) // Changed to ascending order
-    .slice(-20) // Take the last 20 items instead of first 20
+    .sort((a, b) => a.timestamp - b.timestamp) // Ascending for proper timeline
+    .slice(-20) // Take last 20 (most recent)
 
   console.log(`📈 Chart data: ${validChartData.length} valid entries`)
 
   chartData.value = validChartData
 
   if (validChartData.length > 0) {
-    const latestReading = validChartData[validChartData.length - 1] // Get the last item (most recent)
+    const latestReading = validChartData[validChartData.length - 1] // Last item is most recent
     currentNitrogenValue.value = latestReading.nitrogen.toFixed(2)
     currentPhosphorusValue.value = latestReading.phosphorus.toFixed(2)
     currentPotassiumValue.value = latestReading.potassium.toFixed(2)
@@ -752,6 +966,7 @@ const initializeChart = () => {
   });
 }
 
+// Chart initialization functions
 const initializeNitrogenChart = () => {
   if (!nitrogenChartCanvas.value) {
     console.warn('Nitrogen chart canvas not available');
@@ -777,7 +992,6 @@ const initializeNitrogenChart = () => {
     nitrogenChartCanvas.value.width = container.clientWidth;
     nitrogenChartCanvas.value.height = container.clientHeight;
     
-    // Safe min/max calculation
     const minVal = nitrogenStats.value.min !== '--' ? parseFloat(nitrogenStats.value.min) : 0;
     const maxVal = nitrogenStats.value.max !== '--' ? parseFloat(nitrogenStats.value.max) : 100;
     
@@ -881,6 +1095,7 @@ const initializePhosphorusChart = () => {
     try {
       phosphorusChart.value.destroy();
     } catch (error) {
+      console.warn('Error destroying phosphorus chart:', error);
     }
   }
   
@@ -954,7 +1169,7 @@ const initializePhosphorusChart = () => {
           tooltip: {
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             titleColor: '#3b82f6',
-            bodyColor: 'rgba(59, 130, 246, 0.1)',
+            bodyColor: '#3b82f6',
             borderColor: '#3b82f6',
             borderWidth: 1,
             padding: 12,
@@ -1088,47 +1303,7 @@ const initializePotassiumChart = () => {
   }
 }
 
-const handleResize = () => {
-  if (nitrogenChart.value && nitrogenChartCanvas.value) {
-    const container = nitrogenChartCanvas.value.parentElement;
-    if (container) {
-      nitrogenChartCanvas.value.width = container.clientWidth;
-      nitrogenChartCanvas.value.height = container.clientHeight;
-      try {
-        nitrogenChart.value.resize();
-      } catch (error) {
-        console.warn('Error resizing nitrogen chart:', error);
-      }
-    }
-  }
-  
-  if (phosphorusChart.value && phosphorusChartCanvas.value) {
-    const container = phosphorusChartCanvas.value.parentElement;
-    if (container) {
-      phosphorusChartCanvas.value.width = container.clientWidth;
-      phosphorusChartCanvas.value.height = container.clientHeight;
-      try {
-        phosphorusChart.value.resize();
-      } catch (error) {
-        console.warn('Error resizing phosphorus chart:', error);
-      }
-    }
-  }
-  
-  if (potassiumChart.value && potassiumChartCanvas.value) {
-    const container = potassiumChartCanvas.value.parentElement;
-    if (container) {
-      potassiumChartCanvas.value.width = container.clientWidth;
-      potassiumChartCanvas.value.height = container.clientHeight;
-      try {
-        potassiumChart.value.resize();
-      } catch (error) {
-        console.warn('Error resizing potassium chart:', error);
-      }
-    }
-  }
-}
-
+// Chart update functions
 const updateNitrogenChart = () => {
   if (!nitrogenChart.value || !chartData.value || chartData.value.length === 0) {
     return;
@@ -1239,476 +1414,76 @@ const debounce = (func, wait) => {
 
 const debouncedUpdateChart = debounce(updateChart, 300)
 
-// Keep all your existing functions for table operations, filtering, searching, etc.
-// ... (all your existing table-related functions remain the same)
-
-// Your existing printTable function remains the same
-const printTable = async () => {
-  activeDropdown.value = null;
-  
-  const tempContainer = document.createElement('div');
-  tempContainer.style.width = '800px';
-  tempContainer.style.height = '400px';
-  tempContainer.style.position = 'absolute';
-  tempContainer.style.left = '-9999px';
-  tempContainer.style.backgroundColor = 'white';
-  tempContainer.style.padding = '20px';
-  
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 800;
-  tempCanvas.height = 400;
-  tempContainer.appendChild(tempCanvas);
-  document.body.appendChild(tempContainer);
-  
-  const now = new Date();
-  const formattedDate = now.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-  
-  const npkRows = sortedData.value.map(row => ({
-    id: row.id,
-    date: row.date,
-    time: row.time,
-    device: row.deviceId || 'N/A',
-    nitrogen: row.nitrogen,
-    phosphorus: row.phosphorus,
-    potassium: row.potassium
-  }));
-  
-  const printChartData = npkData.value
-    .slice(0, PRINT_CHART_DATA_LIMIT) 
-    .filter(item => item.nitrogen !== '--' && item.phosphorus !== '--' && item.potassium !== '--')
-    .map(item => ({
-      timestamp: item.rawTimestamp || new Date(),
-      nitrogen: Number(item.nitrogen),
-      phosphorus: Number(item.phosphorus),
-      potassium: Number(item.potassium)
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp); 
-  
-  console.log(`📊 Print chart will show ${printChartData.length} records`);
-  
-  let combinedChartImage = '';
-  
-  try {
-    const ctx = tempCanvas.getContext('2d');
-    
-    const tempCombinedChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: printChartData.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
-        datasets: [
-          {
-            label: 'Nitrogen (mg/kg)',
-            data: printChartData.map(item => item.nitrogen), 
-            borderColor: '#22c55e',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: false,
-            pointRadius: 3, 
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#22c55e',
-            pointBorderWidth: 2,
-          },
-          {
-            label: 'Phosphorus (mg/kg)',
-            data: printChartData.map(item => item.phosphorus), 
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: false,
-            pointRadius: 3, 
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2,
-          },
-          {
-            label: 'Potassium (mg/kg)',
-            data: printChartData.map(item => item.potassium), 
-            borderColor: '#a855f7',
-            backgroundColor: 'rgba(168, 85, 247, 0.1)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: false,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#a855f7',
-            pointBorderWidth: 2,
-          }
-        ]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false, 
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              font: { size: 14 }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            ticks: {
-              font: { size: 12 },
-              color: '#64748b'
-            },
-            grid: {
-              color: 'rgba(100, 116, 139, 0.2)'
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              color: '#64748b',
-              maxTicksLimit: 10, 
-              maxRotation: 45
-            }
-          }
-        }
-      }
-    });
-    
-    setTimeout(async () => {
+// Resize handler function
+const handleResize = () => {
+  if (nitrogenChart.value && nitrogenChartCanvas.value) {
+    const container = nitrogenChartCanvas.value.parentElement;
+    if (container) {
+      nitrogenChartCanvas.value.width = container.clientWidth;
+      nitrogenChartCanvas.value.height = container.clientHeight;
       try {
-        combinedChartImage = tempCanvas.toDataURL('image/png', 1.0);
-        
-        tempCombinedChart.destroy();
-        document.body.removeChild(tempContainer);
-        
-        generatePrintHTML(combinedChartImage, npkRows, formattedDate, now, printChartData.length);
+        nitrogenChart.value.resize();
       } catch (error) {
-        console.error('Error capturing combined chart:', error);
-        document.body.removeChild(tempContainer);
-        generatePrintHTML('', npkRows, formattedDate, now, 0);
+        console.warn('Error resizing nitrogen chart:', error);
       }
-    }, 500);
-    
-  } catch (error) {
-    console.error('Error creating combined chart:', error);
-    document.body.removeChild(tempContainer);
-    generatePrintHTML('', npkRows, formattedDate, now, 0);
+    }
+  }
+  
+  if (phosphorusChart.value && phosphorusChartCanvas.value) {
+    const container = phosphorusChartCanvas.value.parentElement;
+    if (container) {
+      phosphorusChartCanvas.value.width = container.clientWidth;
+      phosphorusChartCanvas.value.height = container.clientHeight;
+      try {
+        phosphorusChart.value.resize();
+      } catch (error) {
+        console.warn('Error resizing phosphorus chart:', error);
+      }
+    }
+  }
+  
+  if (potassiumChart.value && potassiumChartCanvas.value) {
+    const container = potassiumChartCanvas.value.parentElement;
+    if (container) {
+      potassiumChartCanvas.value.width = container.clientWidth;
+      potassiumChartCanvas.value.height = container.clientHeight;
+      try {
+        potassiumChart.value.resize();
+      } catch (error) {
+        console.warn('Error resizing potassium chart:', error);
+      }
+    }
   }
 }
 
-// Your existing generatePrintHTML function remains the same  
-const generatePrintHTML = (combinedChartImage, npkRows, formattedDate, now, chartRecordCount) => {
-  const tableContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>NPK Soil Analysis Data</title>
-      <style>
-        /* ... existing styles ... */
-        body {
-          font-family: Arial, sans-serif;
-          margin: 20px;
-          color: #333;
-          line-height: 1.4;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 25px;
-          padding-bottom: 15px;
-          border-bottom: 2px solid #10b981;
-        }
-        .header h1 {
-          color: #065f46;
-          margin: 0 0 8px 0;
-          font-size: 24px;
-        }
-        .header .date {
-          color: #6b7280;
-          font-size: 14px;
-        }
-        .section-header {
-          margin: 30px 0 18px 0;
-          padding: 12px 15px;
-          background-color: #f9fafb;
-          border-left: 4px solid #10b981;
-          border-radius: 4px;
-          font-size: 17px;
-          font-weight: bold;
-          color: #065f46;
-        }
-        .chart-info {
-          text-align: center;
-          margin-bottom: 10px;
-          font-size: 12px;
-          color: #6b7280;
-          font-style: italic;
-        }
-        /* ... rest of existing styles ... */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0 25px 0;
-          font-size: 12px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        th, td {
-          border: 1px solid #e5e7eb;
-          padding: 10px 12px;
-          text-align: left;
-        }
-        th {
-          background-color: #f3f4f6;
-          font-weight: 600;
-          color: #374151;
-          border-bottom: 2px solid #d1d5db;
-          font-size: 12px;
-        }
-        td {
-          color: #4b5563;
-          border-color: #e5e7eb;
-        }
-        tr:nth-child(even) {
-          background-color: #f9fafb;
-        }
-        .nitrogen { color: #059669; font-weight: 500; }
-        .phosphorus { color: #2563eb; font-weight: 500; }
-        .potassium { color: #7c3aed; font-weight: 500; }
-        .summary {
-          margin: 25px 0;
-          padding: 20px;
-          background-color: #f0fdf4;
-          border-radius: 8px;
-          border-left: 4px solid #10b981;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .summary h3 {
-          margin-top: 0;
-          color: #065f46;
-          font-size: 18px;
-          border-bottom: 1px solid #bbf7d0;
-          padding-bottom: 10px;
-        }
-        .summary-item {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding: 8px 0;
-        }
-        .summary-label {
-          font-weight: 600;
-          color: #374151;
-        }
-        .summary-value {
-          color: #059669;
-          font-weight: 500;
-        }
-        .chart-image {
-          width: 100%;
-          max-width: 800px;
-          margin: 15px auto;
-          display: block;
-          page-break-inside: avoid;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 15px;
-          background: white;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .chart-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #374151;
-          margin-bottom: 15px;
-          text-align: center;
-          padding: 10px;
-          background-color: #f9fafb;
-          border-radius: 4px;
-        }
-        .stats-summary {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 15px;
-          margin: 20px 0;
-          text-align: center;
-        }
-        .stat-item {
-          padding: 15px;
-          background-color: #f8fafc;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-        }
-        .stat-item h4 {
-          margin: 0 0 10px 0;
-          font-size: 14px;
-          font-weight: 600;
-        }
-        .stat-item.nitrogen h4 { color: #22c55e; }
-        .stat-item.phosphorus h4 { color: #3b82f6; }
-        .stat-item.potassium h4 { color: #a855f7; }
-        .stat-values {
-          font-size: 12px;
-          color: #64748b;
-        }
-        .footer {
-          margin-top: 30px;
-          font-size: 12px;
-          color: #9ca3af;
-          text-align: center;
-          padding-top: 15px;
-          border-top: 1px solid #e5e7eb;
-        }
-        @media print {
-          body { margin: 0.5in; padding: 0; }
-          .no-print { display: none; }
-          .header { page-break-after: avoid; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          .chart-image { page-break-inside: avoid; }
-        }
-        @page { size: portrait; margin: 0.5in; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>NPK Soil Analysis Report</h1>
-        <div class="date">${formattedDate}</div>
-      </div>
-      
-      <div class="summary">
-        <h3>Report Summary</h3>
-        <div class="summary-item">
-          <span class="summary-label">Total Records:</span>
-          <span class="summary-value">${npkRows.length}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Chart Data Points:</span>
-          <span class="summary-value">${chartRecordCount}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Date Range:</span>
-          <span class="summary-value">${npkRows.length > 0 ? npkRows[npkRows.length-1].date + ' to ' + npkRows[0].date : 'N/A'}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Report Generated:</span>
-          <span class="summary-value">${now.toLocaleString()}</span>
-        </div>
-      </div>
-      
-      <div class="section-header">NPK Combined Trends Analysis</div>
-      ${combinedChartImage ? `
-        <div class="chart-title">NPK Levels Over Time (mg/kg)</div>
-        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
-        <img src="${combinedChartImage}" class="chart-image" alt="Combined NPK Chart" />
-        
-        <div class="stats-summary">
-          <div class="stat-item nitrogen">
-            <h4>Nitrogen</h4>
-            <div class="stat-values">
-              Current: ${currentNitrogenValue.value} mg/kg<br>
-              Min: ${nitrogenStats.value.min} | Avg: ${nitrogenStats.value.avg} | Max: ${nitrogenStats.value.max}
-            </div>
-          </div>
-          <div class="stat-item phosphorus">
-            <h4>Phosphorus</h4>
-            <div class="stat-values">
-              Current: ${currentPhosphorusValue.value} mg/kg<br>
-              Min: ${phosphorusStats.value.min} | Avg: ${phosphorusStats.value.avg} | Max: ${phosphorusStats.value.max}
-            </div>
-          </div>
-          <div class="stat-item potassium">
-            <h4>Potassium</h4>
-            <div class="stat-values">
-              Current: ${currentPotassiumValue.value} mg/kg<br>
-              Min: ${potassiumStats.value.min} | Avg: ${potassiumStats.value.avg} | Max: ${potassiumStats.value.max}
-            </div>
-          </div>
-        </div>
-      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
-      
-      <div class="section-header">Detailed NPK Sensor Readings</div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 15%">Date</th>
-            <th style="width: 12%">Time</th>
-            <th style="width: 10%">Device</th>
-            <th style="width: 15%">Nitrogen (mg/kg)</th>
-            <th style="width: 15%">Phosphorus (mg/kg)</th>
-            <th style="width: 15%">Potassium (mg/kg)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${npkRows.map(row => `
-            <tr>
-              <td>${row.date}</td>
-              <td>${row.time}</td>
-              <td>${row.device}</td>
-              <td><span class="nitrogen">${row.nitrogen}</span></td>
-              <td><span class="phosphorus">${row.phosphorus}</span></td>
-              <td><span class="potassium">${row.potassium}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      
-      <div class="footer">
-        Generated by NPK Soil Analysis System • ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
-      </div>
-    </body>
-    </html>
-  `;
-  
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  iframe.style.left = '-9999px';
-  document.body.appendChild(iframe);
-  
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  
-  iframeDoc.open();
-  iframeDoc.write(tableContent);
-  iframeDoc.close();
-  
-  iframe.onload = function() {
-    try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 100);
-    } catch (error) {
-      console.error('Print error:', error);
-      document.body.removeChild(iframe);
-      
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(tableContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }
-  };
+// Pagination functions
+const nextPage = async () => {
+  if (currentPage.value < totalPages.value && !isFetching.value) {
+    const nextPageNum = currentPage.value + 1
+    await fetchPageData(nextPageNum, itemsPerPage.value)
+  }
 }
 
-// Your existing paginationNumbers computed property remains the same
+const prevPage = async () => {
+  if (currentPage.value > 1 && !isFetching.value) {
+    const prevPageNum = currentPage.value - 1
+    await fetchPageData(prevPageNum, itemsPerPage.value)
+  }
+}
+
+const goToPage = async (page) => {
+  if (typeof page === 'number' && page !== currentPage.value && !isFetching.value) {
+    await fetchPageData(page, itemsPerPage.value)
+  }
+}
+
+// Computed properties
+const showingText = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value + 1
+  const end = Math.min(currentPage.value * itemsPerPage.value, totalItems.value)
+  return `Showing ${start} - ${end} of ${totalItems.value}`
+})
+
 const paginationNumbers = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
@@ -1724,7 +1499,10 @@ const paginationNumbers = computed(() => {
   }
 })
 
-// Your existing filteredData computed property remains the same
+const totalPages = computed(() => {
+  return totalPagesFromAPI.value || Math.ceil(totalItems.value / itemsPerPage.value)
+})
+
 const filteredData = computed(() => {
   let result = [...npkData.value]
 
@@ -1751,7 +1529,6 @@ const filteredData = computed(() => {
   return result
 })
 
-// Your existing sortedData computed property remains the same  
 const sortedData = computed(() => {
   if (!sortKey.value) return filteredData.value
 
@@ -1772,19 +1549,11 @@ const sortedData = computed(() => {
   })
 })
 
-// Your existing paginatedData computed property remains the same
 const paginatedData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return sortedData.value.slice(startIndex, endIndex)
+  return sortedData.value
 })
 
-// Your existing totalPages computed property remains the same
-const totalPages = computed(() => {
-  return Math.ceil(sortedData.value.length / itemsPerPage.value)
-})
-
-// Your existing UI methods remain the same
+// UI methods
 const getNitrogenTextClass = (nitrogen) => {
   const nitrogenValue = parseFloat(nitrogen)
   if (nitrogenValue >= 50) return 'text-green-600'
@@ -1857,172 +1626,849 @@ const setSortKey = (key) => {
   activeDropdown.value = null 
 }
 
-const nextPage = () => {
-   if (currentPage.value < totalPages.value) {
-    currentPage.value++
+// Print functions with date range filtering
+const openPrintModal = () => {
+  // Set default date range (last 7 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  
+  printDateRange.value = {
+    start: formatDateForInput(startDate),
+    end: formatDateForInput(endDate)
+  };
+  
+  printDateError.value = '';
+  showPrintModal.value = true;
+  activeDropdown.value = null;
+}
+
+const cancelPrint = () => {
+  showPrintModal.value = false;
+  printDateError.value = '';
+}
+
+const handlePrintWithDateRange = async () => {
+  // Validate date range
+  if (!printDateRange.value.start || !printDateRange.value.end) {
+    printDateError.value = 'Please select both start and end dates';
+    return;
+  }
+
+  const startDate = new Date(printDateRange.value.start);
+  const endDate = new Date(printDateRange.value.end);
+  
+  if (startDate > endDate) {
+    printDateError.value = 'Start date cannot be after end date';
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+    showPrintModal.value = false;
+    
+    // Fetch data for the selected date range using the backend range endpoint
+    const response = await api.get('/npk-data/range', {
+      params: {
+        from_date: printDateRange.value.start,
+        to_date: printDateRange.value.end
+      }
+    });
+    
+    const data = response.data.data || [];
+    
+    // Process the data for printing
+    const npkRows = data.map((reading, index) => {
+      try {
+        const timestamp = parseBackendTimestamp(reading.timestamp);
+        
+        return {
+          id: reading.id || `print_${index}`,
+          date: formatDateForDisplay(reading.timestamp),
+          time: formatTimeForDisplay(reading.timestamp),
+          device: reading.device_id || 'esp32-1',
+          nitrogen: reading.nitrogen?.toFixed(2) || '--',
+          phosphorus: reading.phosphorus?.toFixed(2) || '--',
+          potassium: reading.potassium?.toFixed(2) || '--',
+          rawTimestamp: timestamp
+        };
+      } catch (error) {
+        console.error('Error processing reading for print:', reading, error);
+        return null;
+      }
+    }).filter(reading => reading !== null);
+
+    if (npkRows.length === 0) {
+      window.showToast('No data found for the selected date range', 'warning');
+      isLoading.value = false;
+      return;
+    }
+
+    // Sort by timestamp (newest first)
+    npkRows.sort((a, b) => b.rawTimestamp - a.rawTimestamp);
+
+    // Generate print content
+    await generatePrintContent(npkRows, printDateRange.value);
+    
+  } catch (error) {
+    console.error('Error fetching data for print:', error);
+    window.showToast('Error fetching data for printing', 'error');
+  } finally {
+    isLoading.value = false;
   }
 }
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
+const generatePrintContent = async (npkRows, dateRange) => {
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  // Prepare chart data
+  const printChartData = npkRows
+    .filter(item => item.nitrogen !== '--' && item.phosphorus !== '--' && item.potassium !== '--')
+    .map(item => ({
+      timestamp: item.rawTimestamp, 
+      nitrogen: Number(item.nitrogen),
+      phosphorus: Number(item.phosphorus),
+      potassium: Number(item.potassium)
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  // Calculate statistics with safe defaults
+  const nitrogenValues = printChartData.map(item => item.nitrogen);
+  const phosphorusValues = printChartData.map(item => item.phosphorus);
+  const potassiumValues = printChartData.map(item => item.potassium);
+  
+  const nitrogenStats = {
+    min: nitrogenValues.length > 0 ? Math.min(...nitrogenValues) : 0,
+    max: nitrogenValues.length > 0 ? Math.max(...nitrogenValues) : 0,
+    avg: nitrogenValues.length > 0 ? nitrogenValues.reduce((sum, val) => sum + val, 0) / nitrogenValues.length : 0
+  };
+  
+  const phosphorusStats = {
+    min: phosphorusValues.length > 0 ? Math.min(...phosphorusValues) : 0,
+    max: phosphorusValues.length > 0 ? Math.max(...phosphorusValues) : 0,
+    avg: phosphorusValues.length > 0 ? phosphorusValues.reduce((sum, val) => sum + val, 0) / phosphorusValues.length : 0
+  };
+  
+  const potassiumStats = {
+    min: potassiumValues.length > 0 ? Math.min(...potassiumValues) : 0,
+    max: potassiumValues.length > 0 ? Math.max(...potassiumValues) : 0,
+    avg: potassiumValues.length > 0 ? potassiumValues.reduce((sum, val) => sum + val, 0) / potassiumValues.length : 0
+  };
+
+  let chartImage = '';
+  
+  // Generate chart if we have data
+  if (printChartData.length > 0) {
+    chartImage = await generateChartImage(printChartData, nitrogenStats, phosphorusStats, potassiumStats);
   }
+
+  // Generate the print HTML
+  generatePrintHTML(chartImage, npkRows, formattedDate, now, printChartData.length, nitrogenStats, phosphorusStats, potassiumStats, dateRange);
 }
 
-const updatePagination = () => {
-  currentPage.value = 1 
-}
+const generateChartImage = async (chartData, nitrogenStats, phosphorusStats, potassiumStats) => {
+  return new Promise((resolve) => {
+    // Check if we have data to create a chart
+    if (!chartData || chartData.length === 0) {
+      resolve('');
+      return;
+    }
 
-const goToPage = (page) => {
-  if (typeof page === 'number') {
-    currentPage.value = page
-  }
-}
+    try {
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.width = '800px';
+      tempContainer.style.height = '400px';
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 800;
+      tempCanvas.height = 400;
+      tempContainer.appendChild(tempCanvas);
+      document.body.appendChild(tempContainer);
 
-const exportData = async (format) => {
-  const dataToExport = sortedData.value
-  if (!dataToExport.length) return
-
-  const exportHeaders = headers.map(h => h.label)
-  const exportRows = dataToExport.map(row =>
-    headers.map(header => row[header.key] ?? '')
-  )
-
-  if (format === 'csv') {
-    let csvContent = exportHeaders.join(',') + '\n'
-    exportRows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    saveAs(blob, 'npk_data.csv')
-    window.showToast('NPK Data exported as CSV', 'success')
-  } else if (format === 'pdf') {
-     try {
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm'
+      const ctx = tempCanvas.getContext('2d');
+      
+      const tempChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartData.map(item => {
+            return item.timestamp.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            });
+          }),
+          datasets: [
+            {
+              label: 'Nitrogen',
+              data: chartData.map(item => item.nitrogen),
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Phosphorus',
+              data: chartData.map(item => item.phosphorus),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Potassium',
+              data: chartData.map(item => item.potassium),
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: { size: 14 }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'NPK Levels (mg/kg)',
+                font: { size: 14, weight: '600' }
+              },
+              ticks: {
+                font: { size: 12 }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 10 },
+                maxTicksLimit: 8,
+                maxRotation: 45
+              }
+            }
+          }
+        }
       });
 
-      doc.setFontSize(16);
-      doc.text('Soil pH Data Report', 105, 15, { align: 'center' });
+      setTimeout(() => {
+        try {
+          const chartImage = tempCanvas.toDataURL('image/png', 1.0);
+          tempChart.destroy();
+          document.body.removeChild(tempContainer);
+          resolve(chartImage);
+        } catch (error) {
+          console.error('Error capturing chart:', error);
+          document.body.removeChild(tempContainer);
+          resolve('');
+        }
+      }, 500);
       
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
+    } catch (error) {
+      console.error('Error creating chart:', error);
+      resolve('');
+    }
+  });
+}
 
-      const chartContainer = document.querySelector('.bg-white.rounded-lg.border.border-gray-100.shadow-sm.overflow-hidden.flex.flex-col.mb-4');
+const generatePrintHTML = (chartImage, npkRows, formattedDate, now, chartRecordCount, nitrogenStats, phosphorusStats, potassiumStats, dateRange) => {
+  const tableContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>NPK Analysis Data - ${dateRange.start} to ${dateRange.end}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          color: #333;
+          line-height: 1.4;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #10b981;
+        }
+        .header h1 {
+          color: #065f46;
+          margin: 0 0 8px 0;
+          font-size: 24px;
+        }
+        .header .date-range {
+          color: #10b981;
+          font-size: 16px;
+          font-weight: 600;
+          margin: 5px 0;
+        }
+        .header .date {
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .section-header {
+          margin: 30px 0 18px 0;
+          padding: 12px 15px;
+          background-color: #f9fafb;
+          border-left: 4px solid #10b981;
+          border-radius: 4px;
+          font-size: 17px;
+          font-weight: bold;
+          color: #065f46;
+        }
+        .chart-info {
+          text-align: center;
+          margin-bottom: 10px;
+          font-size: 12px;
+          color: #6b7280;
+          font-style: italic;
+        }
+        .chart-range {
+          text-align: center;
+          margin-bottom: 15px;
+          font-size: 12px;
+          color: #10b981;
+          font-weight: 600;
+          background-color: #f0fdf4;
+          padding: 8px;
+          border-radius: 6px;
+          border: 1px solid #bbf7d0;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0 25px 0;
+          font-size: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 2px solid #d1d5db;
+          font-size: 12px;
+        }
+        td {
+          color: #4b5563;
+          border-color: #e5e7eb;
+        }
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        .nitrogen { color: #10b981; font-weight: 500; }
+        .phosphorus { color: #3b82f6; font-weight: 500; }
+        .potassium { color: #8b5cf6; font-weight: 500; }
+        .summary {
+          margin: 25px 0;
+          padding: 20px;
+          background-color: #f0fdf4;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .summary h3 {
+          margin-top: 0;
+          color: #065f46;
+          font-size: 18px;
+          border-bottom: 1px solid #bbf7d0;
+          padding-bottom: 10px;
+        }
+        .summary-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 8px 0;
+        }
+        .summary-label {
+          font-weight: 600;
+          color: #374151;
+        }
+        .summary-value {
+          color: #059669;
+          font-weight: 500;
+        }
+        .chart-image {
+          width: 100%;
+          max-width: 800px;
+          margin: 15px auto;
+          display: block;
+          page-break-inside: avoid;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 15px;
+          background: white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .chart-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 15px;
+          text-align: center;
+          padding: 10px;
+          background-color: #f9fafb;
+          border-radius: 4px;
+        }
+        .stats-summary {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          margin: 20px 0;
+          text-align: center;
+        }
+        .stat-item {
+          padding: 15px;
+          background-color: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .stat-item h4 {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .nitrogen-stat { color: #10b981; }
+        .phosphorus-stat { color: #3b82f6; }
+        .potassium-stat { color: #8b5cf6; }
+        .stat-values {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .footer {
+          margin-top: 30px;
+          font-size: 12px;
+          color: #9ca3af;
+          text-align: center;
+          padding-top: 15px;
+          border-top: 1px solid #e5e7eb;
+        }
+        @media print {
+          body { margin: 0.5in; padding: 0; }
+          .no-print { display: none; }
+          .header { page-break-after: avoid; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          .chart-image { page-break-inside: avoid; }
+        }
+        @page { size: portrait; margin: 0.5in; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>NPK Analysis Report</h1>
+        <div class="date-range">Date Range: ${dateRange.start} to ${dateRange.end}</div>
+        <div class="date">${formattedDate}</div>
+      </div>
       
-      if (chartContainer) {
-        window.showToast('Preparing chart for export...', 'info');
+      <div class="summary">
+        <h3>Report Summary</h3>
+        <div class="summary-item">
+          <span class="summary-label">Date Range:</span>
+          <span class="summary-value">${dateRange.start} to ${dateRange.end}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Records:</span>
+          <span class="summary-value">${npkRows.length}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Chart Data Points:</span>
+          <span class="summary-value">${chartRecordCount}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Report Generated:</span>
+          <span class="summary-value">${now.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      ${chartImage ? `
+        <div class="section-header">NPK Trend Analysis</div>
+        <div class="chart-title">NPK Levels Over Time</div>
+        <div class="chart-info">Showing ${chartRecordCount} data points from selected date range</div>
+        <img src="${chartImage}" class="chart-image" alt="NPK Chart" />
         
-        const canvas = await html2canvas(chartContainer, {
-          scale: 2, 
-          logging: false,
-          useCORS: true,
-          allowTaint: true
-        });
+        <div class="stats-summary">
+          <div class="stat-item">
+            <h4 class="nitrogen-stat">Nitrogen Statistics</h4>
+            <div class="stat-values">
+              Min: ${nitrogenStats.min.toFixed(2)} mg/kg<br>
+              Avg: ${nitrogenStats.avg.toFixed(2)} mg/kg<br>
+              Max: ${nitrogenStats.max.toFixed(2)} mg/kg
+            </div>
+          </div>
+          <div class="stat-item">
+            <h4 class="phosphorus-stat">Phosphorus Statistics</h4>
+            <div class="stat-values">
+              Min: ${phosphorusStats.min.toFixed(2)} mg/kg<br>
+              Avg: ${phosphorusStats.avg.toFixed(2)} mg/kg<br>
+              Max: ${phosphorusStats.max.toFixed(2)} mg/kg
+            </div>
+          </div>
+          <div class="stat-item">
+            <h4 class="potassium-stat">Potassium Statistics</h4>
+            <div class="stat-values">
+              Min: ${potassiumStats.min.toFixed(2)} mg/kg<br>
+              Avg: ${potassiumStats.avg.toFixed(2)} mg/kg<br>
+              Max: ${potassiumStats.max.toFixed(2)} mg/kg
+            </div>
+          </div>
+        </div>
+      ` : '<p style="text-align: center; color: #6b7280;">No chart data available for the selected date range</p>'}
+      
+      <div class="section-header">Detailed NPK Sensor Readings</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%">ID</th>
+            <th style="width: 15%">Date</th>
+            <th style="width: 12%">Time</th>
+            <th style="width: 10%">Device</th>
+            <th style="width: 15%">Nitrogen (mg/kg)</th>
+            <th style="width: 15%">Phosphorus (mg/kg)</th>
+            <th style="width: 15%">Potassium (mg/kg)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${npkRows.map(row => `
+            <tr>
+              <td>${row.id}</td>
+              <td>${row.date}</td>
+              <td>${row.time}</td>
+              <td>${row.device}</td>
+              <td><span class="nitrogen">${row.nitrogen}</span></td>
+              <td><span class="phosphorus">${row.phosphorus}</span></td>
+              <td><span class="potassium">${row.potassium}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        Generated by NPK Analysis System • ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
+      </div>
+      
+      <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer;">
+          Print Report
+        </button>
+        <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+          Close
+        </button>
+      </div>
 
-        const imgData = canvas.toDataURL('image/png');
+      <script>
+        // Auto-print when the window loads
+        window.onload = function() {
+          setTimeout(() => {
+            window.print();
+          }, 500);
+        };
+      <\/script>
+    </body>
+    </html>
+  `;
+  
+  try {
+    // Open print window with better error handling
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+      throw new Error('Popup window was blocked. Please allow popups for this site.');
+    }
+    
+    printWindow.document.write(tableContent);
+    printWindow.document.close();
+    
+    // Wait for the window to load before printing
+    printWindow.onload = function() {
+      try {
+        printWindow.focus();
+        printWindow.print();
         
-        const imgWidth = 160; 
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        doc.addImage(
-          imgData,
-          'PNG',
-          (210 - imgWidth) / 2, 
-          30,                   
-          imgWidth,
-          imgHeight
-        );
-
-        doc.setFontSize(12);
-        doc.text('Soil pH Trend Analysis', 105, 30 + imgHeight + 5, { align: 'center' });
-
-        doc.setFontSize(10);
-        doc.text(
-          `Current: ${currentPhValue.value} | Min: ${phStats.value.min} | Avg: ${phStats.value.avg} | Max: ${phStats.value.max}`,
-          105,
-          30 + imgHeight + 10,
-          { align: 'center' }
-        );
-
-        const tableStartY = 30 + imgHeight + 15;
-        
-        autoTable(doc, {
-          head: [exportHeaders],
-          body: exportRows,
-          startY: tableStartY,
-          margin: { horizontal: 10 },
-          styles: {
-            fontSize: 8,
-            cellPadding: 2,
-            overflow: 'linebreak'
-          },
-          headStyles: {
-            fillColor: [16, 163, 74], 
-            textColor: 255,
-            fontStyle: 'bold'
-          },
-          alternateRowStyles: {
-            fillColor: [240, 253, 244] 
-          },
-          didDrawPage: function(data) {
-            doc.setFontSize(8);
-            doc.setTextColor(100);
-            doc.text(
-              `Page ${data.pageCount}`,
-              data.settings.margin.left,
-              doc.internal.pageSize.height - 10
-            );
+        // Close the window after printing (or if user cancels)
+        setTimeout(() => {
+          if (!printWindow.closed) {
+            printWindow.close();
           }
-        });
+        }, 500);
+      } catch (printError) {
+        console.error('Error during printing:', printError);
+        window.showToast('Error during printing', 'error');
+        printWindow.close();
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error opening print window:', error);
+    window.showToast('Error opening print window. Please allow popups.', 'error');
+    
+    // Fallback: Try to print in current window
+    try {
+      const currentWindow = window.open();
+      currentWindow.document.write(tableContent);
+      currentWindow.document.close();
+      currentWindow.print();
+      setTimeout(() => currentWindow.close(), 500);
+    } catch (fallbackError) {
+      console.error('Fallback print also failed:', fallbackError);
+      window.showToast('Print functionality is not available', 'error');
+    }
+  }
+}
 
-        doc.save('soil_ph_complete_report.pdf');
-        window.showToast('Complete report exported successfully', 'success');
-      } else {
-        autoTable(doc, {
-          head: [exportHeaders],
-          body: exportRows,
-          startY: 30,
-          styles: { fontSize: 10 }
-        });
-        doc.save('soil_ph_data.pdf');
-        window.showToast('Exported table data (chart not found)', 'warning');
+// Export function (simplified version)
+const exportData = async (format) => {
+  try {
+    isLoading.value = true
+    console.log(`📤 Starting ${format.toUpperCase()} export...`)
+    
+    // For exports, fetch all data without pagination
+    let allData = []
+    
+    try {
+      console.log('🚀 Fetching all NPK data for export...')
+      const response = await api.get('/npk-data/all')
+      
+      if (response.data && Array.isArray(response.data)) {
+        allData = response.data.map((reading, index) => {
+          const timestamp = parseBackendTimestamp(reading.timestamp)
+          
+          return {
+            id: reading.id || `export_${index}`,
+            nitrogen: reading.nitrogen?.toFixed(2) || '--',
+            phosphorus: reading.phosphorus?.toFixed(2) || '--',
+            potassium: reading.potassium?.toFixed(2) || '--',
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.device_id || 'esp32-1',
+            soilPh: reading.soilPh?.toFixed(2) || '--',
+            timestampMs: timestamp.getTime()
+          }
+        })
+        
+        // Sort by timestamp (newest first)
+        allData.sort((a, b) => b.timestampMs - a.timestampMs)
+        
+        console.log(`✅ Fetched ${allData.length} records for export`)
       }
     } catch (error) {
-      console.error('Export error:', error);
-      window.showToast('Export failed: ' + error.message, 'error');
+      console.error('❌ Error fetching all data for export:', error)
+      
+      // Fallback: If /all endpoint doesn't exist, fetch all pages sequentially
+      console.log('🔄 Trying fallback method: fetching all pages...')
+      allData = await fetchAllPages()
     }
-  } else if (format === 'docs') {
-    const tableRows = [
-      new TableRow({
-        children: exportHeaders.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...exportRows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'NPK Data Table', heading: 'Heading1' }),
-          new Table({ rows: tableRows })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'npk_data.docx')
-  }
 
-  activeDropdown.value = null
+    if (!allData.length) {
+      window.showToast('No data available for export', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    const exportHeaders = [
+      'ID',
+      'Date',
+      'Time', 
+      'Device',
+      'Nitrogen (mg/kg)',
+      'Phosphorus (mg/kg)',
+      'Potassium (mg/kg)',
+      'Soil pH'
+    ]
+
+    const exportRows = allData.map(row => [
+      row.id,
+      row.date,
+      row.time,
+      row.deviceId,
+      row.nitrogen,
+      row.phosphorus,
+      row.potassium,
+      row.soilPh
+    ])
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    if (format === 'csv') {
+      let csvContent = exportHeaders.join(',') + '\n'
+      exportRows.forEach(row => {
+        csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+      })
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      saveAs(blob, `npk_data_${timestamp}.csv`)
+      window.showToast(`Exported ${allData.length} NPK records as CSV`, 'success')
+      
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 10
+      const tableWidth = pageWidth - (margin * 2)
+      
+      // Title
+      doc.setFontSize(18)
+      doc.setTextColor(16, 163, 74) // green-600
+      doc.text('NPK Data Report', pageWidth / 2, 20, { align: 'center' })
+      
+      // Subtitle
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' })
+      doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 34, { align: 'center' })
+      
+      // Calculate optimal column widths based on content
+      const columnStyles = calculateColumnWidths(exportHeaders, exportRows, tableWidth)
+      
+      // Table
+      autoTable(doc, {
+        head: [exportHeaders],
+        body: exportRows,
+        startY: 40,
+        margin: { horizontal: margin },
+        tableWidth: tableWidth,
+        styles: { 
+          fontSize: 8,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          textColor: [51, 51, 51],
+          cellWidth: 'wrap'
+        },
+        headStyles: {
+          fillColor: [16, 163, 74], // green-600
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 4
+        },
+        bodyStyles: {
+          cellPadding: 3
+        },
+        alternateRowStyles: {
+          fillColor: [240, 253, 244] // green-50
+        },
+        columnStyles: columnStyles,
+        theme: 'grid',
+        didDrawPage: function (data) {
+          // Footer
+          doc.setFontSize(8)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Page ${data.pageNumber} of ${doc.getNumberOfPages()}`,
+            pageWidth / 2,
+            doc.internal.pageSize.height - 10,
+            { align: 'center' }
+          )
+        },
+        willDrawCell: function (data) {
+          // Add some visual separation for better readability
+          if (data.section === 'body' && data.row.index % 5 === 0 && data.row.index > 0) {
+            doc.setDrawColor(220, 220, 220)
+            doc.setLineWidth(0.2)
+            doc.line(
+              data.cell.x,
+              data.cell.y + data.cell.height,
+              data.cell.x + data.cell.width,
+              data.cell.y + data.cell.height
+            )
+          }
+        }
+      })
+      
+      doc.save(`npk_report_${timestamp}.pdf`)
+      window.showToast(`Exported ${allData.length} NPK records as PDF`, 'success')
+    }
+    
+  } catch (error) {
+    console.error('❌ Export error:', error)
+    window.showToast('Error exporting data. Please try again.', 'error')
+  } finally {
+    isLoading.value = false
+    activeDropdown.value = null
+  }
+}
+
+// Helper function to calculate optimal column widths
+const calculateColumnWidths = (headers, rows, totalWidth) => {
+  const columnStyles = {}
+  const minWidths = {
+    0: 15, // ID - minimum width
+    1: 25, // Date
+    2: 20, // Time
+    3: 20, // Device
+    4: 30, // Nitrogen
+    5: 35, // Phosphorus  
+    6: 30, // Potassium
+    7: 20  // Soil pH
+  }
+  
+  const maxWidths = {
+    0: 25, // ID - maximum width
+    1: 35, // Date
+    2: 25, // Time
+    3: 30, // Device
+    4: 40, // Nitrogen
+    5: 45, // Phosphorus
+    6: 40, // Potassium
+    7: 25  // Soil pH
+  }
+  
+  // Calculate total minimum width required
+  let totalMinWidth = Object.values(minWidths).reduce((sum, width) => sum + width, 0)
+  
+  // If total minimum width is less than available width, distribute extra space
+  if (totalMinWidth < totalWidth) {
+    const extraSpace = totalWidth - totalMinWidth
+    const extraPerColumn = extraSpace / headers.length
+    
+    // Apply calculated widths
+    headers.forEach((_, index) => {
+      let calculatedWidth = minWidths[index] + extraPerColumn
+      // Don't exceed max width
+      calculatedWidth = Math.min(calculatedWidth, maxWidths[index])
+      columnStyles[index] = { cellWidth: calculatedWidth }
+    })
+  } else {
+    // Use minimum widths if table is too wide
+    headers.forEach((_, index) => {
+      columnStyles[index] = { cellWidth: minWidths[index] }
+    })
+  }
+  
+  return columnStyles
 }
 
 const updateCurrentDate = () => {
@@ -2035,21 +2481,19 @@ const updateCurrentDate = () => {
 }
 
 // Watchers
-watch([searchQuery, activeFilters, itemsPerPage], () => {
+watch([searchQuery, activeFilters], () => {
   currentPage.value = 1
 })
-
-// Add this watcher to reset to first page when new data arrives
-watch(npkData, () => {
-  currentPage.value = 1
-}, { deep: true })
 
 // Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
 
-  // Initial data fetch
-  realTimeFetch().then(() => {
+  // Initial data fetch - both chart data and first page
+  Promise.all([
+    fetchChartData(), // Fetch latest 20 for charts
+    fetchPageData(1, itemsPerPage.value) // Fetch first page for table
+  ]).then(() => {
     isLoading.value = false;
     // Start polling after initial data is loaded
     startPolling();
@@ -2088,16 +2532,6 @@ onUnmounted(() => {
   // Clean up polling
   stopPolling();
   
-  // if (nitrogenChart.value) {
-  //   try { nitrogenChart.value.destroy(); } catch (e) {}
-  // }
-  // if (phosphorusChart.value) {
-  //   try { phosphorusChart.value.destroy(); } catch (e) {}
-  // }
-  // if (potassiumChart.value) {
-  //   try { potassiumChart.value.destroy(); } catch (e) {}
-  // }
-  
   window.removeEventListener('resize', handleResize);
   
   if (window.dateUpdateInterval) {
@@ -2107,6 +2541,7 @@ onUnmounted(() => {
 </script>
   
 <style>
+/* Your existing styles */
 canvas {
   display: block;
   max-width: 100%;

@@ -24,10 +24,10 @@
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search NPK measurements..."
+                  placeholder="Search water level measurements..."
                   class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
                   v-model="searchQuery"
-                  @input="performSearch"
+                  @input="handleSearch"
                 />
               </div>
               <!-- Filter Button -->
@@ -66,12 +66,20 @@
                           />
                         </div>
                       </div>
-                      <button 
-                        @click="applyFilters"
-                        class="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
-                      >
-                        Apply Filters
-                      </button>
+                      <div class="flex gap-2">
+                        <button 
+                          @click="applyFilters"
+                          class="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                        >
+                          Apply
+                        </button>
+                        <button 
+                          @click="clearFilters"
+                          class="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-600 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -140,7 +148,7 @@
                 <!-- Print Button -->
                 <div class="relative flex-1 sm:flex-none">
                   <button 
-                    @click="printTable"
+                    @click="openPrintModal"
                     class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
                   >
                     <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
@@ -301,13 +309,14 @@
         <div class="w-full md:w-2/3 lg:w-2/3 md:max-w-[66.666%] flex flex-col flex-grow min-w-0">
           <!-- Mobile Card View (shown on small screens) -->
           <div class="sm:hidden flex-1 overflow-auto bg-white p-3 space-y-3">
-            <div v-for="(row, index) in paginatedData" :key="index" 
+            <div v-for="(row, index) in displayedData" :key="row.id" 
                 class="bg-gray-50 rounded-lg p-3 border border-gray-200">
               <div class="flex justify-between items-start mb-2">
                 <div>
                   <div class="text-xs font-medium text-gray-900">{{ row.date }}</div>
                   <div class="text-[10px] text-gray-500">{{ row.time }}</div>
                 </div>
+                <div class="text-[10px] text-gray-400">#{{ row.id }}</div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -331,11 +340,17 @@
               </div>
             </div>
             
-            <div v-if="paginatedData.length === 0 && !isLoading" 
+            <div v-if="displayedData.length === 0 && !isLoading" 
                 class="flex flex-col items-center justify-center py-8">
               <FileSearch class="h-10 w-10 text-gray-300 mb-2" />
               <p class="text-gray-500 text-xs font-medium">No water level data found</p>
               <p class="text-gray-400 text-[10px]">Try adjusting your search or filters</p>
+            </div>
+
+            <!-- Loading state for mobile -->
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
+              <p class="text-gray-500 text-xs font-medium">Loading data...</p>
             </div>
           </div>
 
@@ -369,39 +384,39 @@
                 <!-- Table Body -->
                 <tbody class="bg-white divide-y divide-gray-50">
                   <tr 
-                    v-for="(row, index) in paginatedData" 
-                    :key="index"
+                    v-for="(row, index) in displayedData" 
+                    :key="row.id"
                     class="hover:bg-gray-50/50 transition-colors"
                   >
                     
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
-                    <span 
-                      :class="[
-                        'px-3 py-1 rounded-full text-xs font-medium',
-                        row.status === 'FULL' ? 'bg-emerald-100 text-emerald-800' :
-                        row.status === 'SUFFICIENT' ? 'bg-blue-100 text-blue-800' :
-                        row.status === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      ]"
-                    >
-                      {{ row.status }}
-                    </span>
-                  </td>
-                  <td class="w-[25%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
-                    <div class="text-sm font-medium text-blue-600">
-                      {{ row.waterLevel }}%
-                    </div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
-                    <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
-                  </td>
-                  <td class="w-[20%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
-                    <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
-                  </td>
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
+                      <span 
+                        :class="[
+                          'px-3 py-1 rounded-full text-xs font-medium',
+                          row.status === 'FULL' ? 'bg-emerald-100 text-emerald-800' :
+                          row.status === 'SUFFICIENT' ? 'bg-blue-100 text-blue-800' :
+                          row.status === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        ]"
+                      >
+                        {{ row.status }}
+                      </span>
+                    </td>
+                    <td class="w-[25%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
+                      <div class="text-sm font-medium text-blue-600">
+                        {{ row.waterLevel }}%
+                      </div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
+                      <div class="text-sm font-medium text-gray-700">{{ row.date }}</div>
+                    </td>
+                    <td class="w-[20%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
+                      <div class="text-sm font-medium text-gray-700">{{ row.time }}</div>
+                    </td>
                   </tr>
                   
                   <!-- Empty state when no data -->
-                  <tr v-if="paginatedData.length === 0 && !isLoading">
+                  <tr v-if="displayedData.length === 0 && !isLoading">
                     <td colspan="5" class="px-6 py-16 text-center">
                       <div class="flex flex-col items-center justify-center">
                         <FileSearch class="h-16 w-16 text-gray-300 mb-4" />
@@ -410,50 +425,64 @@
                       </div>
                     </td>
                   </tr>
+
+                  <!-- Loading state -->
+                  <tr v-if="isLoading">
+                    <td colspan="5" class="px-6 py-16 text-center">
+                      <div class="flex flex-col items-center justify-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mb-4"></div>
+                        <p class="text-gray-500 text-lg font-medium">Loading water level data...</p>
+                        <p class="text-gray-400 text-sm mt-1">Please wait while we fetch the latest readings</p>
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Pagination Section (similar to your example) -->
+          <!-- Pagination Section -->
           <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
             <div class="flex items-center justify-between">
               <div class="text-[10px] md:text-xs text-gray-600">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-                of {{ sortedData.length }}
+                <span v-if="!isLoading">
+                  Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, totalItems) }}
+                  of {{ totalItems }} entries
+                </span>
+                <span v-else>Loading...</span>
               </div>
               <div class="flex items-center gap-1">
                 <button 
                   @click="prevPage"
-                  :disabled="currentPage === 1"
-                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
+                  :disabled="currentPage === 1 || isFetching"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600 transition-colors"
                 >
                   <ChevronLeft class="w-3.5 h-3.5" />
                 </button>
                 
                 <div class="flex items-center gap-1">
                   <button
-                    v-for="(page, index) in paginationNumbers"
+                    v-for="(pageNum, index) in paginationNumbers"
                     :key="index"
-                    @click="goToPage(page)"
-                    :disabled="page === '...'"
+                    @click="goToPage(pageNum)"
+                    :disabled="pageNum === '...' || isFetching"
                     :class="[
-                      'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
-                      page === currentPage 
+                      'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px] transition-colors',
+                      pageNum === currentPage 
                         ? 'bg-green-500 text-white font-medium' 
-                        : page === '...' 
+                        : pageNum === '...' 
                           ? 'text-gray-400 cursor-default' 
                           : 'text-gray-700 hover:text-green-600 hover:bg-gray-100'
                     ]"
                   >
-                    {{ page }}
+                    {{ pageNum }}
                   </button>
                 </div>
                 
                 <button 
                   @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600"
+                  :disabled="currentPage >= totalPages || isFetching"
+                  class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-green-600 transition-colors"
                 >
                   <ChevronRight class="w-3.5 h-3.5" />
                 </button>
@@ -463,6 +492,108 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Print Modal -->
+  <div v-if="showPrintModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">Print Water Level Data</h3>
+          <button @click="closePrintModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">From Date</label>
+                <input
+                  type="date"
+                  v-model="printStartDate"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">To Date</label>
+                <input
+                  type="date"
+                  v-model="printEndDate"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Print Options</label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="printOptions.includeChart"
+                  class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span class="ml-2 text-sm text-gray-700">Include Water Level Chart</span>
+              </label>
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="printOptions.includeStats"
+                  class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span class="ml-2 text-sm text-gray-700">Include Statistics</span>
+              </label>
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="printOptions.includeGuide"
+                  class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span class="ml-2 text-sm text-gray-700">Include Status Guide</span>
+              </label>
+            </div>
+          </div> -->
+
+          <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                  This will fetch all data within the selected date range. For large date ranges, this may take a moment.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button
+            @click="closePrintModal"
+            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="generatePrintReport"
+            :disabled="isPrinting || !printStartDate || !printEndDate"
+            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <span v-if="isPrinting">Generating...</span>
+            <span v-else>Generate Report</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -482,17 +613,30 @@ import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import api from '../../api/index'
-
 import Chart from 'chart.js/auto'
 
+// Reactive data
 const waterLevelData = ref([])
 const isLoading = ref(true)
+const isFetching = ref(false)
+const totalItems = ref(0)
+const totalPages = ref(1)
 
+// Print modal state
+const showPrintModal = ref(false)
+const isPrinting = ref(false)
+const printStartDate = ref('')
+const printEndDate = ref('')
+const printOptions = ref({
+  includeChart: true,
+  includeStats: true,
+  includeGuide: true
+})
+
+// Chart related
 const chartCanvas = ref(null)
 const chart = ref(null)
-
 const chartData = ref([])
-
 const currentWaterLevelValue = ref('--')
 const lastUpdated = ref('--')
 const waterLevelStats = ref({
@@ -500,210 +644,328 @@ const waterLevelStats = ref({
   max: '--',
   avg: '--'
 })
+
+// UI state
+const searchQuery = ref('')
+const itemsPerPage = ref(20)
+const currentPage = ref(1)
+const activeDropdown = ref(null)
+const sortKey = ref('timestamp')
+const sortDirection = ref('desc')
+const activeFilters = ref({})
+
+// Filters
+const filters = ref({
+  waterLevel: { min: '', max: '' }
+})
+
+const filterFields = [
+  { key: 'waterLevel', label: 'Water Level (%)' }
+]
+
+const headers = [
+  { key: 'id', label: 'ID' },
+  { key: 'status', label: 'Water Status' },
+  { key: 'waterLevel', label: 'Water Level (%)' },
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' }
+]
+
+const exportFormats = ['csv', 'pdf']
+
+// Polling
 let pollingInterval = null
 const POLLING_FREQUENCY = 5000 
 
+// Computed properties
+const displayedData = computed(() => {
+  let result = [...waterLevelData.value]
 
-let PRINT_CHART_DATA_LIMIT = 0 
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(row => {
+      return Object.values(row).some(value => 
+        String(value).toLowerCase().includes(query)
+      )
+    })
+  }
 
-const printTable = async () => {
-  activeDropdown.value = null;
+  // Apply numeric filters
+  Object.keys(activeFilters.value).forEach(key => {
+    const { min, max } = activeFilters.value[key]
+    if (min !== '' && max !== '') {
+      result = result.filter(row => {
+        const value = parseFloat(row[key])
+        return value >= min && value <= max
+      })
+    } else if (min !== '') {
+      result = result.filter(row => {
+        const value = parseFloat(row[key])
+        return value >= min
+      })
+    } else if (max !== '') {
+      result = result.filter(row => {
+        const value = parseFloat(row[key])
+        return value <= max
+      })
+    }
+  })
+
+  // Apply sorting
+  if (sortKey.value) {
+    result.sort((a, b) => {
+      let aValue = a[sortKey.value]
+      let bValue = b[sortKey.value]
+      
+      if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+      if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection.value === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+      
+      return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
+    })
+  }
+
+  return result
+})
+
+const paginationNumbers = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
   
-  const tempContainer = document.createElement('div');
-  tempContainer.style.width = '800px';
-  tempContainer.style.height = '400px';
-  tempContainer.style.position = 'absolute';
-  tempContainer.style.left = '-9999px';
-  tempContainer.style.backgroundColor = 'white';
-  tempContainer.style.padding = '20px';
+  if (total <= 1) return [1]
   
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 800;
-  tempCanvas.height = 400;
-  tempContainer.appendChild(tempCanvas);
-  document.body.appendChild(tempContainer);
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
   
-  const now = new Date();
+  if (current <= 3) {
+    return [1, 2, 3, '...', total]
+  } else if (current >= total - 2) {
+    return [1, '...', total - 2, total - 1, total]
+  } else {
+    return [1, '...', current - 1, current, current + 1, '...', total]
+  }
+})
+
+// Set default dates for print modal
+const setDefaultPrintDates = () => {
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 7)
+  
+  printEndDate.value = endDate.toISOString().split('T')[0]
+  printStartDate.value = startDate.toISOString().split('T')[0]
+}
+
+// Print Modal Functions
+const openPrintModal = () => {
+  setDefaultPrintDates()
+  showPrintModal.value = true
+  activeDropdown.value = null
+}
+
+const closePrintModal = () => {
+  showPrintModal.value = false
+  isPrinting.value = false
+}
+
+// Main Print Function
+const generatePrintReport = async () => {
+   if (!printStartDate.value || !printEndDate.value) {
+    alert('Please select both start and end dates')
+    return
+  }
+
+  isPrinting.value = true
+
+  try {
+    console.log('📅 Using workaround for date range:', printStartDate.value, 'to', printEndDate.value)
+    
+    // Get ALL data and filter client-side as temporary solution
+    const response = await api.get('/water-level/readings/all')
+    const allData = response.data || []
+    
+    console.log(`📊 Retrieved ${allData.length} total records`)
+    
+    // Filter by date range client-side
+    const startDate = new Date(printStartDate.value)
+    const endDate = new Date(printEndDate.value)
+    endDate.setHours(23, 59, 59, 999) // Include entire end day
+    
+    const filteredData = allData.filter(reading => {
+      if (!reading.timestamp) return false
+      
+      const readingDate = new Date(reading.timestamp)
+      return readingDate >= startDate && readingDate <= endDate
+    })
+    
+    console.log(`📅 Filtered to ${filteredData.length} records in date range`)
+    
+    if (filteredData.length === 0) {
+      alert('No water level data found for the selected date range.')
+      isPrinting.value = false
+      return
+    }
+
+    // Process the data for printing (same as before)
+    const processedData = filteredData.map(reading => {
+      let timestamp
+      try {
+        if (reading.timestamp) {
+          timestamp = new Date(reading.timestamp)
+        } else {
+          timestamp = new Date()
+        }
+      } catch (e) {
+        console.warn('Error parsing timestamp:', e)
+        timestamp = new Date()
+      }
+
+      const waterLevelValue = reading.waterLevel !== undefined ? reading.waterLevel : 
+                             reading.value !== undefined ? reading.value : 0
+
+      return {
+        id: reading.id || `print-${Math.random().toString(36).substr(2, 9)}`,
+        waterLevel: Number(waterLevelValue).toFixed(2),
+        status: calculateWaterStatus(Number(waterLevelValue)),
+        date: timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        }),
+        time: timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }),
+        rawTimestamp: timestamp
+      }
+    })
+
+    // Generate the print content
+    await generatePrintContent(processedData)
+
+  } catch (error) {
+    console.error('❌ Error generating print report:', error)
+    alert('Error generating report. Please try again.')
+  } finally {
+    isPrinting.value = false
+    closePrintModal()
+  }
+}
+
+// Generate chart image for print
+const generateChartImage = async (printData) => {
+  return new Promise((resolve) => {
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = 800
+    tempCanvas.height = 400
+    const tempContainer = document.createElement('div')
+    tempContainer.appendChild(tempCanvas)
+    tempContainer.style.position = 'absolute'
+    tempContainer.style.left = '-9999px'
+    document.body.appendChild(tempContainer)
+
+    const ctx = tempCanvas.getContext('2d')
+    
+    // Prepare chart data
+    const chartData = printData
+      .map(item => ({
+        timestamp: item.rawTimestamp,
+        value: parseFloat(item.waterLevel)
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-50) // Limit to last 50 points for readability
+
+    const labels = chartData.map(item => 
+      item.timestamp.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    )
+
+    const data = chartData.map(item => item.value)
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Water Level (%)',
+          data: data,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: false,
+        animation: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Water Level Trend'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Water Level (%)'
+            }
+          }
+        }
+      }
+    })
+
+    setTimeout(() => {
+      const imageData = tempCanvas.toDataURL('image/png', 1.0)
+      chart.destroy()
+      document.body.removeChild(tempContainer)
+      resolve(imageData)
+    }, 500)
+  })
+}
+
+// Generate the actual print content
+const generatePrintContent = async (printData) => {
+  const now = new Date()
   const formattedDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
-  });
-  
-  const tempWaterLevelRows = sortedData.value.map(row => ({
-    id: row.id,
-    date: row.date,
-    time: row.time,
-    waterLevel: row.waterLevel,
-    status: row.status
-  }));
-  
-  // FIXED: Use ALL water level data instead of just chartData
-  const allWaterLevelData = waterLevelData.value
-    .filter(item => item.waterLevel !== undefined && item.waterLevel !== null && item.waterLevel !== '--')
-    .map(item => {
-      let timestamp;
-      try {
-        if (item.rawTimestamp && typeof item.rawTimestamp.toDate === 'function') {
-          timestamp = item.rawTimestamp.toDate();
-        } else if (item.rawTimestamp?.seconds) {
-          timestamp = new Date(item.rawTimestamp.seconds * 1000);
-        } else {
-          // Parse from date and time strings
-          const dateTimeStr = `${item.date} ${item.time}`;
-          timestamp = new Date(dateTimeStr);
-          if (isNaN(timestamp.getTime())) {
-            timestamp = new Date(); // Fallback to current date if parsing fails
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing timestamp:", e);
-        timestamp = new Date();
-      }
-      
-      return {
-        timestamp: timestamp,
-        value: Number(item.waterLevel)
-      };
-    })
-    .sort((a, b) => a.timestamp - b.timestamp);
-  
-  console.log(`📊 Print chart will show ALL ${allWaterLevelData.length} records`);
-  
-  const waterLevelValues = allWaterLevelData.map(item => item.value);
-  
-  const waterLevelMin = waterLevelValues.length > 0 ? Math.min(...waterLevelValues) : 0;
-  const waterLevelMax = waterLevelValues.length > 0 ? Math.max(...waterLevelValues) : 100;
-  const waterLevelAvg = waterLevelValues.length > 0 ? 
-    (waterLevelValues.reduce((sum, val) => sum + val, 0) / waterLevelValues.length) : 0;
-  
-  let chartImage = '';
-  
-  try {
-    const ctx = tempCanvas.getContext('2d');
-    
-    // For very large datasets, adjust the chart display to prevent overcrowding
-    const displayLabels = allWaterLevelData.length > 100 ? 
-      allWaterLevelData.map((item, index) => index % Math.ceil(allWaterLevelData.length / 20) === 0 ? 
-        item.timestamp.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }) : '') : 
-      allWaterLevelData.map(item => item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }));
-    
-    const waterLevelChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: displayLabels,
-        datasets: [
-          {
-            label: 'Water Level (%)',
-            data: allWaterLevelData.map(item => item.value),
-            borderColor: '#3b82f6', 
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            pointRadius: allWaterLevelData.length > 100 ? 0 : 3, // Hide points for large datasets
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2,
-            yAxisID: 'y-waterlevel'
-          }
-        ]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false, 
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              font: { size: 14 }
-            }
-          },
-          tooltip: {
-            enabled: allWaterLevelData.length <= 100 // Disable tooltips for large datasets
-          }
-        },
-        scales: {
-          'y-waterlevel': {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
-              display: true,
-              text: 'Water Level (%)',
-              color: '#3b82f6',
-              font: {
-                size: 14,
-                weight: '600'
-              }
-            },
-            beginAtZero: false,
-            min: Math.max(0, Math.floor(waterLevelMin * 0.95)),
-            max: Math.min(100, Math.ceil(waterLevelMax * 1.05)),
-            ticks: {
-              font: { size: 12 },
-              color: '#3b82f6',
-              padding: 8
-            },
-            grid: {
-              color: 'rgba(59, 130, 246, 0.1)'
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 10 },
-              color: '#64748b',
-              maxTicksLimit: 10,
-              maxRotation: 45,
-              callback: function(value, index) {
-                // Only show labels that aren't empty
-                return this.getLabelForValue(value) || null;
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    setTimeout(async () => {
-      try {
-        chartImage = tempCanvas.toDataURL('image/png', 1.0);
-        
-        waterLevelChart.destroy();
-        document.body.removeChild(tempContainer);
-        
-        generatePrintHTML(chartImage, tempWaterLevelRows, formattedDate, now, 
-                         allWaterLevelData.length, waterLevelMin, waterLevelMax, waterLevelAvg);
-      } catch (error) {
-        console.error('Error capturing chart:', error);
-        document.body.removeChild(tempContainer);
-        generatePrintHTML('', tempWaterLevelRows, formattedDate, now, 0, 0, 0, 0);
-      }
-    }, 500);
-    
-  } catch (error) {
-    console.error('Error creating chart:', error);
-    document.body.removeChild(tempContainer);
-    generatePrintHTML('', tempWaterLevelRows, formattedDate, now, 0, 0, 0, 0);
-  }
-};
+  })
 
-const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now, 
-                          chartRecordCount, waterLevelMin, waterLevelMax, waterLevelAvg) => {
+  // Calculate statistics
+  const waterLevelValues = printData.map(item => parseFloat(item.waterLevel)).filter(val => !isNaN(val))
+  const waterLevelMin = waterLevelValues.length > 0 ? Math.min(...waterLevelValues) : 0
+  const waterLevelMax = waterLevelValues.length > 0 ? Math.max(...waterLevelValues) : 0
+  const waterLevelAvg = waterLevelValues.length > 0 ? 
+    (waterLevelValues.reduce((sum, val) => sum + val, 0) / waterLevelValues.length) : 0
+
+  // Create chart image if needed
+  let chartImage = ''
+  if (printOptions.value.includeChart && printData.length > 0) {
+    chartImage = await generateChartImage(printData)
+  }
+
   const tableContent = `
     <!DOCTYPE html>
     <html>
@@ -727,9 +989,14 @@ const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now,
           margin: 0 0 8px 0;
           font-size: 24px;
         }
-        .header .date {
+        .header .date-range {
           color: #6b7280;
           font-size: 14px;
+          margin-bottom: 5px;
+        }
+        .header .generated-date {
+          color: #9ca3af;
+          font-size: 12px;
         }
         .section-header {
           margin: 30px 0 18px 0;
@@ -741,17 +1008,59 @@ const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now,
           font-weight: bold;
           color: #065f46;
         }
-        .chart-info {
+        .summary {
+          margin: 25px 0;
+          padding: 20px;
+          background-color: #f0fdf4;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+          margin-top: 15px;
+        }
+        .summary-item {
+          background: white;
+          padding: 15px;
+          border-radius: 6px;
           text-align: center;
-          margin-bottom: 10px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .summary-label {
           font-size: 12px;
           color: #6b7280;
-          font-style: italic;
+          margin-bottom: 5px;
+        }
+        .summary-value {
+          font-size: 18px;
+          font-weight: bold;
+          color: #065f46;
+        }
+        .chart-container {
+          text-align: center;
+          margin: 25px 0;
+        }
+        .chart-image {
+          max-width: 100%;
+          height: auto;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 15px;
+          background: white;
+        }
+        .chart-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 15px;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin: 15px 0 25px 0;
+          margin: 25px 0;
           font-size: 12px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
@@ -765,94 +1074,36 @@ const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now,
           font-weight: 600;
           color: #374151;
           border-bottom: 2px solid #d1d5db;
-          font-size: 12px;
-        }
-        td {
-          color: #4b5563;
-          border-color: #e5e7eb;
         }
         tr:nth-child(even) {
           background-color: #f9fafb;
         }
-        .waterlevel { color: #3b82f6; font-weight: 500; }
-        .status-full { color: #059669; }
-        .status-sufficient { color: #3b82f6; }
-        .status-low { color: #d97706; }
-        .status-empty { color: #dc2626; }
-        .summary {
+        .status-full { color: #059669; font-weight: 500; }
+        .status-sufficient { color: #3b82f6; font-weight: 500; }
+        .status-low { color: #d97706; font-weight: 500; }
+        .status-empty { color: #dc2626; font-weight: 500; }
+        .guide {
           margin: 25px 0;
           padding: 20px;
-          background-color: #f0fdf4;
-          border-radius: 8px;
-          border-left: 4px solid #10b981;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .summary h3 {
-          margin-top: 0;
-          color: #065f46;
-          font-size: 18px;
-          border-bottom: 1px solid #bbf7d0;
-          padding-bottom: 10px;
-        }
-        .summary-item {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding: 8px 0;
-        }
-        .summary-label {
-          font-weight: 600;
-          color: #374151;
-        }
-        .summary-value {
-          color: #059669;
-          font-weight: 500;
-        }
-        .chart-image {
-          width: 100%;
-          max-width: 800px;
-          margin: 15px auto;
-          display: block;
-          page-break-inside: avoid;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 15px;
-          background: white;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .chart-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #374151;
-          margin-bottom: 15px;
-          text-align: center;
-          padding: 10px;
-          background-color: #f9fafb;
-          border-radius: 4px;
-        }
-        .stats-summary {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 15px;
-          margin: 20px 0;
-          text-align: center;
-        }
-        .stat-item {
-          padding: 15px;
           background-color: #f8fafc;
           border-radius: 8px;
           border: 1px solid #e2e8f0;
-          border-left: 4px solid #3b82f6;
         }
-        .stat-item h4 {
-          margin: 0 0 10px 0;
+        .guide-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 10px;
+          padding: 8px 0;
+        }
+        .guide-color {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          margin-right: 12px;
+        }
+        .guide-text {
           font-size: 14px;
-          font-weight: 600;
-          color: #3b82f6;
-        }
-        .stat-values {
-          font-size: 12px;
-          color: #64748b;
+          color: #374151;
         }
         .footer {
           margin-top: 30px;
@@ -863,79 +1114,110 @@ const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now,
           border-top: 1px solid #e5e7eb;
         }
         @media print {
-          body { margin: 0.5in; padding: 0; }
+          body { margin: 0.5in; }
           .no-print { display: none; }
           .header { page-break-after: avoid; }
           table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          .chart-image { page-break-inside: avoid; }
+          tr { page-break-inside: avoid; }
         }
-        @page { size: portrait; margin: 0.5in; }
       </style>
     </head>
     <body>
       <div class="header">
         <h1>Water Level Data Report</h1>
-        <div class="date">${formattedDate}</div>
+        <div class="date-range">
+          Date Range: ${printStartDate.value} to ${printEndDate.value}
+        </div>
+        <div class="generated-date">
+          Generated on: ${formattedDate}
+        </div>
       </div>
       
       <div class="summary">
         <h3>Report Summary</h3>
-        <div class="summary-item">
-          <span class="summary-label">Total Records:</span>
-          <span class="summary-value">${tempWaterLevelRows.length}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Chart Data Points:</span>
-          <span class="summary-value">${chartRecordCount}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Date Range:</span>
-          <span class="summary-value">${tempWaterLevelRows.length > 0 ? tempWaterLevelRows[tempWaterLevelRows.length-1].date + ' to ' + tempWaterLevelRows[0].date : 'N/A'}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Report Generated:</span>
-          <span class="summary-value">${now.toLocaleString()}</span>
-        </div>
-      </div>
-      
-      <div class="section-header">Water Level Trend Analysis</div>
-      ${chartImage ? `
-        <div class="chart-title">Water Level Over Time</div>
-        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
-        <img src="${chartImage}" class="chart-image" alt="Water Level Chart" />
-        
-        <div class="stats-summary">
-          <div class="stat-item">
-            <h4>Water Level Statistics</h4>
-            <div class="stat-values">
-              Min: ${waterLevelMin.toFixed(2)}%<br>
-              Avg: ${waterLevelAvg.toFixed(2)}%<br>
-              Max: ${waterLevelMax.toFixed(2)}%
-            </div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Total Records</div>
+            <div class="summary-value">${printData.length}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Date Range</div>
+            <div class="summary-value">${printData.length > 0 ? printData[printData.length-1].date + ' to ' + printData[0].date : 'N/A'}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Time Range</div>
+            <div class="summary-value">${printData.length > 0 ? printData[printData.length-1].time + ' to ' + printData[0].time : 'N/A'}</div>
           </div>
         </div>
-      ` : '<p style="text-align: center; color: #6b7280;">Chart could not be generated</p>'}
-      
+      </div>
+
+      ${printOptions.value.includeStats ? `
+        <div class="section-header">Water Level Statistics</div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Minimum Level</div>
+            <div class="summary-value">${waterLevelMin.toFixed(2)}%</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Average Level</div>
+            <div class="summary-value">${waterLevelAvg.toFixed(2)}%</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Maximum Level</div>
+            <div class="summary-value">${waterLevelMax.toFixed(2)}%</div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${printOptions.value.includeChart && chartImage ? `
+        <div class="section-header">Water Level Trend</div>
+        <div class="chart-container">
+          <div class="chart-title">Water Level Over Time</div>
+          <img src="${chartImage}" class="chart-image" alt="Water Level Chart" />
+        </div>
+      ` : ''}
+
+      ${printOptions.value.includeGuide ? `
+        <div class="section-header">Water Level Status Guide</div>
+        <div class="guide">
+          <div class="guide-item">
+            <div class="guide-color" style="background-color: #10b981;"></div>
+            <div class="guide-text">Full (80% - 100%) - Optimal water level</div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-color" style="background-color: #3b82f6;"></div>
+            <div class="guide-text">Sufficient (40% - 80%) - Good water level</div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-color" style="background-color: #f59e0b;"></div>
+            <div class="guide-text">Low (20% - 40%) - Monitor closely</div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-color" style="background-color: #ef4444;"></div>
+            <div class="guide-text">Empty (0% - 20%) - Refill needed</div>
+          </div>
+        </div>
+      ` : ''}
+
       <div class="section-header">Detailed Water Level Readings</div>
       <table>
         <thead>
           <tr>
-            <th style="width: 8%">ID</th>
-            <th style="width: 15%">Date</th>
-            <th style="width: 12%">Time</th>
-            <th style="width: 15%">Water Level</th>
-            <th style="width: 15%">Status</th>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Water Level</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          ${tempWaterLevelRows.map(row => `
+          ${printData.map(row => `
             <tr>
               <td>${row.id}</td>
               <td>${row.date}</td>
               <td>${row.time}</td>
-              <td><span class="waterlevel">${row.waterLevel}%</span></td>
-              <td><span class="status-${row.status.toLowerCase()}">${row.status}</span></td>
+              <td>${row.waterLevel}%</td>
+              <td class="status-${row.status.toLowerCase()}">${row.status}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -946,112 +1228,120 @@ const generatePrintHTML = (chartImage, tempWaterLevelRows, formattedDate, now,
       </div>
     </body>
     </html>
-  `;
-  
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  iframe.style.left = '-9999px';
-  document.body.appendChild(iframe);
-  
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  
-  iframeDoc.open();
-  iframeDoc.write(tableContent);
-  iframeDoc.close();
-  
+  `
+
+  // Open print dialog
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'absolute'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = 'none'
+  iframe.style.left = '-9999px'
+  document.body.appendChild(iframe)
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+  iframeDoc.open()
+  iframeDoc.write(tableContent)
+  iframeDoc.close()
+
   iframe.onload = function() {
     try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
       setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 100);
+        document.body.removeChild(iframe)
+      }, 100)
     } catch (error) {
-      console.error('Print error:', error);
-      document.body.removeChild(iframe);
-      
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(tableContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
+      console.error('Print error:', error)
+      document.body.removeChild(iframe)
+      // Fallback: open in new window
+      const printWindow = window.open('', '_blank')
+      printWindow.document.write(tableContent)
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
     }
-  };
+  }
+}
+
+const fetchWaterLevelDataRange = async (startDate, endDate) => {
+  try {
+    const response = await api.get('/water-level/readings/range', {
+      params: {
+        from_date: startDate,
+        to_date: endDate
+      }
+    });
+    
+    if (response.data) {
+      waterLevelData.value = response.data;
+      totalItems.value = response.data.length; // Assuming you want to set total items based on the response
+      totalPages.value = 1; // Since this is a range query, we can set total pages to 1
+    } else {
+      alert('No data found for the specified date range.');
+    }
+  } catch (error) {
+    console.error('Error fetching water level data range:', error);
+    alert('Error fetching data. Please try again later.');
+  }
 };
 
-const paginationNumbers = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  
-  if (total <= 1) return [1]
-  
-  if (current === 1) {
-    return [1, '..', total]
-  } else if (current === total) {
-    return [1, '..', total]
-  } else {
-    return [current, '...', total]
-  }
-})
-
-const dataCache = ref(null)
-
-const fetchWaterLevelData = async () => {
+// Main data fetching function
+const fetchWaterLevelData = async (page = currentPage.value, limit = itemsPerPage.value) => {
   try {
-    console.log('💧 Fetching water level data...')
+    console.log(`💧 Fetching water level data - Page: ${page}, Limit: ${limit}`)
+    isFetching.value = true
+    if (page === 1) {
+      // isLoading.value = true
+    }
 
     const response = await api.get(`/water-level/readings`, {
-      headers: {
-        'Accept': 'application/json',
+      params: {
+        page: page,
+        limit: limit
       }
     })
 
-    console.log('📊 API Response:', response)
+    console.log('📊 Full API Response:', response)
     
-    let data
-    if (response && typeof response === 'object') {
-      if (response.data !== undefined) {
+    let data = []
+    let paginationInfo = {}
+    
+    // Handle different response structures
+    if (response.data) {
+      if (response.data.data && Array.isArray(response.data.data)) {
+        data = response.data.data
+        paginationInfo = response.data.pagination || {}
+      } else if (Array.isArray(response.data)) {
         data = response.data
-        console.log('📊 Response status:', response.status)
-      } else if (Array.isArray(response)) {
-        data = response
-      } else {
-        data = response
+        paginationInfo = {
+          currentPage: page,
+          totalPages: Math.ceil(data.length / limit),
+          totalItems: data.length,
+          itemsPerPage: limit
+        }
       }
     }
 
-    console.log('📊 Response data:', data)
+    console.log('📊 Processed data:', data)
+    console.log('📊 Pagination info:', paginationInfo)
 
     if (!Array.isArray(data)) {
       console.error('❌ Expected array but got:', typeof data, data)
-      throw new Error(`Expected array but got: ${typeof data}`)
+      throw new Error('Invalid data format received from API')
     }
 
-    console.log('📊 Number of items received:', data.length)
-
-    if (data.length === 0) {
-      console.log('📭 No water level data found in database')
-      waterLevelData.value = []
-      isLoading.value = false
-      return
-    }
-
+    // Process the data for display
     const processedData = data.map((reading, index) => {
       let timestamp
-      if (reading.timestamp) {
-        if (typeof reading.timestamp === 'string') {
+      try {
+        if (reading.timestamp) {
           timestamp = new Date(reading.timestamp)
-        } else if (reading.timestamp instanceof Date) {
-          timestamp = reading.timestamp
         } else {
-          console.warn('Unknown timestamp format:', reading.timestamp)
           timestamp = new Date()
         }
-      } else {
+      } catch (e) {
+        console.warn('Error parsing timestamp:', e)
         timestamp = new Date()
       }
 
@@ -1059,8 +1349,8 @@ const fetchWaterLevelData = async () => {
                              reading.value !== undefined ? reading.value : 0
 
       return {
-        id: `${index + 1}`,
-        timestamp: timestamp.getTime() / 1000,
+        id: reading.id || `wl-${(page - 1) * limit + index + 1}`,
+        timestamp: timestamp.getTime(),
         waterLevel: Number(waterLevelValue).toFixed(2),
         status: calculateWaterStatus(Number(waterLevelValue)),
         date: timestamp.toLocaleDateString('en-US', {
@@ -1075,217 +1365,49 @@ const fetchWaterLevelData = async () => {
           hour12: true
         }),
         rawTimestamp: timestamp,
-        deviceId: reading.deviceId || reading.device_id || 'unknown'
+        deviceId: reading.device_id || reading.deviceId || 'unknown'
       }
     })
 
-    // Update the data
+    // Update reactive data
     waterLevelData.value = processedData
-    dataCache.value = processedData
-    isLoading.value = false
     
-    // Update chart with the latest data
-    initializeChartData(processedData)
-    PRINT_CHART_DATA_LIMIT = processedData.length
+    // Update pagination info
+    totalItems.value = paginationInfo.totalItems || data.length
+    totalPages.value = paginationInfo.totalPages || Math.ceil(totalItems.value / limit) || 1
     
     console.log(`✅ Successfully loaded ${processedData.length} water level readings`)
+    console.log(`📄 Page ${currentPage.value} of ${totalPages.value}, Total items: ${totalItems.value}`)
+
+    // Update chart with first page data
+    if (page === 1 && processedData.length > 0) {
+      updateChartWithData(processedData)
+    }
 
   } catch (error) {
-    console.error("❌ Error fetching water level data:", error)
+    console.error('❌ Error fetching water level data:', error)
+    waterLevelData.value = []
+    totalItems.value = 0
+    totalPages.value = 1
+  } finally {
     isLoading.value = false
-    // Don't clear the data on error, keep showing existing data
+    isFetching.value = false
   }
 }
 
-const setupPollingListener = () => {
-  // Clear any existing interval
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-  }
-  
-  // Start polling immediately and then set interval
-  fetchWaterLevelData()
-  pollingInterval = setInterval(fetchWaterLevelData, POLLING_FREQUENCY)
-  
-  // Return cleanup function
-  return () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
-    }
-  }
-}
+// Chart functions
+const updateChartWithData = (data) => {
+  if (!data || data.length === 0) return
 
-// Helper function to process data for table
-const processDataForTable = (data) => {
-  return data
-    .filter(item => item.waterLevel !== undefined)
-    .map((item, index) => {
-      let formattedDate = '--'
-      let formattedTime = '--'
-      let timestampSeconds = 0
-      
-      try {
-        const timestamp = item.timestamp ? new Date(item.timestamp) : new Date()
-        
-        formattedDate = timestamp.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit'
-        });
+  const chartDataPoints = data.slice(0, 20).map(item => ({
+    timestamp: item.rawTimestamp,
+    value: parseFloat(item.waterLevel)
+  })).sort((a, b) => a.timestamp - b.timestamp)
 
-        formattedTime = timestamp.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-        
-        timestampSeconds = timestamp.getTime() / 1000
-      } catch (e) {
-        console.error("Error formatting date:", e)
-      }
+  chartData.value = chartDataPoints
 
-      const waterLevel = item.waterLevel !== undefined && item.waterLevel !== null 
-        ? Number(item.waterLevel).toFixed(2) 
-        : '--'
-      
-      const status = calculateWaterStatus(Number(item.waterLevel))
-
-      return {
-        id: waterLevelData.value.length + index + 1, // Ensure unique IDs
-        timestamp: timestampSeconds,
-        waterLevel: waterLevel,
-        status: status,
-        date: formattedDate,
-        time: formattedTime,
-        rawTimestamp: item.timestamp
-      }
-    })
-}
-
-const processNewData = (newDataArray) => {
-  if (!chartCanvas.value) return;
-  
-  const newData = [];
-  let processedCount = 0;
-  
-  newDataArray.forEach(item => {
-    try {
-      if (item.waterLevel === undefined || item.waterLevel === null) return;
-      
-      let timestamp;
-      if (item.timestamp) {
-        timestamp = new Date(item.timestamp);
-      } else {
-        timestamp = new Date();
-      }
-      
-      const value = parseFloat(item.waterLevel);
-      if (!isNaN(value)) {
-        newData.push({
-          timestamp,
-          value: value
-        });
-        processedCount++;
-      }
-    } catch (e) {
-      console.error("Error processing item:", e);
-    }
-  });
-  
-  if (processedCount === 0) return;
-  
-  newData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  
-  // Update chart data with new readings (limit to 100)
-  const updatedChartData = [...chartData.value, ...newData];
-  if (updatedChartData.length > 100) {
-    chartData.value = updatedChartData.slice(-100);
-  } else {
-    chartData.value = updatedChartData;
-  }
-  
-  if (newData.length > 0) {
-    const latestReading = newData[newData.length - 1];
-    currentWaterLevelValue.value = latestReading.value.toFixed(2);
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
-    const values = chartData.value.map(item => item.value).filter(val => !isNaN(val));
-    if (values.length > 0) {
-      waterLevelStats.value = {
-        min: Math.min(...values).toFixed(2),
-        max: Math.max(...values).toFixed(2),
-        avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
-      };
-    }
-  }
-  
-  // Use setTimeout to break the call stack
-  setTimeout(() => {
-    updateChart();
-  }, 0);
-};
-
-const initializeChartData = (data) => {
-  // Filter out any undefined items first
-  const validData = data.filter(item => item !== undefined && item !== null)
-  
-  // Take the most recent 20 data points for the chart
-  const recentData = validData.slice(0, 20)
-  const initialChartData = []
-  
-  recentData.forEach(item => {
-    try {
-      // Check if item exists and has required properties
-      if (!item || item.waterLevel === undefined || item.waterLevel === null) {
-        return // Skip this item
-      }
-      
-      let timestamp
-      if (item.rawTimestamp && typeof item.rawTimestamp.toDate === 'function') {
-        timestamp = item.rawTimestamp.toDate()
-      } else if (item.rawTimestamp?.seconds) {
-        timestamp = new Date(item.rawTimestamp.seconds * 1000)
-      } else if (item.date && item.time) {
-        // Try to parse from date and time strings
-        try {
-          timestamp = new Date(`${item.date} ${item.time}`)
-          if (isNaN(timestamp.getTime())) {
-            timestamp = new Date()
-          }
-        } catch (e) {
-          timestamp = new Date()
-        }
-      } else {
-        timestamp = new Date()
-      }
-      
-      const value = parseFloat(item.waterLevel)
-      if (!isNaN(value)) {
-        initialChartData.push({
-          timestamp,
-          value: value
-        })
-      }
-    } catch (e) {
-      console.error("Error processing item:", e, item)
-    }
-  })
-  
-  // Sort by timestamp ascending for the chart
-  initialChartData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-  
-  chartData.value = initialChartData
-  
-  if (initialChartData.length > 0) {
-    const latestReading = initialChartData[initialChartData.length - 1]
+  if (chartDataPoints.length > 0) {
+    const latestReading = chartDataPoints[chartDataPoints.length - 1]
     currentWaterLevelValue.value = latestReading.value.toFixed(2)
     
     lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
@@ -1295,7 +1417,7 @@ const initializeChartData = (data) => {
       hour12: true
     })
     
-    const values = initialChartData.map(item => item.value).filter(val => !isNaN(val))
+    const values = chartDataPoints.map(item => item.value).filter(val => !isNaN(val))
     if (values.length > 0) {
       waterLevelStats.value = {
         min: Math.min(...values).toFixed(2),
@@ -1304,322 +1426,110 @@ const initializeChartData = (data) => {
       }
     }
   }
-  
+
   initializeChart()
 }
 
 const initializeChart = () => {
   nextTick(() => {
-    if (chartCanvas.value && chartData.value.length > 0) {
-      if (chart.value) {
-        chart.value.destroy();
-      }
-      
-      const ctx = chartCanvas.value.getContext('2d');
-      
-      // Create a safe reference to avoid reactive dependency issues
-      const currentStats = {...waterLevelStats.value};
-      
-      chart.value = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: chartData.value.map(item => {
-            return item.timestamp.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            });
-          }),
-          datasets: [{
-            label: 'Water Level (%)',
-            data: chartData.value.map(item => item.value),
-            borderColor: '#3b82f6', 
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 1.5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
-          animation: false,
-          layout: {
-            padding: {
-              top: 10,
-              left: 10,
-              right: 10,
-              bottom: 10
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              min: Math.max(0, Math.floor((currentStats.min || 0) * 0.95)),
-              max: Math.min(100, Math.ceil((currentStats.max || 100) * 1.05)),
-              title: {
-                display: true,
-                text: 'Level (%)',
-                color: '#3b82f6',
-                font: {
-                  size: 11,
-                  weight: '600'
-                },
-                padding: {
-                  bottom: 10
-                }
-              },
-              ticks: {
-                font: {
-                  size: 10
-                },
-                color: '#64748b', 
-                padding: 8
-              },
-              grid: {
-                color: 'rgba(0, 0, 0, 0.04)',
-                drawBorder: false
-              }
-            },
-            x: {
-              ticks: {
-                font: {
-                  size: 10
-                },
-                maxRotation: 0,
-                padding: 8,
-                color: '#64748b' 
-              },
-              grid: {
-                display: false,
-                drawBorder: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false, 
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#334155', 
-              bodyColor: '#334155', 
-              borderColor: '#e2e8f0', 
-              borderWidth: 1,
-              padding: 12,
-              cornerRadius: 6,
-              displayColors: true,
-              boxWidth: 8,
-              boxHeight: 8,
-              usePointStyle: true,
-              titleFont: {
-                size: 12,
-                weight: '600'
-              },
-              bodyFont: {
-                size: 12
-              },
-              callbacks: {
-                label: function(context) {
-                  return `Level: ${context.raw.toFixed(2)}%`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-  });
-};
+    if (!chartCanvas.value || chartData.value.length === 0) return
 
-const updateChart = () => {
-  if (chart.value && chartData.value.length > 0 && chartCanvas.value) {
-    // Use requestAnimationFrame to avoid stack overflow
-    requestAnimationFrame(() => {
-      try {
-        // Create non-reactive copies to avoid dependency issues
-        const labels = chartData.value.map(item => 
+    if (chart.value) {
+      chart.value.destroy()
+    }
+
+    const ctx = chartCanvas.value.getContext('2d')
+    chart.value = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.value.map(item => 
           item.timestamp.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
           })
-        );
-        
-        const data = chartData.value.map(item => item.value);
-        const stats = {...waterLevelStats.value};
-        
-        chart.value.data.labels = labels;
-        chart.value.data.datasets[0].data = data;
-        
-        // Check if scales exist before trying to modify them
-        if (chart.value.options.scales && chart.value.options.scales.y) {
-          chart.value.options.scales.y.min = Math.max(0, Math.floor((stats.min || 0) * 0.95));
-          chart.value.options.scales.y.max = Math.min(100, Math.ceil((stats.max || 100) * 1.05));
+        ),
+        datasets: [{
+          label: 'Water Level (%)',
+          data: chartData.value.map(item => item.value),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.15)',
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#3b82f6',
+          pointBorderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Level (%)',
+              color: '#3b82f6'
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45
+            }
+          }
         }
-        
-        chart.value.update('none');
-      } catch (error) {
-        console.error('Error updating chart:', error);
       }
-    });
-  }
-};
-
-const calculateWaterStatus = (level) => {
-  if (level >= 80) return 'FULL'
-  if (level >= 40) return 'SUFFICIENT'
-  if (level >= 20) return 'LOW'
-  return 'EMPTY'
-}
-
-const filters = ref({
-  waterLevel: { min: '', max: '' }
-})
-
-const searchQuery = ref('')
-const itemsPerPage = ref(20)
-const currentPage = ref(1)
-const activeDropdown = ref(null)
-const sortKey = ref('date')
-const sortDirection = ref('desc')
-const activeFilters = ref({})
-
-const filterFields = [
-  { key: 'waterLevel', label: 'Water Level (%)' }
-]
-
-const headers = [
-  { key: 'id', label: 'ID' },
-  { key: 'status', label: 'Water Status' },
-  { key: 'waterLevel', label: 'Water Level (%)' },
-  { key: 'date', label: 'Date' },
-  { key: 'time', label: 'Time' }
-]
-
-const exportFormats = ['csv', 'pdf']
-
-const filteredData = computed(() => {
-  let result = [...waterLevelData.value]
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(row => {
-      return Object.values(row).some(value => 
-        String(value).toLowerCase().includes(query)
-      )
     })
-  }
-
-  Object.keys(activeFilters.value).forEach(key => {
-    const { min, max } = activeFilters.value[key]
-    if (min !== '' && max !== '') {
-      result = result.filter(row => row[key] >= min && row[key] <= max)
-    } else if (min !== '') {
-      result = result.filter(row => row[key] >= min)
-    } else if (max !== '') {
-      result = result.filter(row => row[key] <= max)
-    }
   })
+}
 
-  return result
-})
-
-const sortedData = computed(() => {
-  if (!sortKey.value) return filteredData.value
-
-  // Default sorting should be by timestamp descending (newest first)
-  const defaultSort = [...filteredData.value].sort((a, b) => {
-    return b.timestamp - a.timestamp
-  })
-  
-  // If user has selected a different sort, use that instead
-  if (sortKey.value !== 'timestamp') {
-    return [...filteredData.value].sort((a, b) => {
-      let aValue = a[sortKey.value]
-      let bValue = b[sortKey.value]
-      
-      if (aValue === '' || aValue === undefined) aValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-      if (bValue === '' || bValue === undefined) bValue = sortDirection.value === 'asc' ? -Infinity : Infinity
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection.value === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-      
-      return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
-    })
-  }
-  
-  return defaultSort
-})
-
-const paginatedData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return sortedData.value.slice(startIndex, endIndex)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(sortedData.value.length / itemsPerPage.value)
-})
-
-const displayedPages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const pages = []
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
-  } else {
-    pages.push(1)
-
-    if (current <= 3) {
-      pages.push(2, '...', total)
-    } else if (current >= total - 2) {
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
-    } else {
-      pages.push('...', current - 1, current, current + 1, '...', total)
-    }
-  }
-
-  return pages
-})
-
-const toggleDropdown = (dropdownName) => {
-  if (activeDropdown.value === dropdownName) {
-    activeDropdown.value = null
-  } else {
-    activeDropdown.value = dropdownName
+// Pagination functions
+const nextPage = async () => {
+  if (currentPage.value < totalPages.value && !isFetching.value) {
+    currentPage.value++
+    await fetchWaterLevelData(currentPage.value, itemsPerPage.value)
+    scrollToTop()
   }
 }
 
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.relative')) {
-    activeDropdown.value = null
+const prevPage = async () => {
+  if (currentPage.value > 1 && !isFetching.value) {
+    currentPage.value--
+    await fetchWaterLevelData(currentPage.value, itemsPerPage.value)
+    scrollToTop()
   }
 }
 
-const performSearch = () => {
-  currentPage.value = 1 
+const goToPage = async (pageNum) => {
+  if (typeof pageNum === 'number' && pageNum >= 1 && pageNum <= totalPages.value && !isFetching.value) {
+    currentPage.value = pageNum
+    await fetchWaterLevelData(currentPage.value, itemsPerPage.value)
+    scrollToTop()
+  }
+}
+
+const scrollToTop = () => {
+  const tableContainer = document.querySelector('.overflow-auto')
+  if (tableContainer) {
+    tableContainer.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// Search and filter functions
+const handleSearch = () => {
+  // Search is handled locally by the computed property
 }
 
 const applyFilters = () => {
-  // Create a new object with only the filters that have values
   const newFilters = {}
-
   Object.keys(filters.value).forEach(key => {
     const min = parseFloat(filters.value[key].min)
     const max = parseFloat(filters.value[key].max)
@@ -1633,8 +1543,26 @@ const applyFilters = () => {
   })
 
   activeFilters.value = newFilters
-  currentPage.value = 1
   activeDropdown.value = null
+}
+
+const clearFilters = () => {
+  filters.value = {
+    waterLevel: { min: '', max: '' }
+  }
+  activeFilters.value = {}
+  activeDropdown.value = null
+}
+
+// UI functions
+const toggleDropdown = (dropdownName) => {
+  activeDropdown.value = activeDropdown.value === dropdownName ? null : dropdownName
+}
+
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.relative')) {
+    activeDropdown.value = null
+  }
 }
 
 const setSortKey = (key) => {
@@ -1642,225 +1570,448 @@ const setSortKey = (key) => {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
     sortKey.value = key
-    sortDirection.value = 'asc' 
+    sortDirection.value = 'desc'
   }
-  activeDropdown.value = null 
+  activeDropdown.value = null
 }
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
+// Utility functions
+const calculateWaterStatus = (level) => {
+  if (level >= 80) return 'FULL'
+  if (level >= 40) return 'SUFFICIENT'
+  if (level >= 20) return 'LOW'
+  return 'EMPTY'
 }
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
-
-const updatePagination = () => {
-  currentPage.value = 1 
-}
-
-const goToPage = (page) => {
-  if (typeof page === 'number') {
-    currentPage.value = page
-  }
-}
-
-const getChartImage = async () => {
-  if (!chartCanvas.value) return null;
+// Add these utility functions at the top of your script section
+const parseBackendTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
   
-  return new Promise((resolve) => {
-    const imageData = chartCanvas.value.toDataURL('image/png', 1.0);
-    resolve(imageData);
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+  
+  if (typeof timestamp === 'number') {
+    if (timestamp > 1e12) {
+      return new Date(timestamp);
+    } else {
+      return new Date(timestamp * 1000);
+    }
+  }
+  
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  
+  console.warn('Unable to parse timestamp, using current time:', timestamp);
+  return new Date();
+};
+
+const formatDateForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
   });
 };
 
+const formatTimeForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+// Updated export function
 const exportData = async (format) => {
-  const dataToExport = sortedData.value
-  if (!dataToExport.length) return
+  try {
+    isLoading.value = true
+    console.log(`📤 Starting ${format.toUpperCase()} export...`)
+    
+    // For exports, fetch ALL data without pagination
+    let allData = []
+    
+    try {
+      console.log('🚀 Fetching ALL Water Level data for export...')
+      const response = await api.get('/water-level/readings/all')
+      
+      console.log('📊 Backend response received:', {
+        dataLength: response.data?.length,
+        firstRecord: response.data?.[0]
+      })
+      
+      if (response.data && Array.isArray(response.data)) {
+        allData = response.data.map((reading, index) => {
+          const timestamp = parseBackendTimestamp(reading.timestamp)
+          
+          const waterLevelValue = reading.waterLevel !== undefined ? reading.waterLevel : 
+                               reading.value !== undefined ? reading.value : 0
 
-  const exportHeaders = headers.map(h => h.label)
-  const exportRows = dataToExport.map(row =>
-    headers.map(header => row[header.key] ?? '')
-  )
+          return {
+            id: reading.id || `export_${index}`,
+            waterLevel: Number(waterLevelValue).toFixed(2),
+            status: calculateWaterStatus(Number(waterLevelValue)),
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.deviceId || 'unknown',
+            timestampMs: timestamp.getTime()
+          }
+        })
+        
+        // Sort by timestamp (newest first)
+        allData.sort((a, b) => b.timestampMs - a.timestampMs)
+        
+        console.log(`✅ Fetched ALL ${allData.length} records for export`)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching ALL data for export:', error)
+      console.error('Error details:', error.response?.data)
+      
+      // Don't fall back to current page data - show error instead
+      window.showToast('Error fetching all data for export', 'error')
+      isLoading.value = false
+      return
+    }
 
-  if (format === 'csv') {
-    let csvContent = exportHeaders.join(',') + '\n'
-    exportRows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    saveAs(blob, 'water_level_data.csv')
-    window.showToast('Water Level exported as CSV', 'success')
-  } else if (format === 'pdf') {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm'
-    });
-    
-    doc.setFontSize(16);
-    doc.text('Water Level Data Report', 105, 15, { align: 'center' });
-    
-    doc.setFontSize(10);
-    const dateStr = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.text('Current Reading:', 15, 30);
-    doc.text(`Water Level: ${currentWaterLevelValue.value}%`, 15, 36);
-    doc.text(`Status: ${calculateWaterStatus(Number(currentWaterLevelValue.value))}`, 15, 42);
-    
-    if (chartCanvas.value) {
-      const canvas = chartCanvas.value;
-      const chartImage = canvas.toDataURL('image/png');
+    if (!allData.length) {
+      window.showToast('No data available for export', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    console.log(`📊 Exporting ALL ${allData.length} records`)
+
+    // Create export data with ALL records
+    const exportHeaders = ['Date', 'Time', 'Water Level (%)', 'Status', 'Device']
+    const exportRows = allData.map(row => [
+      row.date || '--',
+      row.time || '--', 
+      row.waterLevel !== undefined ? row.waterLevel : '--',
+      row.status || 'Unknown',
+      row.deviceId || 'unknown'
+    ])
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    if (format === 'csv') {
+      let csvContent = exportHeaders.join(',') + '\n'
+      exportRows.forEach(row => {
+        csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+      })
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      saveAs(blob, `water_level_data_${timestamp}.csv`)
+      window.showToast(`Exported ${allData.length} Water Level records as CSV`, 'success')
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
       
-      const imgWidth = 180; 
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 50, imgWidth, imgHeight);
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 10
+      const tableWidth = pageWidth - (margin * 2)
       
-      doc.setFontSize(10);
-      doc.text('Water Level Statistics:', 15, 50 + imgHeight + 10);
-      doc.text(`Minimum: ${waterLevelStats.value.min}%`, 15, 50 + imgHeight + 16);
-      doc.text(`Average: ${waterLevelStats.value.avg}%`, 15, 50 + imgHeight + 22);
-      doc.text(`Maximum: ${waterLevelStats.value.max}%`, 15, 50 + imgHeight + 28);
+      // Title section
+      doc.setFontSize(16)
+      doc.setTextColor(16, 185, 129)
+      doc.text('Water Level Data Report', pageWidth / 2, 20, { align: 'center' })
       
-      doc.text('Status Guide:', 15, 50 + imgHeight + 38);
-      doc.text(`Full: 80% - 100%`, 15, 50 + imgHeight + 44);
-      doc.text(`Sufficient: 40% - 80%`, 15, 50 + imgHeight + 50);
-      doc.text(`Low: 20% - 40%`, 15, 50 + imgHeight + 56);
-      doc.text(`Empty: < 20%`, 15, 50 + imgHeight + 62);
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+      doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
       
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text('Water Level Data Table', 105, 15, { align: 'center' });
-      autoTable(doc, {
+      // Water level status summary
+      const statusCounts = allData.reduce((acc, row) => {
+        const status = row.status || 'Unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+      
+      doc.setFontSize(9)
+      doc.setTextColor(75, 85, 99)
+      let statusText = 'Water Status: '
+      const statusEntries = Object.entries(statusCounts)
+      statusEntries.forEach(([status, count], index) => {
+        const percentage = ((count / allData.length) * 100).toFixed(1)
+        statusText += `${status} ${count} (${percentage}%)`
+        if (index < statusEntries.length - 1) statusText += ' | '
+      })
+      
+      // Status summary on first page only
+      doc.text(statusText, pageWidth / 2, 40, { align: 'center' })
+      
+      // Current reading and statistics
+      doc.setFontSize(11)
+      doc.setTextColor(30, 41, 59)
+      doc.text('Current Reading & Statistics:', pageWidth / 2, 48, { align: 'center' })
+      
+      const waterLevelValues = allData.map(item => parseFloat(item.waterLevel)).filter(val => !isNaN(val))
+      const waterLevelMin = waterLevelValues.length > 0 ? Math.min(...waterLevelValues) : 0
+      const waterLevelMax = waterLevelValues.length > 0 ? Math.max(...waterLevelValues) : 0
+      const waterLevelAvg = waterLevelValues.length > 0 ? 
+        (waterLevelValues.reduce((sum, val) => sum + val, 0) / waterLevelValues.length) : 0
+      
+      doc.setFontSize(9)
+      doc.text(`Current: ${currentWaterLevelValue.value}% | Min: ${waterLevelMin.toFixed(2)}% | Avg: ${waterLevelAvg.toFixed(2)}% | Max: ${waterLevelMax.toFixed(2)}%`, 
+               pageWidth / 2, 54, { align: 'center' })
+      
+      let startY = 60
+      
+      console.log(`📄 Starting table at Y position: ${startY}mm on first page`)
+      
+      // Configure autoTable for ALL data with full width
+      const tableConfig = {
         head: [exportHeaders],
         body: exportRows,
-        startY: 22,
+        startY: startY,
+        margin: { left: margin, right: margin },
+        tableWidth: tableWidth,
         styles: { 
           fontSize: 8,
-          cellPadding: 2,
-          overflow: 'linebreak'
+          cellPadding: 3,
+          overflow: 'linebreak',
+          textColor: [51, 51, 51],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+          minCellHeight: 6,
+          cellWidth: 'wrap'
         },
         headStyles: {
           fillColor: [16, 185, 129],
-          textColor: 255 
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 4
+        },
+        bodyStyles: {
+          cellPadding: 3,
+          lineWidth: 0.1,
+          minCellHeight: 6
         },
         alternateRowStyles: {
-          fillColor: [241, 245, 249] 
+          fillColor: [240, 253, 244]
         },
-        margin: { top: 20 },
+        // Full width column distribution
         columnStyles: {
-          0: { cellWidth: 15 }, 
-          1: { cellWidth: 25 }, 
-          2: { cellWidth: 25 }, 
-          3: { cellWidth: 20 }, 
-          4: { cellWidth: 20 } 
+          0: { cellWidth: tableWidth * 0.22 }, // Date
+          1: { cellWidth: tableWidth * 0.18 }, // Time
+          2: { cellWidth: tableWidth * 0.20 }, // Water Level
+          3: { cellWidth: tableWidth * 0.25 }, // Status
+          // 4: { cellWidth: tableWidth * 0.15 }  // Device
+        },
+        pageBreak: 'auto',
+        showHead: 'everyPage',
+        tableLineWidth: 0.1,
+        theme: 'grid',
+        didParseCell: function (data) {
+          // Color code water status cells
+          if (data.column.index === 3 && data.section === 'body' && data.cell.raw) {
+            const status = data.cell.raw.toString()
+            if (status === 'FULL') {
+              data.cell.styles.fillColor = [220, 252, 231] // green-100
+              data.cell.styles.textColor = [22, 163, 74]   // green-600
+            } else if (status === 'SUFFICIENT') {
+              data.cell.styles.fillColor = [219, 234, 254] // blue-100
+              data.cell.styles.textColor = [37, 99, 235]   // blue-600
+            } else if (status === 'LOW') {
+              data.cell.styles.fillColor = [254, 249, 195] // yellow-100
+              data.cell.styles.textColor = [161, 98, 7]    // yellow-600
+            } else if (status === 'EMPTY') {
+              data.cell.styles.fillColor = [254, 226, 226] // red-100
+              data.cell.styles.textColor = [220, 38, 38]   // red-600
+            }
+          }
+        },
+        didDrawPage: function (data) {
+          // Only add header on first page
+          if (data.pageNumber === 1) {
+            doc.setFontSize(16)
+            doc.setTextColor(16, 185, 129)
+            doc.text('Water Level Data Report', pageWidth / 2, 20, { align: 'center' })
+            
+            doc.setFontSize(10)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+            doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
+            
+            // Status summary on first page only
+            doc.setFontSize(9)
+            doc.setTextColor(75, 85, 99)
+            doc.text(statusText, pageWidth / 2, 40, { align: 'center' })
+            
+            // Current reading and statistics on first page only
+            doc.setFontSize(11)
+            doc.setTextColor(30, 41, 59)
+            doc.text('Current Reading & Statistics:', pageWidth / 2, 48, { align: 'center' })
+            
+            doc.setFontSize(9)
+            doc.text(`Current: ${currentWaterLevelValue.value}% | Min: ${waterLevelMin.toFixed(2)}% | Avg: ${waterLevelAvg.toFixed(2)}% | Max: ${waterLevelMax.toFixed(2)}%`, 
+                     pageWidth / 2, 54, { align: 'center' })
+          }
+          
+          // Footer on every page
+          doc.setFontSize(8)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Page ${data.pageNumber} - ${allData.length} total records`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          )
         }
-      });
-    } else {
-      doc.text('Water Level Chart Not Available', 105, 50, { align: 'center' });
-      autoTable(doc, {
-        head: [exportHeaders],
-        body: exportRows,
-        startY: 60,
-        styles: { fontSize: 10 }
-      });
+      }
+      
+      // Generate the table
+      autoTable(doc, tableConfig)
+      
+      doc.save(`water_level_report_${timestamp}.pdf`)
+      window.showToast(`Exported ${allData.length} Water Level records as PDF`, 'success')
+    } else if (format === 'docs') {
+      const tableRows = [
+        new TableRow({
+          children: exportHeaders.map(h => new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+            shading: {
+              fill: "10B981",
+              color: "FFFFFF"
+            }
+          }))
+        }),
+        ...exportRows.map(row =>
+          new TableRow({
+            children: row.map((cell, index) => {
+              const cellText = cell ? cell.toString() : ''
+              const textRun = new TextRun({ text: cellText, size: 20 })
+              
+              if (index === 3 && cellText) {
+                if (cellText === 'FULL') {
+                  textRun.color = "16A34A" // Green
+                } else if (cellText === 'SUFFICIENT') {
+                  textRun.color = "2563EB" // Blue
+                } else if (cellText === 'LOW') {
+                  textRun.color = "CA8A04" // Yellow
+                } else if (cellText === 'EMPTY') {
+                  textRun.color = "DC2626" // Red
+                }
+              }
+              
+              return new TableCell({
+                children: [new Paragraph({ children: [textRun] })],
+                width: { size: 20, type: 'pct' }
+              })
+            })
+          })
+        )
+      ]
+      
+      const docxDoc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1000,
+                right: 1000,
+                bottom: 1000,
+                left: 1000,
+              }
+            }
+          },
+          children: [
+            new Paragraph({ 
+              text: 'Water Level Data Report', 
+              heading: 'Heading1',
+              alignment: 'center'
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleString()} | Total Records: ${allData.length}`,
+              alignment: 'center'
+            }),
+            new Paragraph({ text: '' }),
+            new Table({ 
+              width: {
+                size: 100,
+                type: 'pct'
+              },
+              rows: tableRows 
+            })
+          ]
+        }]
+      })
+      const buffer = await Packer.toBlob(docxDoc)
+      saveAs(buffer, `water_level_data_${timestamp}.docx`)
+      window.showToast(`Exported ${allData.length} Water Level records as DOCX`, 'success')
     }
     
-    doc.save('water_level_report.pdf');
-    window.showToast('Water Level report exported as PDF', 'success');
-  } else if (format === 'docs') {
-    const tableRows = [
-      new TableRow({
-        children: exportHeaders.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...exportRows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'Water Level Data Table', heading: 'Heading1' }),
-          new Table({ rows: tableRows })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'water_level_data.docx')
+  } catch (error) {
+    console.error('❌ Export error:', error)
+    window.showToast('Error exporting data. Please try again.', 'error')
+  } finally {
+    isLoading.value = false
+    activeDropdown.value = null
   }
-
-  activeDropdown.value = null 
 }
 
-watch([searchQuery, activeFilters, itemsPerPage], () => {
+// Polling setup
+const setupPollingListener = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
+  
+  fetchWaterLevelData(1, itemsPerPage.value)
+  pollingInterval = setInterval(() => {
+    fetchWaterLevelData(currentPage.value, itemsPerPage.value)
+  }, POLLING_FREQUENCY)
+  
+  return () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+}
+
+// Watchers
+watch(itemsPerPage, (newLimit) => {
   currentPage.value = 1
+  fetchWaterLevelData(1, newLimit)
 })
 
-let unsubscribe = null
-const resizeObserverRef = ref(null);
-
-// Define handleResize outside to avoid recreation
-const handleResize = () => {
-  if (chart.value && chartCanvas.value) {
-    chart.value.resize();
+watch(currentPage, (newPage) => {
+  if (!isFetching.value) {
+    fetchWaterLevelData(newPage, itemsPerPage.value)
   }
-};
+})
 
+// Lifecycle
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  
-  // Replace the realtime listener with polling
-  unsubscribe = setupPollingListener()
-  
-  // Resize handler
-  const handleResize = () => {
-    if (chart.value) {
-      chart.value.resize()
-    }
-  }
-  
-  if (typeof ResizeObserver !== 'undefined') {
-    const resizeObserver = new ResizeObserver(handleResize)
-    if (chartCanvas.value) {
-      resizeObserver.observe(chartCanvas.value.parentElement)
-    }
-  } else {
-    window.addEventListener('resize', handleResize)
-  }
+  setupPollingListener()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
   if (chart.value) {
     chart.value.destroy()
   }
-  
-  // Clean up polling interval
-  if (unsubscribe) {
-    unsubscribe()
-  }
-  
-  window.removeEventListener('resize', () => {})
 })
-
 </script>
   
 <style>

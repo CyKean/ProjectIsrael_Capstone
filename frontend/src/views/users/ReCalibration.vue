@@ -1153,29 +1153,8 @@ const deviceStatusMessage = computed(() => {
   return allDevicesOnline.value ? 'All devices online' : 'Some devices offline'
 })
 
-const testDeviceConnection = async (device, url) => {
-  try {
-    deviceStatus[device] = 'checking'
-    
-    // Use a timeout to prevent hanging requests
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-    
-    const response = await fetch(url, {
-      method: 'HEAD',
-      signal: controller.signal,
-      mode: 'no-cors' // Handle CORS issues
-    })
-    
-    clearTimeout(timeoutId)
-    deviceStatus[device] = 'online'
-    return true
-  } catch (error) {
-    console.log(`${device} is offline:`, error)
-    deviceStatus[device] = 'offline'
-    return false
-  }
-}
+
+
 
 const checkAllDeviceConnections = async () => {
   const devices = [

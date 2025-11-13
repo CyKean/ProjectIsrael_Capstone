@@ -4,7 +4,6 @@ from pydantic import BaseModel, field_validator
 from typing import Optional, Any
 from datetime import datetime, timedelta
 import jwt
-from passlib.context import CryptContext
 from app.services.database import get_database
 from bson import ObjectId
 import re
@@ -12,7 +11,9 @@ import os
 import random
 from dotenv import load_dotenv
 
-router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+# router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
 
 # Load environment variables
 load_dotenv()
@@ -24,8 +25,7 @@ if SECRET_KEY == "dev-secret-key-change-in-production":
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # Pydantic Models
 class LoginRequest(BaseModel):
@@ -114,48 +114,21 @@ class UserResponse(BaseModel):
         return datetime.utcnow()
 
 # Utility Functions
-def verify_password(plain_password, stored_hash):
+def verify_password(plain_password, stored_password):
     """
-    Verify password with support for hashed and plaintext (for migration)
+    Verify password - now simple string comparison
     """
-    if not stored_hash:
+    if not stored_password:
         return False
-    
-    # If it's a bcrypt hash
-    if stored_hash.startswith("$2b$"):
-        try:
-            return pwd_context.verify(plain_password, stored_hash)
-        except:
-            return False
-    
-    # If it's plaintext (for migration)
-    if stored_hash == plain_password:
-        return True
-    
-    return False
+    return stored_password == plain_password
 
 def verify_pin(plain_pin, stored_pin):
     """
-    Verify PIN with support for hashed and plaintext (for migration)
+    Verify PIN - now simple string comparison
     """
     if not stored_pin:
         return False
-    
-    # If it's a bcrypt hash
-    if stored_pin.startswith("$2b$"):
-        try:
-            return pwd_context.verify(plain_pin, stored_pin)
-        except:
-            return False
-    
-    # If it's plaintext (for migration)
-    if stored_pin == plain_pin:
-        return True
-    
-    return False
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
+    return stored_pin == plain_pin
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -167,18 +140,30 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def is_valid_philippine_phone_number(phone_number):
-    pattern = r"^(\+639|09)\d{9}$"
-    return re.match(pattern, phone_number) is not None
+def is_valid_philippine_phone_number(phone_number: str) -> bool:
+    """
+    Accepts:
+      +639XXXXXXXXX
+      09XXXXXXXXX
+      639XXXXXXXXX
+      9XXXXXXXXX  (bare 10-digit local form)
+    """
+    if not phone_number:
+        return False
+    cleaned = re.sub(r"\s|-|\(|\)", "", phone_number)
+    # Accept common forms; strict check later after normalization
+    return bool(re.match(r"^(\+?63|0)?9\d{9}$", cleaned)) or bool(re.match(r"^9\d{9}$", cleaned))
 
-def to_e164_format(phone_number):
-    cleaned = phone_number.replace(" ", "").replace("-", "")
-    if cleaned.startswith("+63"):
+def to_e164_format(phone_number: str) -> Optional[str]:
+    cleaned = re.sub(r"\s|-|\(|\)", "", phone_number)
+    if cleaned.startswith("+639"):
         return cleaned
-    elif cleaned.startswith("09"):
-        return "+63" + cleaned[1:]
-    elif cleaned.startswith("63"):
-        return "+" + cleaned
+    if cleaned.startswith("639"):
+        return f"+{cleaned}"
+    if cleaned.startswith("09"):
+        return f"+63{cleaned[1:]}"
+    if cleaned.startswith("9") and len(cleaned) == 10:  # e.g., 9123456789
+        return f"+63{cleaned}"
     return None
 
 def generate_otp(length: int = 6) -> str:
@@ -296,15 +281,6 @@ async def login(login_request: LoginRequest):
         if not verify_password(login_request.credential, stored_password):
             raise HTTPException(status_code=401, detail="Incorrect password")
             
-        # Migrate plaintext password to hash if needed
-        if stored_password and not stored_password.startswith("$2b$"):
-            hashed_password = get_password_hash(login_request.credential)
-            await users_collection.update_one(
-                {"_id": user["_id"]},
-                {"$set": {"password": hashed_password}}
-            )
-            print(f"✅ Migrated password to bcrypt for {formatted_phone}")
-            
     elif login_request.authType == "pin":
         stored_pin = user.get("pin")
         if not stored_pin:
@@ -312,15 +288,6 @@ async def login(login_request: LoginRequest):
         
         if not verify_pin(login_request.credential, stored_pin):
             raise HTTPException(status_code=401, detail="Incorrect PIN")
-            
-        # Migrate plaintext PIN to hash if needed
-        if stored_pin and not stored_pin.startswith("$2b$"):
-            hashed_pin = get_password_hash(login_request.credential)
-            await users_collection.update_one(
-                {"_id": user["_id"]},
-                {"$set": {"pin": hashed_pin}}
-            )
-            print(f"✅ Migrated PIN to bcrypt for {formatted_phone}")
             
     else:
         raise HTTPException(status_code=400, detail="Invalid authentication type")
@@ -393,12 +360,12 @@ async def register_user(register_request: RegisterRequest):
             "updatedAt": current_time
         }
         
-        # Set password or pin based on auth type
+        # Set password or pin based on auth type (plaintext)
         if register_request.authType == "password":
-            update_data["password"] = get_password_hash(register_request.credential)
+            update_data["password"] = register_request.credential
             update_data["pin"] = ""  # Clear pin if switching to password
         else:
-            update_data["pin"] = get_password_hash(register_request.credential)
+            update_data["pin"] = register_request.credential
             update_data["password"] = ""  # Clear password if switching to pin
         
         await users_collection.update_one(
@@ -422,12 +389,12 @@ async def register_user(register_request: RegisterRequest):
             "updatedAt": current_time
         }
         
-        # Set password or pin based on auth type
+        # Set password or pin based on auth type (plaintext)
         if register_request.authType == "password":
-            user_data["password"] = get_password_hash(register_request.credential)
+            user_data["password"] = register_request.credential
             user_data["pin"] = ""
         else:
-            user_data["pin"] = get_password_hash(register_request.credential)
+            user_data["pin"] = register_request.credential
             user_data["password"] = ""
         
         result = await users_collection.insert_one(user_data)
@@ -695,9 +662,8 @@ async def reset_password(request: ResetPasswordRequest):
         if len(request.newPassword) < 6:
             raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
         
-        hashed_password = get_password_hash(request.newPassword)
         update_data = {
-            "password": hashed_password,
+            "password": request.newPassword,  # Store plaintext
             "pin": "",  # Clear PIN when setting password
             "authType": "password",
             "updatedAt": datetime.utcnow()
@@ -709,9 +675,8 @@ async def reset_password(request: ResetPasswordRequest):
         if not re.match(r'^\d{4}$', request.newPin):
             raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
         
-        hashed_pin = get_password_hash(request.newPin)
         update_data = {
-            "pin": hashed_pin,
+            "pin": request.newPin,  # Store plaintext
             "password": "",  # Clear password when setting PIN
             "authType": "pin",
             "updatedAt": datetime.utcnow()
@@ -754,12 +719,6 @@ async def resend_reset_code(request: ForgotPasswordRequest):
     current_time = datetime.utcnow()
     
     try:
-        # Send SMS first
-        sms_success = await send_password_reset_sms(formatted_phone, new_otp)
-        
-        if not sms_success:
-            raise HTTPException(status_code=500, detail="Failed to send OTP via SMS")
-        
         # Update OTP in database
         await users_collection.update_one(
             {"_id": user["_id"]},

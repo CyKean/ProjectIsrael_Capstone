@@ -23,7 +23,7 @@
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search NPK measurements..."
+                  placeholder="Search soil moisture data..."
                   class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm text-gray-700 placeholder-gray-400 shadow-sm"
                   v-model="searchQuery"
                   @input="performSearch"
@@ -136,10 +136,10 @@
                   </div>
                 </div>
 
-                <!-- Print Button -->
+                <!-- Print Button - Updated with Modal Approach -->
                 <div class="relative flex-1 sm:flex-none">
                   <button 
-                    @click="printTable"
+                    @click="openPrintModal"
                     class="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:text-green-600 transition-colors shadow-sm"
                   >
                     <Printer class="h-3 sm:h-4 w-3 sm:w-4 text-gray-500" />
@@ -158,7 +158,7 @@
         <div class="w-full md:w-1/3 lg:w-1/3 md:max-w-[33.333%] border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0">
           <div class="mb-3">
             <h3 class="text-sm font-semibold text-gray-700">Live Soil Moisture</h3>
-            <p class="text-xs text-gray-500">Real-time monitoring</p>
+            <p class="text-xs text-gray-500">Latest 20 readings - Real-time monitoring</p>
           </div>
           
           <!-- Enhanced Combined Graph Container -->
@@ -315,7 +315,6 @@
                 <!-- Fixed Header -->
                 <thead class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                   <tr>
-                    
                     <th class="w-[25%] py-3.5 px-4 text-left text-xs md:text-[15px] bg-gray-100 font-medium uppercase tracking-wider">
                       <div class="text-blue-600">Soil Moisture</div>
                       <div class="text-gray-400 text-[10px]">PERCENTAGE (%)</div>
@@ -342,7 +341,6 @@
                     :key="index"
                     class="hover:bg-gray-50/50 transition-colors"
                   >
-                    
                     <td class="w-[25%] px-4 py-3.5 whitespace-nowrap md:text-[15px] border-b border-gray-200">
                       <div class="text-sm font-medium text-blue-600">
                         {{ row.soilMoisture }}
@@ -387,13 +385,14 @@
           <div class="border-t border-gray-200 py-2 px-3 bg-gray-50">
             <div class="flex items-center justify-between">
               <div class="text-[10px] md:text-xs text-gray-600">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedData.length) }}
-                of {{ sortedData.length }}
+                Showing {{ (paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1 }} - 
+                {{ Math.min(paginationInfo.currentPage * paginationInfo.itemsPerPage, paginationInfo.totalItems) }}
+                of {{ paginationInfo.totalItems }}
               </div>
               <div class="flex items-center gap-1">
                 <button 
                   @click="prevPage"
-                  :disabled="currentPage === 1"
+                  :disabled="!paginationInfo.hasPrev"
                   class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
                 >
                   <ChevronLeft class="w-3.5 h-3.5" />
@@ -401,13 +400,13 @@
                 
                 <div class="flex items-center gap-1">
                   <button
-                    v-for="(page, index) in paginationNumbers"
+                    v-for="(page, index) in displayedPages"
                     :key="index"
                     @click="goToPage(page)"
                     :disabled="page === '...'"
                     :class="[
                       'px-2 py-1 text-[10px] md:text-xs rounded min-w-[20px]',
-                      page === currentPage 
+                      page === paginationInfo.currentPage 
                         ? 'bg-emerald-500 text-white font-medium' 
                         : page === '...' 
                           ? 'text-gray-400 cursor-default' 
@@ -420,7 +419,7 @@
                 
                 <button 
                   @click="nextPage"
-                  :disabled="currentPage >= totalPages"
+                  :disabled="!paginationInfo.hasNext"
                   class="px-2 py-1 text-[10px] md:text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:text-emerald-600"
                 >
                   <ChevronRight class="w-3.5 h-3.5" />
@@ -431,6 +430,85 @@
         </div>
       </div>
 
+      <!-- Date Range Print Modal -->
+      <div v-if="showPrintModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <!-- Modal Header -->
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Select Date Range for Print</h3>
+            <p class="text-sm text-gray-500 mt-1">Choose the date range for the soil moisture data you want to print</p>
+          </div>
+          
+          <!-- Date Range Inputs -->
+          <div class="px-6 py-4 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.start"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input 
+                type="date" 
+                v-model="printDateRange.end"
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+              >
+            </div>
+
+            <!-- Quick Date Range Buttons -->
+            <!-- <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Quick Select</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  @click="setQuickDateRange('today')"
+                  class="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                >
+                  Today
+                </button>
+                <button
+                  @click="setQuickDateRange('week')"
+                  class="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                >
+                  This Week
+                </button>
+                <button
+                  @click="setQuickDateRange('month')"
+                  class="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                >
+                  This Month
+                </button>
+              </div>
+            </div> -->
+
+            <!-- Error Message -->
+            <p v-if="printDateError" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{{ printDateError }}</p>
+          </div>
+          
+          <!-- Modal Footer -->
+          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+            <div class="flex justify-end space-x-3">
+              <button 
+                @click="cancelPrint"
+                class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                @click="handlePrintWithDateRange"
+                :disabled="!printDateRange.start || !printDateRange.end"
+                class="px-4 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Printer class="h-4 w-4" />
+                Print Selected Range
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       
     </div>
   </div>
@@ -441,7 +519,6 @@
     title="Loading Soil Moisture Data" 
     message="Please wait while we fetch the latest soil moisture measurements"
   />
-  <!-- <Settings /> -->
 </template>
   
 <script setup>
@@ -459,10 +536,13 @@ import Chart from 'chart.js/auto'
 const soilMoistureData = ref([])
 const isLoading = ref(true)
 
+// Chart related variables - COMPLETELY NON-REACTIVE
 const chartCanvas = ref(null)
-const chart = ref(null)
 
-const chartData = ref([])
+// Use regular variables (not reactive) for chart instance and data
+let chartInstance = null
+let chartDataArray = []
+let chartLabelsArray = []
 
 const currentMoistureValue = ref('--')
 const lastUpdated = ref('--')
@@ -472,14 +552,568 @@ const moistureStats = ref({
   avg: '--'
 })
 
+// Add flags to prevent recursive updates and overlapping calls
+let isUpdatingChart = false
+let isPolling = false
+
 let pollingInterval = null
 const POLLING_FREQUENCY = 5000 
 
-let PRINT_CHART_DATA_LIMIT = 0
+// Pagination state
+const paginationInfo = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalItems: 0,
+  itemsPerPage: 20,
+  hasNext: false,
+  hasPrev: false
+})
 
-const printTable = async () => {
-  activeDropdown.value = null;
+const itemsPerPage = ref(20)
+
+// Print date range state
+const printDateRange = ref({
+  start: '',
+  end: ''
+})
+
+// Modal state
+const showPrintModal = ref(false)
+const printDateError = ref('')
+
+// Modal methods
+const openPrintModal = () => {
+  // Initialize with default range (last 7 days) if not set
+  if (!printDateRange.value.start || !printDateRange.value.end) {
+    initializePrintDateRange()
+  }
+  showPrintModal.value = true
+  printDateError.value = ''
+}
+
+const cancelPrint = () => {
+  showPrintModal.value = false
+  printDateError.value = ''
+}
+
+const handlePrintWithDateRange = async () => {
+  // Validate dates
+  if (!printDateRange.value.start || !printDateRange.value.end) {
+    printDateError.value = 'Please select both start and end dates'
+    return
+  }
+
+  const startDate = new Date(printDateRange.value.start)
+  const endDate = new Date(printDateRange.value.end)
+
+  if (startDate > endDate) {
+    printDateError.value = 'Start date cannot be after end date'
+    return
+  }
+
+  // Close modal and proceed with printing
+  showPrintModal.value = false
+  printDateError.value = ''
   
+  isLoading.value = true
+
+  try {
+    const data = await fetchDataForDateRange(printDateRange.value.start, printDateRange.value.end)
+    
+    if (data.length === 0) {
+      alert('No soil moisture data found for the selected date range.')
+      isLoading.value = false
+      return
+    }
+
+    await generatePrintForDateRange(data, printDateRange.value.start, printDateRange.value.end)
+
+  } catch (error) {
+    console.error('Error printing date range:', error)
+    alert('Error generating print. Please try again.')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Initialize print date range with default values (last 7 days)
+const initializePrintDateRange = () => {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(start.getDate() - 7)
+  
+  printDateRange.value = {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0]
+  }
+}
+
+// Quick date range functions
+const setQuickDateRange = (range) => {
+  const today = new Date()
+  const start = new Date()
+  
+  switch (range) {
+    case 'today':
+      start.setDate(today.getDate())
+      break
+    case 'week':
+      start.setDate(today.getDate() - 7)
+      break
+    case 'month':
+      start.setMonth(today.getMonth() - 1)
+      break
+  }
+  
+  printDateRange.value = {
+    start: start.toISOString().split('T')[0],
+    end: today.toISOString().split('T')[0]
+  }
+  printDateError.value = ''
+}
+
+// Fetch data for the table (paginated)
+const fetchSoilMoistureData = async (page = 1, limit = 20) => {
+  try {
+    console.log(`🌱 Fetching table data - Page: ${page}, Limit: ${limit}`);
+
+    const response = await api.get(`/soil-moisture?page=${page}&limit=${limit}`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+
+    console.log('📊 Table API Response:', response)
+    
+    let data, paginationData
+    if (response && typeof response === 'object') {
+      if (response.data !== undefined) {
+        // Handle paginated response structure
+        if (response.data.data && response.data.pagination) {
+          data = response.data.data;
+          paginationData = response.data.pagination;
+        } else {
+          // Fallback to non-paginated response
+          data = response.data;
+          paginationData = {
+            currentPage: page,
+            totalPages: Math.ceil(data.length / limit),
+            totalItems: data.length,
+            itemsPerPage: limit,
+            hasNext: page < Math.ceil(data.length / limit),
+            hasPrev: page > 1
+          };
+        }
+      } else {
+        data = [];
+        paginationData = {
+          currentPage: page,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: limit,
+          hasNext: false,
+          hasPrev: false
+        };
+      }
+    }
+
+    console.log('📊 Table data received:', data.length, 'items')
+
+    if (!Array.isArray(data)) {
+      console.error('❌ Expected array but got:', typeof data, data)
+      throw new Error(`Expected array but got: ${typeof data}`)
+    }
+
+    const processedData = data.map((reading, index) => {
+      let timestamp
+      if (reading.timestamp) {
+        if (typeof reading.timestamp === 'string') {
+          timestamp = new Date(reading.timestamp)
+        } else if (reading.timestamp instanceof Date) {
+          timestamp = reading.timestamp
+        } else {
+          console.warn('Unknown timestamp format:', reading.timestamp)
+          timestamp = new Date()
+        }
+      } else {
+        timestamp = new Date()
+      }
+
+      const soilMoistureValue = reading.soilMoisture
+
+      return {
+        id: reading.id || `${(page - 1) * limit + index + 1}`,
+        timestamp: timestamp.getTime() / 1000,
+        soilMoisture: Number(soilMoistureValue).toFixed(2),
+        soilStatus: calculateSoilStatus(Number(soilMoistureValue)),
+        date: timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        }),
+        time: timestamp.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }),
+        rawTimestamp: timestamp, 
+        deviceId: reading.deviceId || 'esp32-2'
+      }
+    })
+
+    // Update the table data only
+    soilMoistureData.value = processedData
+    
+    // Store pagination info
+    paginationInfo.value = paginationData;
+    
+    isLoading.value = false
+    
+    console.log(`✅ Successfully loaded ${processedData.length} table records for page ${page}`)
+
+  } catch (error) {
+    console.error("❌ Error fetching table data:", error)
+    isLoading.value = false
+  }
+}
+
+// Fetch data for the chart (always latest 20 readings)
+const fetchChartData = async () => {
+  try {
+    const response = await api.get('/soil-moisture/recent?limit=20', {
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+
+    if (!response?.data) {
+      return;
+    }
+
+    // Process data
+    const newChartData = Array.isArray(response.data) ? response.data : [];
+    if (newChartData.length === 0) {
+      return;
+    }
+
+    // Process data without Vue reactivity
+    const processedData = newChartData
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp || Date.now()),
+        value: Number(reading.soilMoisture) || 0
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // Update stats
+    if (processedData.length > 0) {
+      const values = processedData.map(item => item.value);
+      const latestReading = processedData[processedData.length - 1];
+
+      currentMoistureValue.value = latestReading.value.toFixed(2);
+      lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+
+      moistureStats.value = {
+        min: Math.min(...values).toFixed(2),
+        max: Math.max(...values).toFixed(2),
+        avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
+      };
+    }
+
+    // Update chart arrays directly (non-reactive)
+    chartDataArray = processedData.map(item => item.value);
+    chartLabelsArray = processedData.map(item => 
+      item.timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    );
+
+    console.log('📊 Chart data updated:', chartDataArray.length, 'points');
+
+    // Update chart safely
+    if (!chartInstance) {
+      console.log('🔄 Initializing chart for the first time');
+      nextTick(() => {
+        initializeChart();
+      });
+    } else {
+      console.log('🔄 Updating existing chart');
+      safeUpdateChart();
+    }
+
+  } catch (error) {
+    console.error('Error fetching chart data:', error);
+  }
+};
+
+// Safe chart update with protection against recursion
+const safeUpdateChart = () => {
+  if (isUpdatingChart || !chartInstance) {
+    console.log('Chart update skipped - already updating or chart not ready');
+    return;
+  }
+
+  isUpdatingChart = true;
+
+  try {
+    console.log('🔄 Starting chart update');
+    
+    // Update chart data directly - no Vue reactivity involved
+    chartInstance.data.labels = [...chartLabelsArray];
+    chartInstance.data.datasets[0].data = [...chartDataArray];
+
+    // Update chart with no animation
+    chartInstance.update('none');
+    
+    console.log('✅ Chart updated successfully');
+    
+  } catch (error) {
+    console.error('Error updating chart:', error);
+  } finally {
+    isUpdatingChart = false;
+  }
+};
+
+// Initialize chart when component mounts
+const initializeChart = () => {
+  if (!chartCanvas.value) {
+    console.log('Chart canvas not ready, retrying...');
+    setTimeout(initializeChart, 100);
+    return;
+  }
+
+  try {
+    // Destroy existing chart if it exists
+    if (chartInstance) {
+      console.log('Destroying existing chart');
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
+    const ctx = chartCanvas.value.getContext('2d');
+    
+    console.log('🔄 Creating new chart with data:', chartDataArray.length, 'points');
+    
+    // Create chart with initial data
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [...chartLabelsArray],
+        datasets: [{
+          label: 'Soil Moisture (%)',
+          data: [...chartDataArray],
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 0
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: function(context) {
+                return `Moisture: ${context.parsed.y}%`;
+              },
+              title: function(context) {
+                return `Time: ${context[0].label}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Time',
+              color: '#6b7280',
+              font: {
+                size: 12
+              }
+            },
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 8,
+              callback: function(value, index, values) {
+                // Show fewer labels for better performance
+                return index % Math.ceil(values.length / 6) === 0 ? this.getLabelForValue(value) : '';
+              }
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Moisture (%)',
+              color: '#6b7280',
+              font: {
+                size: 12
+              }
+            },
+            min: 0,
+            max: 100,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.04)'
+            },
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ Chart initialized successfully');
+
+  } catch (error) {
+    console.error('Error initializing chart:', error);
+    isUpdatingChart = false;
+  }
+};
+
+// Combined polling function with debouncing
+const setupPollingListener = () => {
+  let intervalId = null;
+  
+  const poll = async () => {
+    if (isPolling) {
+      return; // Skip if already polling
+    }
+    
+    isPolling = true;
+    
+    try {
+      await fetchSoilMoistureData(paginationInfo.value.currentPage, itemsPerPage.value);
+      await fetchChartData();
+    } catch (error) {
+      console.error('Polling error:', error);
+    } finally {
+      isPolling = false;
+    }
+  };
+
+  // Initial fetch
+  console.log('🔄 Starting initial data fetch');
+  poll();
+  
+  // Set up interval with longer delay to prevent overlap
+  intervalId = setInterval(poll, POLLING_FREQUENCY + 1000);
+  
+  // Return cleanup function
+  return () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+    }
+    isPolling = false;
+    isUpdatingChart = false;
+  };
+};
+
+// Update pagination functions to only fetch table data
+const nextPage = async () => {
+  if (paginationInfo.value.hasNext) {
+    const nextPage = paginationInfo.value.currentPage + 1;
+    isLoading.value = true;
+    await fetchSoilMoistureData(nextPage, itemsPerPage.value);
+  }
+}
+
+const prevPage = async () => {
+  if (paginationInfo.value.hasPrev) {
+    const prevPage = paginationInfo.value.currentPage - 1;
+    isLoading.value = true;
+    await fetchSoilMoistureData(prevPage, itemsPerPage.value);
+  }
+}
+
+const goToPage = async (page) => {
+  if (typeof page === 'number' && page >= 1 && page <= paginationInfo.value.totalPages) {
+    isLoading.value = true;
+    await fetchSoilMoistureData(page, itemsPerPage.value);
+  }
+}
+
+// Fetch data for date range printing
+const fetchDataForDateRange = async (startDate, endDate) => {
+  try {
+    console.log(`📅 Fetching data for date range: ${startDate} to ${endDate}`)
+    
+    // Convert dates to proper format for API
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999) // Include entire end date
+    
+    // Fetch all data and filter client-side
+    const response = await api.get('/soil-moisture/all', {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+
+    let allData = []
+    if (response && response.data) {
+      allData = Array.isArray(response.data) ? response.data : []
+    }
+
+    // Filter data by date range
+    const filteredData = allData.filter(reading => {
+      const readingDate = new Date(reading.timestamp)
+      return readingDate >= start && readingDate <= end
+    })
+
+    // Sort by timestamp descending
+    filteredData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+
+    console.log(`✅ Found ${filteredData.length} records in date range`)
+
+    return filteredData
+
+  } catch (error) {
+    console.error('❌ Error fetching data for date range:', error)
+    return []
+  }
+}
+
+// Print current page (original functionality)
+const printCurrentPage = () => {
+  printTable()
+}
+
+// Original print table function (for current page)
+const printTable = async () => {
   const tempContainer = document.createElement('div');
   tempContainer.style.width = '800px';
   tempContainer.style.height = '400px';
@@ -502,7 +1136,8 @@ const printTable = async () => {
     day: 'numeric' 
   });
   
-  const soilMoistureRows = sortedData.value.map(row => ({
+  // Use current table data for the table in print
+  const soilMoistureRows = soilMoistureData.value.map(row => ({
     id: row.id,
     date: row.date,
     time: row.time,
@@ -511,55 +1146,39 @@ const printTable = async () => {
     soilStatus: row.soilStatus
   }));
   
-  // Get ALL data for the chart
-  const printChartData = soilMoistureData.value
-    .filter(item => item.soilMoisture !== '--')
-    .map(item => ({
-      timestamp: item.rawTimestamp,
-      value: Number(item.soilMoisture)
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp); 
+  // Use chart data arrays for the chart in print
+  const printChartData = chartDataArray.map((value, index) => ({
+    timestamp: new Date(Date.now() - (chartDataArray.length - index - 1) * 60000), // Approximate timestamps
+    value: value
+  }));
   
-  console.log(`📊 Print chart will show ${printChartData.length} records`);
+  console.log(`📊 Print chart will show ${printChartData.length} latest records from chart data`);
   
-  // Calculate overall statistics from ALL data
+  // Calculate statistics from chart data
   const printChartValues = printChartData.map(item => item.value);
   const overallMin = printChartValues.length > 0 ? Math.min(...printChartValues) : 0;
   const overallMax = printChartValues.length > 0 ? Math.max(...printChartValues) : 100;
   const overallAvg = printChartValues.length > 0 ? 
     (printChartValues.reduce((sum, val) => sum + val, 0) / printChartValues.length) : 0;
   
-  console.log(`📈 Data range: ${overallMin}% - ${overallMax}% (Avg: ${overallAvg.toFixed(2)}%)`);
-  
-  // For the chart display, use all data but adjust scaling to show the actual range
-  const chartDisplayData = printChartData;
-  
   let chartImage = '';
   
   try {
     const ctx = tempCanvas.getContext('2d');
     
-    // Calculate dynamic y-axis scaling based on actual data range
+    // Calculate dynamic y-axis scaling
     const dataRange = overallMax - overallMin;
-    const yAxisPadding = dataRange * 0.1; // 10% padding
+    const yAxisPadding = dataRange * 0.1;
     const yMin = Math.max(0, Math.floor(overallMin - yAxisPadding));
     const yMax = Math.min(100, Math.ceil(overallMax + yAxisPadding));
-    
-    console.log(`📊 Y-axis range: ${yMin}% - ${yMax}%`);
     
     const tempChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: chartDisplayData.map(item => {
-          return item.timestamp.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
-        }),
+        labels: chartLabelsArray,
         datasets: [{
-          label: 'Soil Moisture (%)',
-          data: chartDisplayData.map(item => item.value), 
+          label: 'Soil Moisture (%) - Latest 20 Readings',
+          data: chartDataArray, 
           borderColor: '#10b981', 
           backgroundColor: 'rgba(16, 185, 129, 0.15)', 
           borderWidth: 3,
@@ -597,8 +1216,8 @@ const printTable = async () => {
         scales: {
           y: {
             beginAtZero: false,
-            min: yMin, // Use dynamic min based on data
-            max: yMax, // Use dynamic max based on data
+            min: yMin,
+            max: yMax,
             title: {
               display: true,
               text: 'Moisture (%)',
@@ -611,9 +1230,9 @@ const printTable = async () => {
             ticks: {
               font: { size: 12 },
               color: '#64748b',
-              stepSize: calculateStepSize(dataRange), // Dynamic step size
+              stepSize: calculateStepSize(dataRange),
               callback: function(value) {
-                return value + '%'; // Add percentage sign to y-axis labels
+                return value + '%';
               }
             },
             grid: {
@@ -627,12 +1246,11 @@ const printTable = async () => {
               maxTicksLimit: 10,
               maxRotation: 45,
               callback: function(value, index, values) {
-                // Show fewer labels for better readability
                 return index % Math.ceil(values.length / 10) === 0 ? this.getLabelForValue(value) : '';
               }
             },
             grid: {
-              display: false // Hide x-axis grid lines for cleaner look
+              display: false
             }
           }
         }
@@ -661,6 +1279,196 @@ const printTable = async () => {
   }
 };
 
+// Generate print for date range
+const generatePrintForDateRange = async (data, startDate, endDate) => {
+  const tempContainer = document.createElement('div')
+  tempContainer.style.width = '800px'
+  tempContainer.style.height = '400px'
+  tempContainer.style.position = 'absolute'
+  tempContainer.style.left = '-9999px'
+  tempContainer.style.backgroundColor = 'white'
+  tempContainer.style.padding = '20px'
+  
+  const tempCanvas = document.createElement('canvas')
+  tempCanvas.width = 800
+  tempCanvas.height = 400
+  tempContainer.appendChild(tempCanvas)
+  document.body.appendChild(tempContainer)
+  
+  const now = new Date()
+  const formattedDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+  
+  // Process data for printing
+  const soilMoistureRows = data.map((reading, index) => {
+    const timestamp = new Date(reading.timestamp)
+    return {
+      id: reading.id || `${index + 1}`,
+      date: timestamp.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit'
+      }),
+      time: timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }),
+      device: reading.deviceId || 'N/A',
+      soilMoisture: Number(reading.soilMoisture).toFixed(2),
+      soilStatus: calculateSoilStatus(Number(reading.soilMoisture)),
+      rawTimestamp: timestamp
+    }
+  })
+  
+  // Prepare chart data
+  const printChartData = data
+    .map(reading => ({
+      timestamp: new Date(reading.timestamp),
+      value: Number(reading.soilMoisture)
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp)
+  
+  console.log(`📊 Print chart will show ${printChartData.length} records from date range`)
+  
+  // Calculate statistics
+  const printChartValues = printChartData.map(item => item.value)
+  const overallMin = printChartValues.length > 0 ? Math.min(...printChartValues) : 0
+  const overallMax = printChartValues.length > 0 ? Math.max(...printChartValues) : 100
+  const overallAvg = printChartValues.length > 0 ? 
+    (printChartValues.reduce((sum, val) => sum + val, 0) / printChartValues.length) : 0
+  
+  let chartImage = ''
+  
+  try {
+    const ctx = tempCanvas.getContext('2d')
+    
+    // Calculate dynamic y-axis scaling
+    const dataRange = overallMax - overallMin
+    const yAxisPadding = dataRange * 0.1
+    const yMin = Math.max(0, Math.floor(overallMin - yAxisPadding))
+    const yMax = Math.min(100, Math.ceil(overallMax + yAxisPadding))
+    
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: printChartData.map(item => {
+          return item.timestamp.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })
+        }),
+        datasets: [{
+          label: 'Soil Moisture (%)',
+          data: printChartData.map(item => item.value), 
+          borderColor: '#10b981', 
+          backgroundColor: 'rgba(16, 185, 129, 0.15)', 
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#10b981',
+          pointBorderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        animation: false, 
+        plugins: {
+          legend: { 
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `Moisture: ${context.raw.toFixed(1)}%`
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: yMin,
+            max: yMax,
+            title: {
+              display: true,
+              text: 'Moisture (%)',
+              color: '#10b981',
+              font: {
+                size: 14,
+                weight: '600'
+              }
+            },
+            ticks: {
+              font: { size: 12 },
+              color: '#64748b',
+              stepSize: calculateStepSize(dataRange),
+              callback: function(value) {
+                return value + '%'
+              }
+            },
+            grid: {
+              color: 'rgba(100, 116, 139, 0.2)'
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 9 },
+              color: '#64748b',
+              maxTicksLimit: 10,
+              maxRotation: 45,
+              callback: function(value, index, values) {
+                return index % Math.ceil(values.length / 10) === 0 ? this.getLabelForValue(value) : ''
+              }
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    })
+    
+    setTimeout(async () => {
+      try {
+        chartImage = tempCanvas.toDataURL('image/png', 1.0)
+        
+        tempChart.destroy()
+        document.body.removeChild(tempContainer)
+        
+        generatePrintHTML(chartImage, soilMoistureRows, formattedDate, now, printChartData.length, overallMin, overallMax, overallAvg, startDate, endDate)
+      } catch (error) {
+        console.error('Error capturing chart:', error)
+        document.body.removeChild(tempContainer)
+        generatePrintHTML('', soilMoistureRows, formattedDate, now, 0, 0, 0, 0, startDate, endDate)
+      }
+    }, 500)
+    
+  } catch (error) {
+    console.error('Error creating chart:', error)
+    document.body.removeChild(tempContainer)
+    generatePrintHTML('', soilMoistureRows, formattedDate, now, 0, 0, 0, 0, startDate, endDate)
+  }
+}
+
 // Helper function to calculate appropriate step size for y-axis
 function calculateStepSize(dataRange) {
   if (dataRange <= 10) return 1;
@@ -670,7 +1478,12 @@ function calculateStepSize(dataRange) {
   return 20;
 }
 
-const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, chartRecordCount, printMin, printMax, printAvg) => {
+// Updated print HTML generator with date range info
+const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, chartRecordCount, printMin, printMax, printAvg, startDate = '', endDate = '') => {
+  const dateRangeText = startDate && endDate 
+    ? `Date Range: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
+    : 'Current Page Data'
+  
   const tableContent = `
     <!DOCTYPE html>
     <html>
@@ -697,6 +1510,16 @@ const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, cha
         .header .date {
           color: #6b7280;
           font-size: 14px;
+        }
+        .date-range {
+          text-align: center;
+          margin: 10px 0;
+          padding: 8px;
+          background-color: #f0fdf4;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #065f46;
         }
         .section-header {
           margin: 30px 0 18px 0;
@@ -844,6 +1667,10 @@ const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, cha
         <div class="date">${formattedDate}</div>
       </div>
       
+      <div class="date-range">
+        ${dateRangeText}
+      </div>
+      
       <div class="summary">
         <h3>Report Summary</h3>
         <div class="summary-item">
@@ -867,7 +1694,7 @@ const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, cha
       <div class="section-header">Soil Moisture Trend Analysis</div>
       ${chartImage ? `
         <div class="chart-title">Soil Moisture Levels Over Time</div>
-        <div class="chart-info">Showing ${chartRecordCount} most recent data points</div>
+        <div class="chart-info">Showing ${chartRecordCount} data points</div>
         <img src="${chartImage}" class="chart-image" alt="Soil Moisture Chart" />
         
         <div class="stats-summary">
@@ -955,9 +1782,10 @@ const generatePrintHTML = (chartImage, soilMoistureRows, formattedDate, now, cha
   };
 };
 
-const paginationNumbers = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
+// Existing computed properties and methods
+const displayedPages = computed(() => {
+  const total = paginationInfo.value.totalPages
+  const current = paginationInfo.value.currentPage
   
   if (total <= 1) return [1]
   
@@ -970,318 +1798,6 @@ const paginationNumbers = computed(() => {
   }
 })
 
-const dataCache = ref(null)
-
-const fetchSoilMoistureData = async () => {
-  try {
-    console.log('🌱 Fetching soil moisture data...')
-
-    const response = await api.get(`/soil-moisture`, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    })
-
-    console.log('📊 API Response:', response)
-    
-    let data
-    if (response && typeof response === 'object') {
-      if (response.data !== undefined) {
-        data = response.data
-        console.log('📊 Response status:', response.status)
-      } else if (Array.isArray(response)) {
-        data = response
-      } else {
-        data = response
-      }
-    }
-
-    console.log('📊 Response data:', data)
-
-    if (!Array.isArray(data)) {
-      console.error('❌ Expected array but got:', typeof data, data)
-      throw new Error(`Expected array but got: ${typeof data}`)
-    }
-
-    console.log('📊 Number of items received:', data.length)
-
-    if (data.length === 0) {
-      console.log('📭 No soil moisture data found in database')
-      soilMoistureData.value = []
-      isLoading.value = false
-      return
-    }
-
-    const processedData = data.map((reading, index) => {
-      let timestamp
-      if (reading.timestamp) {
-        if (typeof reading.timestamp === 'string') {
-          timestamp = new Date(reading.timestamp)
-        } else if (reading.timestamp instanceof Date) {
-          timestamp = reading.timestamp
-        } else {
-          console.warn('Unknown timestamp format:', reading.timestamp)
-          timestamp = new Date()
-        }
-      } else {
-        timestamp = new Date()
-      }
-
-      const soilMoistureValue = reading.soilMoisture !== undefined ? reading.soilMoisture : 
-                               reading.value !== undefined ? reading.value : 
-                               reading.moisture !== undefined ? reading.moisture : 0
-
-      return {
-        id: `${index + 1}`,
-        timestamp: timestamp.getTime() / 1000,
-        soilMoisture: Number(soilMoistureValue).toFixed(2),
-        soilStatus: calculateSoilStatus(Number(soilMoistureValue)),
-        date: timestamp.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit'
-        }),
-        time: timestamp.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        }),
-        rawTimestamp: timestamp, 
-        deviceId: reading.deviceId || reading.device_id || 'unknown'
-      }
-    })
-
-    // Update the data - this will trigger reactive updates
-    soilMoistureData.value = processedData
-    dataCache.value = processedData
-    isLoading.value = false
-    
-    // Update chart with the latest data
-    initializeChartData(processedData)
-    PRINT_CHART_DATA_LIMIT = processedData.length
-    
-    console.log(`✅ Successfully loaded ${processedData.length} soil moisture readings`)
-
-  } catch (error) {
-    console.error("❌ Error fetching soil moisture data:", error)
-    isLoading.value = false
-    // Don't clear the data on error, keep showing existing data
-  }
-}
-
-const setupPollingListener = () => {
-  // Clear any existing interval
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-  }
-  
-  // Start polling immediately and then set interval
-  fetchSoilMoistureData()
-  pollingInterval = setInterval(fetchSoilMoistureData, POLLING_FREQUENCY)
-  
-  // Return cleanup function
-  return () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
-    }
-  }
-}
-
-let debounceTimer = null
-let lastUpdateTime = Date.now()
-let combinedRealtimeData = []
-
-const initializeChartData = (data) => {
-  // Take the most recent 20 readings for the chart
-  const recentData = data.slice(-20)
-  
-  const chartDataPoints = recentData
-    .map(item => ({
-      timestamp: item.rawTimestamp, 
-      value: Number(item.soilMoisture),
-      deviceId: item.deviceId || 'unknown'
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp) 
-  
-  chartData.value = chartDataPoints
-  combinedRealtimeData = chartDataPoints
-  
-  if (chartDataPoints.length > 0) {
-    const latestReading = chartDataPoints[chartDataPoints.length - 1]
-    currentMoistureValue.value = latestReading.value.toFixed(2)
-    
-    lastUpdated.value = latestReading.timestamp.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
-    
-    const values = chartDataPoints.map(item => item.value)
-    moistureStats.value = {
-      min: Math.min(...values).toFixed(2),
-      max: Math.max(...values).toFixed(2),
-      avg: (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)
-    }
-  }
-  
-  initializeChart()
-}
-
-const initializeChart = () => {
-  nextTick(() => {
-    if (chartCanvas.value) {
-      if (chart.value) {
-        chart.value.destroy()
-      }
-      
-      const ctx = chartCanvas.value.getContext('2d')
-      
-      chart.value = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: chartData.value.map(item => {
-            return item.timestamp.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            })
-          }),
-          datasets: [{
-            label: 'Soil Moisture (%)',
-            data: chartData.value.map(item => item.value),
-            borderColor: '#10b981', 
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#10b981',
-            pointBorderWidth: 1.5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
-          animation: false,
-          layout: {
-            padding: {
-              top: 10,
-              left: 10,
-              right: 10,
-              bottom: 10
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              min: Math.max(0, Math.floor(moistureStats.value.min * 0.95)),
-              max: Math.min(100, Math.ceil(moistureStats.value.max * 1.05)),
-              title: {
-                display: true,
-                text: 'Moisture (%)',
-                color: '#10b981',
-                font: {
-                  size: 11,
-                  weight: '600'
-                },
-                padding: {
-                  bottom: 10
-                }
-              },
-              ticks: {
-                font: {
-                  size: 10
-                },
-                color: '#64748b', 
-                padding: 8
-              },
-              grid: {
-                color: 'rgba(0, 0, 0, 0.04)',
-                drawBorder: false
-              }
-            },
-            x: {
-              ticks: {
-                font: {
-                  size: 10
-                },
-                maxRotation: 0,
-                padding: 8,
-                color: '#64748b' 
-              },
-              grid: {
-                display: false,
-                drawBorder: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false, 
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#334155', 
-              bodyColor: '#334155', 
-              borderColor: '#e2e8f0', 
-              borderWidth: 1,
-              padding: 12,
-              cornerRadius: 6,
-              displayColors: true,
-              boxWidth: 8,
-              boxHeight: 8,
-              usePointStyle: true,
-              titleFont: {
-                size: 12,
-                weight: '600'
-              },
-              bodyFont: {
-                size: 12
-              },
-              callbacks: {
-                label: function(context) {
-                  return `Moisture: ${context.raw.toFixed(2)}%`;
-                }
-              }
-            }
-          }
-        }
-      })
-    }
-  })
-}
-
-const updateChart = () => {
-  if (chart.value && chartData.value.length > 0) {
-    chart.value.data.labels = chartData.value.map(item => {
-      return item.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    })
-    
-    chart.value.data.datasets[0].data = chartData.value.map(item => item.value)
-    
-    const values = chartData.value.map(item => item.value)
-    if (values.length > 0) {
-      chart.value.options.scales.y.min = Math.max(0, Math.min(...values) * 0.95)
-      chart.value.options.scales.y.max = Math.min(100, Math.max(...values) * 1.05)
-    }
-    
-    chart.value.update('none') 
-  }
-}
-
 const calculateSoilStatus = (moisture) => {
   if (moisture >= 70) return 'WET'
   if (moisture >= 30 && moisture < 70) return 'MEDIUM'
@@ -1293,8 +1809,6 @@ const filters = ref({
 })
 
 const searchQuery = ref('')
-const itemsPerPage = ref(20) 
-const currentPage = ref(1)
 const activeDropdown = ref(null)
 const sortKey = ref('date')
 const sortDirection = ref('desc')
@@ -1314,6 +1828,7 @@ const headers = [
 
 const exportFormats = ['csv', 'pdf']
 
+// Client-side filtering for current page data
 const filteredData = computed(() => {
   let result = [...soilMoistureData.value]
 
@@ -1361,37 +1876,11 @@ const sortedData = computed(() => {
 })
 
 const paginatedData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return sortedData.value.slice(startIndex, endIndex)
+  return sortedData.value
 })
 
 const totalPages = computed(() => {
-  return Math.ceil(sortedData.value.length / itemsPerPage.value)
-})
-
-const displayedPages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const pages = []
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
-  } else {
-    pages.push(1)
-
-    if (current <= 3) {
-      pages.push(2, 3, 4, 5, '...', total)
-    } else if (current >= total - 2) {
-      pages.push('...', total - 4, total - 3, total - 2, total - 1, total)
-    } else {
-      pages.push('...', current - 1, current, current + 1, '...', total)
-    }
-  }
-
-  return pages
+  return paginationInfo.value.totalPages
 })
 
 const toggleDropdown = (dropdownName) => {
@@ -1409,7 +1898,7 @@ const handleClickOutside = (event) => {
 }
 
 const performSearch = () => {
-  currentPage.value = 1 
+  // Client-side search only for current page
 }
 
 const applyFilters = () => {
@@ -1428,7 +1917,6 @@ const applyFilters = () => {
   })
 
   activeFilters.value = newFilters
-  currentPage.value = 1 
   activeDropdown.value = null
 }
 
@@ -1442,202 +1930,399 @@ const setSortKey = (key) => {
   activeDropdown.value = null 
 }
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
+// Add these utility functions at the top of your script section
+const parseBackendTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
+  
+  if (timestamp instanceof Date) {
+    return timestamp;
   }
-}
-
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
+  
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
   }
-}
-
-const updatePagination = () => {
-  currentPage.value = 1 
-}
-
-const goToPage = (page) => {
-  if (typeof page === 'number') {
-    currentPage.value = page
+  
+  if (typeof timestamp === 'number') {
+    if (timestamp > 1e12) {
+      return new Date(timestamp);
+    } else {
+      return new Date(timestamp * 1000);
+    }
   }
-}
+  
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  
+  console.warn('Unable to parse timestamp, using current time:', timestamp);
+  return new Date();
+};
 
+const formatDateForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
+};
+
+const formatTimeForDisplay = (timestamp) => {
+  const date = parseBackendTimestamp(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+// Now the exportData function
 const exportData = async (format) => {
-  const dataToExport = sortedData.value
-  if (!dataToExport.length) return
-
-  const exportHeaders = headers.map(h => h.label)
-  const exportRows = dataToExport.map(row =>
-    headers.map(header => row[header.key] ?? '')
-  )
-
-  if (format === 'csv') {
-    let csvContent = exportHeaders.join(',') + '\n'
-    exportRows.forEach(row => {
-      csvContent += row.map(val => `"${val}"`).join(',') + '\n'
-    })
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    saveAs(blob, 'soil_moisture_data.csv')
-    window.showToast('Soil Moisture exported as CSV', 'success')
-  } else if (format === 'pdf') {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm'
-    })
+  try {
+    isLoading.value = true
+    console.log(`📤 Starting ${format.toUpperCase()} export...`)
     
-    doc.setFontSize(16)
-    doc.text('Soil Moisture Data Report', 105, 15, { align: 'center' })
+    // For exports, fetch ALL data without pagination
+    let allData = []
     
-    doc.setFontSize(10)
-    const dateStr = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-    doc.text(`Generated on: ${dateStr}`, 105, 22, { align: 'center' })
-    
-    doc.setFontSize(12)
-    doc.text('Current Moisture Status:', 15, 30)
-    doc.text(`Value: ${currentMoistureValue.value}%`, 15, 36)
-    doc.text(`Status: ${calculateSoilStatus(currentMoistureValue.value)}`, 15, 42)
-    
-    if (chartCanvas.value) {
-      const canvas = chartCanvas.value
-      const chartImage = canvas.toDataURL('image/png')
+    try {
+      console.log('🚀 Fetching ALL Soil Moisture data for export...')
+      const response = await api.get('/soil-moisture/all')
       
-      const imgWidth = 180 
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      doc.addImage(chartImage, 'PNG', (210 - imgWidth) / 2, 50, imgWidth, imgHeight)
+      console.log('📊 Backend response received:', {
+        dataLength: response.data?.length,
+        firstRecord: response.data?.[0]
+      })
+      
+      if (response.data && Array.isArray(response.data)) {
+        allData = response.data.map((reading, index) => {
+          const timestamp = parseBackendTimestamp(reading.timestamp)
+          
+          // Use soilMoisture field from backend
+          const moistureValue = reading.soilMoisture !== undefined ? reading.soilMoisture : reading.moisture
+          
+          return {
+            id: reading.id || `export_${index}`,
+            moisture: moistureValue?.toFixed(2) || '--',
+            date: formatDateForDisplay(reading.timestamp),
+            time: formatTimeForDisplay(reading.timestamp),
+            rawTimestamp: timestamp,
+            deviceId: reading.deviceId || 'esp32-2',
+            timestampMs: timestamp.getTime(),
+            status: calculateSoilStatus(moistureValue || 0)
+          }
+        })
+        
+        // Sort by timestamp (newest first)
+        allData.sort((a, b) => b.timestampMs - a.timestampMs)
+        
+        console.log(`✅ Fetched ALL ${allData.length} records for export`)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching ALL data for export:', error)
+      console.error('Error details:', error.response?.data)
+      
+      // Don't fall back to current page data - show error instead
+      window.showToast('Error fetching all data for export', 'error')
+      isLoading.value = false
+      return
+    }
+
+    if (!allData.length) {
+      window.showToast('No data available for export', 'warning')
+      isLoading.value = false
+      return
+    }
+
+    console.log(`📊 Exporting ALL ${allData.length} records`)
+
+    // Create export data with ALL records
+    const exportHeaders = ['Date', 'Time', 'Moisture (%)', 'Status', 'Device']
+    const exportRows = allData.map(row => [
+      row.date || '--',
+      row.time || '--', 
+      row.moisture !== undefined ? row.moisture : '--',
+      row.status || 'Unknown',
+      row.deviceId || 'esp32-2'
+    ])
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    if (format === 'csv') {
+      let csvContent = exportHeaders.join(',') + '\n'
+      exportRows.forEach(row => {
+        csvContent += row.map(val => `"${val}"`).join(',') + '\n'
+      })
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      saveAs(blob, `soil_moisture_data_${timestamp}.csv`)
+      window.showToast(`Exported ${allData.length} Soil Moisture records as CSV`, 'success')
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 10
+      const tableWidth = pageWidth - (margin * 2)
+      
+      // Title section
+      doc.setFontSize(16)
+      doc.setTextColor(16, 185, 129)
+      doc.text('Soil Moisture Data Report', pageWidth / 2, 20, { align: 'center' })
       
       doc.setFontSize(10)
-      doc.text('Moisture Statistics:', 15, 50 + imgHeight + 10)
-      doc.text(`Minimum: ${moistureStats.value.min}%`, 15, 50 + imgHeight + 16)
-      doc.text(`Average: ${moistureStats.value.avg}%`, 15, 50 + imgHeight + 22)
-      doc.text(`Maximum: ${moistureStats.value.max}%`, 15, 50 + imgHeight + 28)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+      doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
       
-      doc.addPage()
-      doc.setFontSize(14)
-      doc.text('Soil Moisture Data Table', 105, 15, { align: 'center' })
-      autoTable(doc, {
+      // Add moisture status summary
+      const statusCounts = allData.reduce((acc, row) => {
+        const status = row.status || 'Unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+      
+      doc.setFontSize(9)
+      doc.setTextColor(75, 85, 99)
+      let statusText = 'Moisture Status: '
+      const statusEntries = Object.entries(statusCounts)
+      statusEntries.forEach(([status, count], index) => {
+        const percentage = ((count / allData.length) * 100).toFixed(1)
+        statusText += `${status} ${count} (${percentage}%)`
+        if (index < statusEntries.length - 1) statusText += ' | '
+      })
+      
+      // Status summary on first page only
+      doc.text(statusText, pageWidth / 2, 40, { align: 'center' })
+      
+      let startY = 48
+      
+      // Configure autoTable for ALL data
+      const tableConfig = {
         head: [exportHeaders],
         body: exportRows,
-        startY: 22,
+        startY: startY,
+        margin: { left: margin, right: margin },
+        tableWidth: tableWidth,
         styles: { 
           fontSize: 8,
           cellPadding: 2,
-          overflow: 'linebreak'
+          overflow: 'linebreak',
+          textColor: [51, 51, 51],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+          minCellHeight: 6,
+          cellWidth: 'wrap'
         },
         headStyles: {
-          fillColor: [16, 185, 129], 
-          textColor: 255 
+          fillColor: [16, 185, 129],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 3
+        },
+        bodyStyles: {
+          cellPadding: 2,
+          lineWidth: 0.1,
+          minCellHeight: 6
         },
         alternateRowStyles: {
-          fillColor: [241, 245, 249] 
+          fillColor: [240, 253, 244]
         },
-        margin: { top: 20 }
+        columnStyles: {
+          0: { cellWidth: tableWidth * 0.22 }, // Date
+          1: { cellWidth: tableWidth * 0.18 }, // Time
+          2: { cellWidth: tableWidth * 0.20 }, // Moisture
+          3: { cellWidth: tableWidth * 0.25 }, // Status
+          4: { cellWidth: tableWidth * 0.15 }  // Device
+        },
+        pageBreak: 'auto',
+        showHead: 'everyPage',
+        tableLineWidth: 0.1,
+        theme: 'grid',
+        didParseCell: function (data) {
+          // Color code moisture status cells
+          if (data.column.index === 3 && data.section === 'body' && data.cell.raw) {
+            const status = data.cell.raw.toString()
+            if (status === 'Dry' || status === 'Very Dry') {
+              data.cell.styles.fillColor = [254, 226, 226]
+              data.cell.styles.textColor = [220, 38, 38]
+            } else if (status === 'Optimal' || status === 'Adequate') {
+              data.cell.styles.fillColor = [220, 252, 231]
+              data.cell.styles.textColor = [22, 163, 74]
+            } else if (status === 'Wet' || status === 'Very Wet') {
+              data.cell.styles.fillColor = [219, 234, 254]
+              data.cell.styles.textColor = [37, 99, 235]
+            }
+          }
+        },
+        didDrawPage: function (data) {
+          // Only add header on first page
+          if (data.pageNumber === 1) {
+            doc.setFontSize(16)
+            doc.setTextColor(16, 185, 129)
+            doc.text('Soil Moisture Data Report', pageWidth / 2, 20, { align: 'center' })
+            
+            doc.setFontSize(10)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 27, { align: 'center' })
+            doc.text(`Total Records: ${allData.length}`, pageWidth / 2, 33, { align: 'center' })
+            
+            // Status summary on first page only
+            doc.setFontSize(9)
+            doc.setTextColor(75, 85, 99)
+            doc.text(statusText, pageWidth / 2, 40, { align: 'center' })
+          }
+          
+          // Footer on every page
+          doc.setFontSize(8)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Page ${data.pageNumber} - ${allData.length} total records`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          )
+        }
+      }
+      
+      // Generate the table
+      autoTable(doc, tableConfig)
+      
+      doc.save(`soil_moisture_report_${timestamp}.pdf`)
+      window.showToast(`Exported ${allData.length} Soil Moisture records as PDF`, 'success')
+    } else if (format === 'docs') {
+      const tableRows = [
+        new TableRow({
+          children: exportHeaders.map(h => new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+            shading: {
+              fill: "10B981",
+              color: "FFFFFF"
+            }
+          }))
+        }),
+        ...exportRows.map(row =>
+          new TableRow({
+            children: row.map((cell, index) => {
+              const cellText = cell ? cell.toString() : ''
+              const textRun = new TextRun({ text: cellText, size: 20 })
+              
+              if (index === 3 && cellText) {
+                if (cellText === 'Dry' || cellText === 'Very Dry') {
+                  textRun.color = "FF0000"
+                } else if (cellText === 'Optimal' || cellText === 'Adequate') {
+                  textRun.color = "16A34A"
+                } else if (cellText === 'Wet' || cellText === 'Very Wet') {
+                  textRun.color = "2563EB"
+                }
+              }
+              
+              return new TableCell({
+                children: [new Paragraph({ children: [textRun] })],
+                width: { size: 20, type: 'pct' }
+              })
+            })
+          })
+        )
+      ]
+      
+      const docxDoc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1000,
+                right: 1000,
+                bottom: 1000,
+                left: 1000,
+              }
+            }
+          },
+          children: [
+            new Paragraph({ 
+              text: 'Soil Moisture Data Report', 
+              heading: 'Heading1',
+              alignment: 'center'
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleString()} | Total Records: ${allData.length}`,
+              alignment: 'center'
+            }),
+            new Paragraph({ text: '' }),
+            new Table({ 
+              width: {
+                size: 100,
+                type: 'pct'
+              },
+              rows: tableRows 
+            })
+          ]
+        }]
       })
-    } else {
-      doc.text('Soil Moisture Chart Not Available', 105, 50, { align: 'center' })
-      autoTable(doc, {
-        head: [exportHeaders],
-        body: exportRows,
-        startY: 60,
-        styles: { fontSize: 10 }
-      })
+      const buffer = await Packer.toBlob(docxDoc)
+      saveAs(buffer, `soil_moisture_data_${timestamp}.docx`)
+      window.showToast(`Exported ${allData.length} Soil Moisture records as DOCX`, 'success')
     }
     
-    doc.save('soil_moisture_report.pdf')
-    window.showToast('Soil Moisture report exported as PDF', 'success')
-  } else if (format === 'docs') {
-    const tableRows = [
-      new TableRow({
-        children: exportHeaders.map(h => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })]
-        }))
-      }),
-      ...exportRows.map(row =>
-        new TableRow({
-          children: row.map(cell =>
-            new TableCell({
-              children: [new Paragraph(cell ? cell.toString() : '')]
-            })
-          )
-        })
-      )
-    ]
-    const docxDoc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ text: 'Soil Moisture Data Table', heading: 'Heading1' }),
-          new Table({ rows: tableRows })
-        ]
-      }]
-    })
-    const buffer = await Packer.toBlob(docxDoc)
-    saveAs(buffer, 'soil_moisture_data.docx')
+  } catch (error) {
+    console.error('❌ Export error:', error)
+    window.showToast('Error exporting data. Please try again.', 'error')
+  } finally {
+    isLoading.value = false
+    activeDropdown.value = null
   }
-
-  activeDropdown.value = null
 }
-
-watch([searchQuery, activeFilters, itemsPerPage], () => {
-  currentPage.value = 1
-})
 
 let unsubscribe = null
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  
-  // Replace WebSocket with polling
-  const cleanup = setupPollingListener()
-  
-  // Store cleanup function
-  unsubscribe = cleanup
-  
-  // Resize handler
-  const handleResize = () => {
-    if (chart.value) {
-      chart.value.resize()
-    }
+onMounted(async () => {
+  try {
+    // Add event listeners
+    document.addEventListener('click', handleClickOutside);
+    
+    // Initialize print date range
+    initializePrintDateRange();
+    
+    // Wait for the next tick to ensure DOM is ready
+    await nextTick();
+    
+    // Start data polling
+    const cleanup = setupPollingListener();
+    unsubscribe = cleanup;
+    
+  } catch (error) {
+    console.error('Error during component mount:', error);
   }
-  
-  if (typeof ResizeObserver !== 'undefined') {
-    const resizeObserver = new ResizeObserver(handleResize)
-    if (chartCanvas.value) {
-      resizeObserver.observe(chartCanvas.value.parentElement)
-    }
-  } else {
-    window.addEventListener('resize', handleResize)
-  }
-})
+});
 
-// Update the onUnmounted hook:
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleClickOutside);
   
-  if (chart.value) {
-    chart.value.destroy()
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
   }
   
-  // Clean up polling interval
   if (unsubscribe) {
-    unsubscribe()
+    unsubscribe();
   }
   
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-  }
-  
-  window.removeEventListener('resize', () => {})
-})
+  // Reset flags
+  isPolling = false;
+  isUpdatingChart = false;
+});
 </script>
   
 <style>
-/* Core styles */
+/* Your existing CSS styles remain the same */
 .relative {
   position: relative;
 }
